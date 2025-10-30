@@ -15,6 +15,7 @@
           <th>Phương thức</th>
           <th>Trạng thái</th>
           <th>Ngày bán</th>
+          <th>Hành động</th>
         </tr>
       </thead>
       <tbody>
@@ -35,6 +36,18 @@
             </span>
           </td>
           <td>{{ formatDate(b.createdAt) }}</td>
+
+          <!-- Nút tải vé PDF -->
+          <td>
+            <button
+              class="btn btn-outline-primary btn-sm"
+              @click="downloadTicket(b.bookingId)"
+              :disabled="b.status !== 'PAID' || downloadingId === b.bookingId"
+            >
+              <span v-if="downloadingId === b.bookingId" class="spinner-border spinner-border-sm me-1"></span>
+              <i v-else class="bi bi-file-earmark-pdf"></i> Tải vé
+            </button>
+          </td>
         </tr>
       </tbody>
     </table>
@@ -72,4 +85,32 @@ function formatTime(t) {
 function formatDate(d) {
   return new Date(d).toLocaleDateString('vi-VN')
 }
+
+const downloadingId = ref(null)
+
+async function downloadTicket(bookingId) {
+  downloadingId.value = bookingId
+  try {
+    // Gọi API backend trả về file PDF
+    const res = await api.get(`/bookings/${bookingId}/ticket`, {
+      responseType: 'blob', // Quan trọng để nhận dạng file PDF
+    });
+
+    // Tạo Blob và link tải file
+    const blob = new Blob([res.data], { type: 'application/pdf' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `ticket_${bookingId}.pdf`; // Tên file tải xuống
+    link.click();
+
+    // Giải phóng bộ nhớ sau khi tải xong
+    URL.revokeObjectURL(link.href);
+  } catch (err) {
+    console.error('Lỗi khi tải vé PDF:', err);
+    alert('Không thể tải vé PDF! Kiểm tra lại booking ID hoặc đăng nhập.');
+  } finally {
+    downloadingId.value = null
+  }
+}
+
 </script>
