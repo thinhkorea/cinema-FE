@@ -1,4 +1,4 @@
-<template>
+<!-- <template>
   <div class="container py-5 text-center">
     <h2 v-if="success" class="text-success">✅ Thanh toán thành công!</h2>
     <h2 v-else class="text-danger">❌ Thanh toán thất bại!</h2>
@@ -33,4 +33,4 @@ onMounted(async () => {
 .container {
   max-width: 600px;
 }
-</style>
+</style> -->

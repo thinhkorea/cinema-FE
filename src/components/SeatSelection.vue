@@ -1,4 +1,4 @@
-<template>
+<!-- <template>
   <div class="container py-4">
     <h5 class="mb-3">🪑 Sơ đồ ghế cho suất chiếu {{ showtimeId }}</h5>
 
@@ -140,4 +140,4 @@ export default {
   background: #3b82f6;
   color: white;
 }
-</style>
+</style> -->

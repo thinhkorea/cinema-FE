@@ -1,95 +1,98 @@
 import { defineStore } from 'pinia'
 import api from '@/api'
+import { jwtDecode } from 'jwt-decode'
 
 export const useAuthStore = defineStore('auth', {
-    state: () => ({
-        token: localStorage.getItem('token') || null,
-        user: JSON.parse(localStorage.getItem('user') || 'null'),
-        role: localStorage.getItem('role') || null
-    }),
+  state: () => ({
+    token: localStorage.getItem('token') || null,
+    username: localStorage.getItem('username') || null,
+    role: localStorage.getItem('role') || null,
+    fullName: localStorage.getItem('fullName') || null
+  }),
 
-    getters: {
-        isAuthenticated: (state) => !!state.token,
-        isStaff: (state) => state.role === 'STAFF',
-        isAdmin: (state) => state.role === 'ADMIN',
-        isCustomer: (state) => state.role === 'CUSTOMER'
+  getters: {
+    isAuthenticated: (state) => !!state.token,
+    isStaff: (state) => state.role === 'STAFF',
+    isAdmin: (state) => state.role === 'ADMIN',
+    isCustomer: (state) => state.role === 'CUSTOMER'
+  },
+
+  actions: {
+    async login(credentials) {
+      try {
+        console.log('Đang login với:', credentials.username)
+
+        const response = await api.post('/auth/login', credentials)
+        console.log('Response từ server:', response.data)
+
+        const { token, role, message } = response.data
+
+        // Kiểm tra response hợp lệ
+        if (message !== 'OK') throw new Error(message || 'Sai tài khoản hoặc mật khẩu')
+        if (!token) throw new Error('Server không trả về token')
+
+        // Giải mã token để lấy thông tin chi tiết
+        const decoded = jwtDecode(token)
+
+        // Lưu vào state
+        this.token = token
+        this.role = decoded.role || 'CUSTOMER'
+        this.username = decoded.sub
+        this.fullName = decoded.fullName || decoded.sub // Lấy fullName, nếu không có thì dùng username
+
+        // Lưu vào localStorage
+        localStorage.setItem('token', token)
+        localStorage.setItem('role', this.role)
+        localStorage.setItem('username', this.username)
+        localStorage.setItem('fullName', this.fullName)
+
+        console.log('Login thành công!')
+        console.log('   Token:', token.substring(0, 30) + '...')
+        console.log('   Role:', this.role)
+        console.log('   Username:', this.username)
+        console.log('   FullName:', this.fullName)
+      } catch (error) {
+        console.error('Login thất bại:', error)
+
+        // Reset state khi lỗi
+        this.token = null
+        this.role = null
+        this.username = null
+        this.fullName = null
+
+        // Throw error để LoginView.vue xử lý
+        throw error
+      }
     },
 
-    actions: {
-        async login(credentials) {
-            try {
-                console.log('🔐 Đang login với:', credentials.username)
+    logout() {
+      this.token = null
+      this.username = null
+      this.role = null
+      this.fullName = null
 
-                const response = await api.post('/auth/login', credentials)
+      localStorage.removeItem('token')
+      localStorage.removeItem('username')
+      localStorage.removeItem('role')
+      localStorage.removeItem('fullName')
 
-                console.log('📦 Response từ server:', response.data)
+      console.log('Đã logout')
+    },
 
-                const { token, role, message } = response.data
+    // Khôi phục session khi reload trang
+    restoreSession() {
+      const token = localStorage.getItem('token')
+      const role = localStorage.getItem('role')
+      const username = localStorage.getItem('username')
+      const fullName = localStorage.getItem('fullName')
 
-                // ✅ Kiểm tra response hợp lệ
-                if (!token) {
-                    throw new Error('Server không trả về token')
-                }
-
-                if (!role) {
-                    throw new Error('Server không trả về role')
-                }
-
-                if (message !== 'OK') {
-                    throw new Error(message || 'Sai tài khoản hoặc mật khẩu')
-                }
-
-                // ✅ Lưu vào state
-                this.token = token
-                this.role = role
-                this.user = { username: credentials.username }
-
-                // ✅ Lưu vào localStorage
-                localStorage.setItem('token', token)
-                localStorage.setItem('role', role)
-                localStorage.setItem('user', JSON.stringify(this.user))
-
-                console.log('✅ Login thành công!')
-                console.log('   Token:', token.substring(0, 30) + '...')
-                console.log('   Role:', role)
-
-            } catch (error) {
-                console.error('❌ Login thất bại:', error)
-
-                // Reset state khi lỗi
-                this.token = null
-                this.role = null
-                this.user = null
-
-                // ⚠️ QUAN TRỌNG: Throw error để LoginView.vue catch được
-                throw error
-            }
-        },
-
-        logout() {
-            this.token = null
-            this.user = null
-            this.role = null
-
-            localStorage.removeItem('token')
-            localStorage.removeItem('user')
-            localStorage.removeItem('role')
-
-            console.log('👋 Đã logout')
-        },
-
-        // Khôi phục session khi reload page
-        restoreSession() {
-            const token = localStorage.getItem('token')
-            const user = localStorage.getItem('user')
-            const role = localStorage.getItem('role')
-
-            if (token && user && role) {
-                this.token = token
-                this.user = JSON.parse(user)
-                this.role = role
-                console.log('🔄 Session restored:', { role })
-            }
-        }
+      if (token && role) {
+        this.token = token
+        this.role = role
+        this.username = username
+        this.fullName = fullName
+        console.log('Session restored:', { username, role, fullName })
+      }
     }
+  }
 })

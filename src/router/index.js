@@ -2,11 +2,13 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.store'
 
 const routes = [
-    // Trang mặc định → login
-    { path: '/', redirect: '/login' },
+
+    { path: '/', component: () => import('@/views/HomeView.vue') },
 
     // Đăng nhập
     { path: '/login', component: () => import('@/views/Auth/LoginView.vue') },
+
+    { path: '/login-success', component: () => import('@/views/Auth/LoginSuccess.vue') },
 
     // Kết quả thanh toán
     {
@@ -54,6 +56,10 @@ router.beforeEach((to, from, next) => {
     const auth = useAuthStore()
     const role = auth.role || localStorage.getItem('role')
 
+    if (to.path === '/' || to.path === '/login' || to.path === '/login-success' || to.path === '/payment-result') {
+        return next()
+    }
+
     // Chưa đăng nhập mà vào trang cần quyền
     if (!role && (to.meta.requiresAdmin || to.meta.requiresStaff)) {
         return next('/login')
@@ -73,6 +79,7 @@ router.beforeEach((to, from, next) => {
     if (to.path === '/login' && role) {
         if (role === 'ADMIN') return next('/admin/dashboard')
         if (role === 'STAFF') return next('/staff/seat-map')
+        if (role === 'CUSTOMER') return next('/')
     }
 
     next()

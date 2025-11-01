@@ -34,6 +34,21 @@
 
               <p v-if="error" class="text-danger mt-3 text-center">{{ error }}</p>
             </form>
+
+            <!-- Hoặc đăng nhập bằng Google -->
+            <div class="text-center mt-4">
+              <p class="text-muted mb-2">hoặc</p>
+              <button class="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-2"
+                      @click="loginWithGoogle">
+                <img
+                  src="https://www.svgrepo.com/show/475656/google-color.svg"
+                  width="22"
+                  height="22"
+                  alt="Google"
+                />
+                <span>Đăng nhập bằng Google</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -60,8 +75,10 @@ const handleLogin = async () => {
     router.push('/admin/dashboard')
     } else if (auth.role === 'STAFF') {
       router.push('/staff/seat-map')
+    } else if (auth.role === 'CUSTOMER') {
+      router.push('/')
     } else {
-      error.value = 'Bạn không có quyền truy cập khu vực quản trị.'
+      error.value = 'Không xác định được quyền truy cập.'
     }
   } catch (err) {
     console.error('Login failed:', err)
@@ -72,4 +89,18 @@ const handleLogin = async () => {
     }
   }
 }
+
+// Đăng nhập bằng Google
+const loginWithGoogle = () => {
+  window.location.href = 'http://localhost:8080/oauth2/authorization/google'
+}
 </script>
+
+<style scoped>
+.btn-outline-danger:hover {
+  background-color: #ea4335;
+  color: white;
+  border-color: #ea4335;
+  transition: 0.3s;
+}
+</style>
