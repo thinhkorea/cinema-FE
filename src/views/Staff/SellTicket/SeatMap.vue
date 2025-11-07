@@ -104,7 +104,7 @@ const qrUrl = ref('')
 
 // Lấy ghế khi vào
 onMounted(async () => {
-  const res = await api.get(`/staff/showtimes/${props.showtime.showtimeId}/seats`)
+  const res = await api.get(`/seats/showtime/${props.showtime.showtimeId}`)
   seats.value = res.data
 })
 
@@ -151,7 +151,7 @@ async function handleCashPayment() {
     const res = await api.post('/bookings/staff/create-multi', {
       showtimeId: props.showtime.showtimeId,
       seatIds: selectedSeats.value,
-      staffUsername: authStore.user?.username
+      staffUsername: authStore.username
     })
 
     const txnRef = res.data.txnRef
@@ -159,7 +159,7 @@ async function handleCashPayment() {
     alert('Thanh toán tiền mặt thành công!')
 
     closePaymentModal()
-    const refresh = await api.get(`/staff/showtimes/${props.showtime.showtimeId}/seats`)
+    const refresh = await api.get(`/seats/showtime/${props.showtime.showtimeId}`)
     seats.value = refresh.data
   } catch (err) {
     console.error('Lỗi thanh toán tiền mặt:', err)
@@ -176,7 +176,7 @@ async function handleVnPay() {
     const bookingRes = await api.post('/bookings/staff/create-multi', {
       showtimeId: props.showtime.showtimeId,
       seatIds: selectedSeats.value,
-      staffUsername: authStore.user?.username
+      staffUsername: authStore.username
     })
     const txnRef = bookingRes.data.txnRef
     localStorage.setItem('txnRef', txnRef)
@@ -185,7 +185,8 @@ async function handleVnPay() {
     const paymentRes = await api.post('/payments/create-payment', {
       txnRef,
       amount: totalAmount,
-      orderDescription: `Thanh toán ${selectedSeats.value.length} vé xem phim`
+      orderDescription: `Thanh toán ${selectedSeats.value.length} vé xem phim`,
+      role: "staff"
     })
     window.location.href = paymentRes.data.paymentUrl
   } catch (err) {
@@ -197,7 +198,9 @@ async function handleVnPay() {
 }
 
 function formatTime(t) {
-  return new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  if (!t) return ''
+  const timePart = t.split('T')[1]
+  return timePart ? timePart.substring(0, 5) : ''
 }
 </script>
 

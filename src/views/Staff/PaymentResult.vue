@@ -1,40 +1,64 @@
 <template>
-  <div class="container text-center py-5">
-    <h2 v-if="success" class="text-success">🎉 Thanh toán thành công!</h2>
-    <h2 v-else class="text-danger">❌ Thanh toán thất bại!</h2>
-    <p v-if="txnRef">Mã giao dịch: {{ txnRef }}</p>
-    <router-link to="/" class="btn btn-primary mt-3">Về trang chủ</router-link>
+  <div class="d-flex flex-column justify-content-center align-items-center vh-100 bg-light">
+    <div class="text-muted mt-3">Đang xử lý giao dịch, vui lòng chờ...</div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
-import api from '@/api'
+import { onMounted, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import api from "@/api";
+import Swal from "sweetalert2";
 
-const route = useRoute()
-const success = ref(false)
-const txnRef = ref(null)
+const route = useRoute();
+const router = useRouter();
+const success = ref(false);
+const txnRef = ref(null);
 
 onMounted(async () => {
-  const responseCode = route.query.vnp_ResponseCode?.toString()
-  txnRef.value = route.query.vnp_TxnRef || localStorage.getItem('txnRef') // ✅ lấy lại nếu mất
+  const responseCode = route.query.vnp_ResponseCode?.toString();
+  txnRef.value = route.query.vnp_TxnRef || localStorage.getItem("txnRef");
 
-  console.log('VNPay Response Code:', responseCode)
-  console.log('VNPay TxnRef:', txnRef.value)
+  console.log("VNPay Response Code:", responseCode);
+  console.log("VNPay TxnRef:", txnRef.value);
 
-  if (responseCode === '00' && txnRef.value) {
+  if (responseCode === "00" && txnRef.value) {
     try {
-      await api.post(`/bookings/pay-by-txn/${txnRef.value}`)
-      success.value = true
-      console.log('✅ Cập nhật thanh toán thành công!')
-      localStorage.removeItem('txnRef') // dọn cache
+      await api.post(`/bookings/pay-by-txn/${txnRef.value}`);
+      success.value = true;
+      console.log("Cập nhật thanh toán thành công!");
+      localStorage.removeItem("txnRef");
     } catch (err) {
-      console.error('❌ Lỗi khi cập nhật thanh toán:', err)
+      console.error("Lỗi khi cập nhật thanh toán:", err);
+      success.value = false;
     }
   } else {
-    console.warn('❌ VNPay báo lỗi hoặc thiếu TxnRef:', responseCode)
+    success.value = false;
   }
-})
 
+  // Hiển thị popup đẹp SweetAlert
+  Swal.fire({
+    icon: success.value ? "success" : "error",
+    title: success.value ? "Thanh toán thành công!" : "Thanh toán thất bại!",
+    text: success.value
+      ? `Mã giao dịch: ${txnRef.value}`
+      : "Giao dịch không hợp lệ hoặc đã bị hủy.",
+    timer: 2000,
+    timerProgressBar: true,
+    showConfirmButton: false,
+    background: "#fff",
+    color: "#333",
+    didOpen: () => {
+      Swal.showLoading();
+    },
+  }).then(() => {
+    router.push("/staff/sold-tickets");
+  });
+});
 </script>
+
+<style scoped>
+.vh-100 {
+  height: 100vh;
+}
+</style>

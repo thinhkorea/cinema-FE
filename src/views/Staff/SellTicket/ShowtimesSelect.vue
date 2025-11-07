@@ -31,14 +31,21 @@ onMounted(async () => {
   const data = res.data // data giờ là List<Showtime>
   const grouped = {}
   data.forEach(s => {
-    const date = new Date(s.startTime).toLocaleDateString('vi-VN')
-    if (!grouped[date]) grouped[date] = []
-    grouped[date].push(s)
+    // Cắt ngày trực tiếp từ chuỗi ISO
+    const displayDate = s.startTime.split('T')[0] // 2025-11-06
+    const [year, month, day] = displayDate.split('-')
+    const formattedDate = `${day}/${month}/${year}`
+
+    if (!grouped[formattedDate]) grouped[formattedDate] = []
+    grouped[formattedDate].push(s)
   })
   groupedShowtimes.value = grouped
 })
 
-function formatTime(t) {
-  return new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+function formatTime(time) {
+  if (!time) return ''
+  // cắt phần giờ mà không dùng Date()
+  const timePart = time.split('T')[1]
+  return timePart ? timePart.substring(0, 5) : ''
 }
 </script>

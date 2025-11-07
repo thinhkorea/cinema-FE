@@ -5,14 +5,31 @@ const routes = [
 
     { path: '/', component: () => import('@/views/HomeView.vue') },
 
-    // Đăng nhập
     { path: '/login', component: () => import('@/views/Auth/LoginView.vue') },
 
     { path: '/login-success', component: () => import('@/views/Auth/LoginSuccess.vue') },
 
-    // Kết quả thanh toán
     {
-        path: '/payment-result', component: () => import('@/views/Staff/PaymentResult.vue')
+        path: '/movie/:id',
+        component: () => import('@/views/MovieDetail.vue'),
+    },
+    {
+        path: '/booking/:movieId',
+        component: () => import('@/views/BookingView.vue'),
+    },
+    {
+        path:'/booking/:movieId/seats/:showtimeId',
+        component: () => import('@/views/SeatMapView.vue')
+    },
+    {
+        path: '/payment-result', 
+        component: () => import('@/views/Customer/PaymentResult.vue'),
+        meta: { requiresAuth: true },
+    },
+    {
+        path: "/my-bookings/txn/:txnRef",
+        component: () => import("@/views/Customer/MyBookingGroup.vue"),
+        meta: { requiresAuth: true },
     },
 
     // ADMIN layout
@@ -39,6 +56,9 @@ const routes = [
             { path: 'seat-map', component: () => import('@/views/Staff/SellTicket/SellTicketView.vue') },
             { path: 'showtimes', component: () => import('@/views/Staff/ShowtimesView.vue') },
             { path: 'sold-tickets', component: () => import('@/views/Staff/SoldTicketsView.vue') },
+            { path: 'payment-result', component: () => import('@/views/Staff/PaymentResult.vue') },
+            { path: 'search-ticket', component: () => import('@/views/Staff/SearchTicketView.vue')},
+
         ],
     },
 

@@ -11,14 +11,23 @@
               <i class="bi bi-ticket-detailed me-2"></i> Bán vé
             </router-link>
           </li>
+
           <li class="nav-item mb-2">
             <router-link to="/staff/showtimes" class="nav-link text-white" active-class="active">
               <i class="bi bi-clock-history me-2"></i> Suất chiếu
             </router-link>
           </li>
+
           <li class="nav-item mb-2">
             <router-link to="/staff/sold-tickets" class="nav-link text-white" active-class="active">
               <i class="bi bi-receipt me-2"></i> Vé đã bán
+            </router-link>
+          </li>
+
+          <!-- 🔍 Tra cứu vé -->
+          <li class="nav-item mb-2">
+            <router-link to="/staff/search-ticket" class="nav-link text-white" active-class="active">
+              <i class="bi bi-search me-2"></i> Tra cứu vé
             </router-link>
           </li>
         </ul>

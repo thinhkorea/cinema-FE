@@ -1,70 +1,6 @@
 <template>
   <div class="home-page bg-light">
-    <!-- HEADER -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top py-3 px-4">
-      <div class="container-fluid">
-        <!-- Logo -->
-        <router-link class="navbar-brand fw-bold text-warning fs-4" to="/">
-          🍿 <span class="text-dark">CGV Cinema</span>
-        </router-link>
-
-        <!-- Nút toggle (mobile) -->
-        <button
-          class="navbar-toggler"
-          type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#navbarNav"
-        >
-          <span class="navbar-toggler-icon"></span>
-        </button>
-
-        <!-- 🧭 Menu chính -->
-        <div class="collapse navbar-collapse" id="navbarNav">
-          <ul class="navbar-nav mx-auto">
-            <li class="nav-item">
-              <router-link to="/" class="nav-link" exact>Trang chủ</router-link>
-            </li>
-            <li class="nav-item">
-              <router-link to="/movies" class="nav-link">Phim</router-link>
-            </li>
-            <li class="nav-item">
-              <router-link to="/promotions" class="nav-link">Khuyến mãi</router-link>
-            </li>
-            <li class="nav-item">
-              <router-link to="/contact" class="nav-link">Liên hệ</router-link>
-            </li>
-          </ul>
-
-          <!-- Tài khoản -->
-          <ul class="navbar-nav ms-auto">
-            <template v-if="auth.isAuthenticated">
-              <li class="nav-item d-flex align-items-center">
-                <span class="me-3 text-secondary small">
-                  Xin chào, <b>{{ auth.fullName || auth.username }}</b> 🎟️
-                </span>
-                <button class="btn btn-outline-danger btn-sm" @click="handleLogout">
-                  <i class="bi bi-box-arrow-right me-1"></i> Đăng xuất
-                </button>
-              </li>
-            </template>
-
-            <template v-else>
-              <li class="nav-item ms-2">
-                <router-link to="/login" class="btn btn-outline-primary btn-sm">
-                  <i class="bi bi-person me-1"></i> Đăng nhập
-                </router-link>
-              </li>
-              <li class="nav-item ms-2">
-                <router-link to="/register" class="btn btn-primary btn-sm text-white">
-                  Đăng ký
-                </router-link>
-              </li>
-            </template>
-          </ul>
-        </div>
-      </div>
-    </nav>
-
+     <AppHeader />
     <!-- PHIM -->
     <section class="movies py-5 bg-dark text-light">
       <div class="container">
@@ -91,7 +27,7 @@
             >
               <div
                 class="movie-slide d-flex flex-column flex-md-row align-items-center justify-content-center"
-                :style="{ backgroundImage: 'url(' + movie.posterUrl + ')' }"
+                :style="{ backgroundImage: 'url(' + movie.posterUrl + ')', cursor:'pointer' }" @click="goDetail(movie.movieId)"
               >
                 <div class="movie-overlay"></div>
                 <div class="movie-info text-center text-md-start">
@@ -136,11 +72,11 @@
         <h2 class="section-title mb-4">Tin nóng</h2>
         <div class="row g-4">
           <div v-for="news in newsItems" :key="news.id" class="col-md-4 col-sm-6">
-            <div class="card border-0 shadow-sm h-100">
+            <div class="card border-0 shadow-sm">
               <img
                 :src="news.image"
                 class="card-img-top"
-                style="height: 200px; object-fit: cover"
+                style="object-fit: cover"
               />
               <div class="card-body">
                 <h6 class="fw-bold">{{ news.title }}</h6>
@@ -264,6 +200,7 @@
 </template>
 
 <script setup>
+import AppHeader from "@/components/AppHeader.vue";
 import { ref, computed, onMounted, watch } from "vue";
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.store'
@@ -301,6 +238,7 @@ const fetchMovies = async (status) => {
 };
 
 const displayedMovies = computed(() => movies.value);
+const goDetail = (id) => router.push(`/movie/${id}`);
 
 // Watch for tab changes to fetch new data
 watch(activeTab, (newTab) => {
@@ -314,9 +252,9 @@ onMounted(() => {
 
 // --- Static Data for other sections ---
 const newsItems = [
-  { id: 1, title: "CGV ưu đãi Halloween cực khủng 🎃", image: "https://via.placeholder.com/600x400?text=Halloween", date: "28/10/2025" },
-  { id: 2, title: "Ra mắt bom tấn Deadpool 3", image: "https://via.placeholder.com/600x400?text=Deadpool+3", date: "25/10/2025" },
-  { id: 3, title: "Nhận combo bắp nước miễn phí 🍿", image: "https://via.placeholder.com/600x400?text=Combo", date: "20/10/2025" },
+  { id: 1, title: "CGV ưu đãi Halloween cực khủng 🎃", image: "https://www.cgv.vn/media/wysiwyg/2025/102025/240x201_2_.jpg", date: "28/10/2025" },
+  { id: 2, title: "Quà sinh nhật miễn phí trong tháng 11", image: "https://www.cgv.vn/media/wysiwyg/2025/102025/240x201.jpg", date: "3/11/2025" },
+  { id: 3, title: "Nhận combo bắp nước miễn phí 🍿", image: "https://www.cgv.vn/media/banner/cache/1/b58515f018eb873dafa430b6f9ae0c1e/2/4/240x201_2_.jpg", date: "20/10/2025" },
 ];
 
 const egifts = [
@@ -339,6 +277,23 @@ const offers = [
 </script>
 
 <style scoped>
+.news .card {
+  max-width: 360px;
+  margin: 0 auto;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.news .card img {
+  height: auto; 
+  width: 100%;
+  object-fit: contain;
+  border-radius: 6px 6px 0 0;
+}
+
+.news .card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
 .movie-slide {
   position: relative;
   height: 70vh;
