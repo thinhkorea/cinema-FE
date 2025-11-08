@@ -197,7 +197,7 @@ function formatDate(date) {
 // === Tải PDF ===
 async function downloadGroupPDF(txnRef) {
   if (!txnRef) return alert("Không tìm thấy mã giao dịch (txnRef)!");
-  if (downloadedRefs.value.has(txnRef)) return alert("⚠️ Vé này đã được tải trước đó!");
+  if (downloadedRefs.value.has(txnRef)) return alert("Vé này đã được tải trước đó!");
 
   downloadingId.value = txnRef;
   try {

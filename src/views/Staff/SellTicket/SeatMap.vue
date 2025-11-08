@@ -255,12 +255,12 @@ async function handleCashPayment() {
 
     const txnRef = res.data.txnRef
     await api.post(`/bookings/pay-cash/${txnRef}`)
-    alert('Thanh toán tiền mặt thành công!')
-
-    closePaymentModal()
-    const refresh = await api.get(`/seats/showtime/${props.showtime.showtimeId}`)
-    seats.value = refresh.data
-    selectedSeats.value = []
+    
+    localStorage.setItem('txnRef', txnRef)
+    
+    // Sửa đường dẫn thành /staff/payment-result
+    window.location.href = `/staff/payment-result?vnp_ResponseCode=00&vnp_TxnRef=${txnRef}`
+    
   } catch (err) {
     console.error('Lỗi thanh toán tiền mặt:', err)
     alert(err.response?.data?.error || 'Có lỗi xảy ra!')
