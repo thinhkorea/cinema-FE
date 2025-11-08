@@ -1,20 +1,20 @@
 <template>
   <div class="container py-4">
-    <!-- Quay lại -->
+    <!-- Back Button -->
     <button class="btn btn-outline-secondary mb-3" @click="$emit('back')">
       ← Quay lại chọn suất chiếu
     </button>
 
-    <!-- Tiêu đề -->
+    <!-- Title -->
     <h4 class="mb-3 text-center">Chọn ghế ngồi</h4>
 
-    <!-- Thông tin suất chiếu -->
-    <div v-if="showtime" class="text-center mb-4 text-muted">
+    <!-- Showtime Information -->
+    <div class="text-center mb-4 text-muted">
       <div><strong>{{ showtime.movie.title }}</strong></div>
       <div>{{ showtime.room.roomName }} • {{ formatTime(showtime.startTime) }}</div>
     </div>
 
-    <!-- Chú thích -->
+    <!-- Legend -->
     <div class="legend mb-3 d-flex justify-content-center flex-wrap gap-3 small">
       <span class="badge bg-secondary">Ghế thường</span>
       <span class="badge bg-warning text-dark">VIP</span>
@@ -23,10 +23,10 @@
       <span class="badge bg-success">Đang chọn</span>
     </div>
 
-    <!-- Màn hình -->
+    <!-- Screen -->
     <div class="screen mb-4 text-center">MÀN HÌNH</div>
 
-    <!-- Sơ đồ ghế -->
+    <!-- Seat Map -->
     <div v-if="seats.length > 0" class="seat-map">
       <div v-for="(rowSeats, rowLetter) in groupedSeats" :key="rowLetter" class="mb-2 text-center">
         <strong class="me-2">{{ rowLetter }}</strong>
@@ -44,7 +44,7 @@
       </div>
     </div>
 
-    <!-- Tổng kết -->
+    <!-- Summary & Button -->
     <div class="mt-4 d-flex justify-content-between align-items-center border-top pt-3">
       <div><strong>Đã chọn:</strong> {{ selectedSeats.length }} ghế</div>
       <button
@@ -57,29 +57,121 @@
       </button>
     </div>
 
-    <!-- Modal chọn phương thức thanh toán -->
-    <div v-if="showPaymentModal" class="modal-backdrop">
-      <div class="modal-box">
-        <h5 class="mb-3 text-center">Chọn phương thức thanh toán</h5>
-
-        <div class="d-flex justify-content-around mb-4">
-          <button class="btn btn-success" @click="handleCashPayment">💵 Tiền mặt</button>
-          <button class="btn btn-primary" @click="handleVnPay">💳 VNPay</button>
+    <!-- Enhanced Luxury Payment Modal -->
+    <div v-if="showPaymentModal" class="payment-modal-backdrop">
+      <div class="payment-modal-box">
+        <!-- Header -->
+        <div class="payment-header text-center mb-4">
+          <h5 class="payment-title mb-2">Chọn Phương Thức Thanh Toán</h5>
+          <p class="text-muted small mb-0">Hoàn thành giao dịch của bạn một cách an toàn</p>
         </div>
 
-        <!-- QR nếu VNPay -->
-        <div v-if="qrUrl" class="text-center">
-          <h6>Quét mã QR để thanh toán</h6>
-          <img
-            :src="`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(qrUrl)}&size=220x220`"
-            alt="QR"
-            class="border rounded p-2 bg-white"
-          />
-          <p class="mt-2 small text-muted">Sau khi khách quét và thanh toán, kiểm tra trạng thái hệ thống.</p>
+        <!-- Payment Summary -->
+        <div class="payment-summary mb-4 p-3 rounded-3">
+          <div class="row g-3 text-center">
+            <div class="col-6">
+              <small class="text-muted d-block mb-1">Số lượng vé</small>
+              <h6 class="mb-0 fw-bold">{{ selectedSeats.length }} vé</h6>
+            </div>
+            <div class="col-6">
+              <small class="text-muted d-block mb-1">Tổng tiền</small>
+              <h6 class="mb-0 fw-bold text-success">{{ (showtime.price * selectedSeats.length).toLocaleString('vi-VN') }}₫</h6>
+            </div>
+          </div>
         </div>
 
-        <div class="text-center mt-3">
-          <button class="btn btn-secondary" @click="closePaymentModal">Đóng</button>
+        <!-- Payment Methods -->
+        <div class="payment-methods mb-4">
+          <!-- Cash Payment -->
+          <div
+            class="payment-card mb-3 p-4 rounded-3 cursor-pointer transition-all"
+            :class="{ 'payment-card-active': selectedPaymentMethod === 'cash' }"
+            @click="selectedPaymentMethod = 'cash'"
+          >
+            <div class="d-flex align-items-center">
+              <div class="payment-icon cash-icon me-3">💵</div>
+              <div class="flex-grow-1">
+                <h6 class="mb-1 fw-bold">Tiền Mặt</h6>
+                <small class="text-muted">Thanh toán trực tiếp tại quầy</small>
+              </div>
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="payment"
+                  :value="'cash'"
+                  v-model="selectedPaymentMethod"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- VNPay Payment -->
+          <div
+            class="payment-card p-4 rounded-3 cursor-pointer transition-all"
+            :class="{ 'payment-card-active': selectedPaymentMethod === 'vnpay' }"
+            @click="selectedPaymentMethod = 'vnpay'"
+          >
+            <div class="d-flex align-items-center">
+              <div class="payment-icon vnpay-icon me-3">🏦</div>
+              <div class="flex-grow-1">
+                <h6 class="mb-1 fw-bold">VNPay</h6>
+                <small class="text-muted">Quét mã QR hoặc chuyển khoản</small>
+              </div>
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="payment"
+                  :value="'vnpay'"
+                  v-model="selectedPaymentMethod"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- VNPay QR Section -->
+        <div v-if="selectedPaymentMethod === 'vnpay' && qrUrl" class="vnpay-section mb-4 p-4 rounded-3">
+          <div class="text-center">
+            <h6 class="mb-3 fw-bold">Quét mã QR để thanh toán</h6>
+            <div class="qr-container p-3 rounded-2 d-inline-block bg-white">
+              <img
+                :src="`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(qrUrl)}&size=280x280`"
+                alt="VNPay QR Code"
+                class="rounded"
+                style="max-width: 280px; height: auto;"
+              />
+            </div>
+            <p class="mt-3 small text-muted">
+              <strong>Hướng dẫn:</strong> Sử dụng ứng dụng ngân hàng hoặc VNPay để quét mã này
+            </p>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="d-flex gap-2 justify-content-center">
+          <button
+            class="btn btn-outline-secondary px-4"
+            @click="closePaymentModal"
+            :disabled="submitting"
+          >
+            Hủy
+          </button>
+          <button
+            class="btn btn-success px-5 fw-bold"
+            @click="processPayment"
+            :disabled="!selectedPaymentMethod || submitting"
+          >
+            <span v-if="submitting" class="spinner-border spinner-border-sm me-2"></span>
+            {{
+              submitting
+                ? 'Đang xử lý...'
+                : selectedPaymentMethod === 'cash'
+                ? 'Thanh toán tiền mặt'
+                : 'Tạo mã thanh toán'
+            }}
+          </button>
         </div>
       </div>
     </div>
@@ -101,14 +193,13 @@ const selectedSeats = ref([])
 const submitting = ref(false)
 const showPaymentModal = ref(false)
 const qrUrl = ref('')
+const selectedPaymentMethod = ref('')
 
-// Lấy ghế khi vào
 onMounted(async () => {
   const res = await api.get(`/seats/showtime/${props.showtime.showtimeId}`)
   seats.value = res.data
 })
 
-// Gom ghế theo hàng
 const groupedSeats = computed(() => {
   const groups = {}
   seats.value.forEach(seat => {
@@ -118,15 +209,14 @@ const groupedSeats = computed(() => {
   })
   for (const key in groups) {
     groups[key].sort((a, b) => {
-      const numA = parseInt(a.seatNumber.match(/\d+/)?.[0])
-      const numB = parseInt(b.seatNumber.match(/\d+/)?.[0])
+      const numA = parseInt(a.seatNumber.match(/\d+/)?.[0] || '0')
+      const numB = parseInt(b.seatNumber.match(/\d+/)?.[0] || '0')
       return numA - numB
     })
   }
   return groups
 })
 
-// Toggle chọn ghế
 function toggleSeat(seat) {
   if (seat.booked) return
   const index = selectedSeats.value.indexOf(seat.seatId)
@@ -134,17 +224,26 @@ function toggleSeat(seat) {
   else selectedSeats.value.push(seat.seatId)
 }
 
-// Modal xử lý thanh toán
 function openPaymentModal() {
   if (selectedSeats.value.length === 0) return
   showPaymentModal.value = true
+  selectedPaymentMethod.value = ''
 }
+
 function closePaymentModal() {
   showPaymentModal.value = false
   qrUrl.value = ''
+  selectedPaymentMethod.value = ''
 }
 
-// Thanh toán tiền mặt
+async function processPayment() {
+  if (selectedPaymentMethod.value === 'cash') {
+    await handleCashPayment()
+  } else if (selectedPaymentMethod.value === 'vnpay') {
+    await handleVnPay()
+  }
+}
+
 async function handleCashPayment() {
   try {
     submitting.value = true
@@ -161,6 +260,7 @@ async function handleCashPayment() {
     closePaymentModal()
     const refresh = await api.get(`/seats/showtime/${props.showtime.showtimeId}`)
     seats.value = refresh.data
+    selectedSeats.value = []
   } catch (err) {
     console.error('Lỗi thanh toán tiền mặt:', err)
     alert(err.response?.data?.error || 'Có lỗi xảy ra!')
@@ -169,7 +269,6 @@ async function handleCashPayment() {
   }
 }
 
-// Thanh toán VNPay
 async function handleVnPay() {
   try {
     submitting.value = true
@@ -205,6 +304,7 @@ function formatTime(t) {
 </script>
 
 <style scoped>
+/* Screen Display */
 .screen {
   background: linear-gradient(90deg, #ccc, #eee, #ccc);
   padding: 8px;
@@ -213,6 +313,7 @@ function formatTime(t) {
   letter-spacing: 1px;
 }
 
+/* Seat Map */
 .seat-map {
   display: flex;
   flex-direction: column;
@@ -238,39 +339,269 @@ function formatTime(t) {
   cursor: pointer;
   user-select: none;
 }
+
 .seat:hover:not(.booked) {
   background: #d1d5db;
   transform: scale(1.05);
 }
-.seat.selected { background: #22c55e; color: #fff; }
-.seat.booked { background: #ef4444; color: #fff; cursor: not-allowed; opacity: 0.7; }
-.seat.vip { background: #facc15; }
-.seat.sweetbox { background: #f472b6; color: white; grid-column: span 2; width: 92px; }
+
+.seat.selected {
+  background: #22c55e;
+  color: #fff;
+}
+
+.seat.booked {
+  background: #ef4444;
+  color: #fff;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.seat.vip {
+  background: #facc15;
+}
+
+.seat.sweetbox {
+  background: #f472b6;
+  color: white;
+  grid-column: span 2;
+  width: 92px;
+}
 
 .legend .badge.sweetbox {
   background-color: #f472b6;
   color: white;
 }
 
-.modal-backdrop {
+/* Enhanced Luxury Payment Modal Styles */
+.payment-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.5);
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.4));
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 9999;
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.3s ease;
 }
-.modal-box {
+
+.payment-modal-box {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafb 100%);
+  padding: 40px;
+  border-radius: 20px;
+  width: 90%;
+  max-width: 480px;
+  box-shadow: 
+    0 20px 60px rgba(0, 0, 0, 0.15),
+    0 0 1px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  animation: slideUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.payment-header {
+  border-bottom: 2px solid rgba(0, 0, 0, 0.06);
+  padding-bottom: 20px;
+}
+
+.payment-title {
+  background: linear-gradient(135deg, #1a1a1a, #404040);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+  font-size: 1.4rem;
+}
+
+/* Payment Summary Card */
+.payment-summary {
+  background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%);
+  border: 1px solid #b8d4ff;
+  backdrop-filter: blur(10px);
+}
+
+.payment-summary h6 {
+  color: #0d47a1;
+  font-size: 1.2rem;
+}
+
+.payment-summary .text-success {
+  color: #22c55e !important;
+}
+
+/* Payment Method Cards */
+.payment-card {
+  border: 2px solid #e5e7eb;
   background: #fff;
-  padding: 24px;
-  border-radius: 12px;
-  width: 360px;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.3);
-  animation: fadeIn 0.25s ease;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
 }
+
+.payment-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s;
+}
+
+.payment-card:hover {
+  border-color: #d1d5db;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+.payment-card:hover::before {
+  left: 100%;
+}
+
+.payment-card-active {
+  border-color: #22c55e;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  box-shadow: 0 12px 32px rgba(34, 197, 94, 0.2);
+}
+
+.payment-card-active .payment-icon {
+  transform: scale(1.1);
+}
+
+/* Payment Icons */
+.payment-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  transition: transform 0.3s ease;
+}
+
+.cash-icon {
+  background: linear-gradient(135deg, #fef3c7, #fde047);
+}
+
+.vnpay-icon {
+  background: linear-gradient(135deg, #dbeafe, #93c5fd);
+}
+
+/* VNPay QR Section */
+.vnpay-section {
+  background: linear-gradient(135deg, #f0fdf4 0%, #e6ffed 100%);
+  border: 2px dashed #22c55e;
+}
+
+.qr-container {
+  display: inline-block;
+  padding: 16px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+}
+
+.qr-container img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* Form Check Override */
+.form-check-input {
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 2px solid #d1d5db;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.form-check-input:checked {
+  background-color: #22c55e;
+  border-color: #22c55e;
+  box-shadow: 0 0 0 0.25rem rgba(34, 197, 94, 0.25);
+}
+
+/* Button Enhancements */
+.btn-success {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  border: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 8px 16px rgba(34, 197, 94, 0.3);
+}
+
+.btn-success:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(34, 197, 94, 0.4);
+}
+
+.btn-success:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-outline-secondary {
+  transition: all 0.3s ease;
+}
+
+.btn-outline-secondary:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+/* Animations */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.transition-all {
+  transition: all 0.3s ease;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+/* Responsive */
+@media (max-width: 576px) {
+  .payment-modal-box {
+    width: 95%;
+    padding: 24px;
+    margin: 16px;
+  }
+
+  .payment-title {
+    font-size: 1.2rem;
+  }
+
+  .payment-icon {
+    width: 45px;
+    height: 45px;
+    font-size: 24px;
+  }
+
+  .seat-row {
+    grid-template-columns: repeat(8, 36px);
+  }
 }
 </style>

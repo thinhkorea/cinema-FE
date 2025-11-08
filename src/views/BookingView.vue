@@ -49,17 +49,49 @@
             <div class="selection-card mb-5">
               <h3 class="selection-title">Chọn ngày chiếu</h3>
 
-              <div v-if="availableDates.length" class="dates-grid">
-                <button
-                  v-for="(d, index) in availableDates"
-                  :key="index"
-                  @click="selectedDate = d"
-                  class="date-button"
-                  :class="{ active: selectedDate === d }"
-                >
-                  <span class="date-day">{{ formatDay(d) }}</span>
-                  <span class="date-text">{{ formatDateText(d) }}</span>
-                </button>
+              <div v-if="upcomingDatesWithCount.length" class="date-picker-wrapper">
+                <!-- Calendar Navigation -->
+                <div class="calendar-nav mb-4">
+                  <button @click="previousMonth" class="btn btn-sm btn-outline-warning">
+                    ← Tháng trước
+                  </button>
+                  <h5 class="text-warning calendar-month-year">
+                    {{ formatMonthYear(currentMonth) }}
+                  </h5>
+                  <button @click="nextMonth" class="btn btn-sm btn-outline-warning">
+                    Tháng sau →
+                  </button>
+                </div>
+
+                <!-- Calendar Grid -->
+                <div class="calendar-container">
+                  <!-- Day headers -->
+                  <div class="calendar-day-header">Thứ 2</div>
+                  <div class="calendar-day-header">Thứ 3</div>
+                  <div class="calendar-day-header">Thứ 4</div>
+                  <div class="calendar-day-header">Thứ 5</div>
+                  <div class="calendar-day-header">Thứ 6</div>
+                  <div class="calendar-day-header">Thứ 7</div>
+                  <div class="calendar-day-header">CN</div>
+
+                  <!-- Calendar days -->
+                  <div
+                    v-for="day in calendarDays"
+                    :key="day.dateStr"
+                    class="calendar-day"
+                    :class="{
+                      'other-month': !day.isCurrentMonth,
+                      'has-screening': day.hasScreening,
+                      'active': selectedDate === day.dateStr,
+                    }"
+                    @click="day.isCurrentMonth && day.hasScreening && (selectedDate = day.dateStr)"
+                  >
+                    <div class="day-number">{{ day.day }}</div>   
+                  </div>
+                </div>
+
+                <!-- Selected Date Display -->
+                <!-- Removed .selected-date-display styles and calendar container padding adjustments -->
               </div>
 
               <p v-else class="text-secondary mt-3">Chưa có lịch chiếu cho phim này.</p>
@@ -70,6 +102,10 @@
               <h3 class="selection-title">Chọn suất chiếu</h3>
 
               <div v-if="selectedDate && filteredShowtimes.length">
+                <!-- Added date display header above showtimes -->
+                <div class="selected-date-header mb-3">
+                  <strong>{{ formatFullDate(selectedDate) }}</strong>
+                </div>
                 <div class="showtimes-grid">
                   <button
                     v-for="s in filteredShowtimes"
@@ -112,19 +148,105 @@ import api from "@/api";
 const router = useRouter();
 const route = useRoute();
 
+// helper: ISO datetime -> local YYYY-MM-DD
+const toLocalDateStr = (iso) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+};
+
 // All reactive refs
 const movie = ref(null);
 const showtimes = ref([]);
-const availableDates = ref([]);
 const selectedDate = ref(null);
 const loading = ref(true);
+const currentMonth = ref(new Date());
 
 // Get movieId safely after router is initialized
 const movieId = computed(() => route.params.movieId);
 
-// Computed properties
+const upcomingDatesWithCount = computed(() => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const datesMap = new Map();
+  
+  // Group showtimes by date
+  showtimes.value.forEach((s) => {
+    if (s.startTime) {
+      const dateStr = s.startTime.split("T")[0];
+      const dateObj = new Date(dateStr);
+      
+      // Only include if date is today or in the future
+      if (dateObj >= today) {
+        if (!datesMap.has(dateStr)) {
+          datesMap.set(dateStr, { date: dateStr, count: 0 });
+        }
+        datesMap.get(dateStr).count++;
+      }
+    }
+  });
+  
+  // Convert to array and sort by date, limit to 7 days
+  const result = Array.from(datesMap.values())
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    .slice(0, 7);
+  
+  return result;
+});
+
+const calendarDays = computed(() => {
+  const year = currentMonth.value.getFullYear();
+  const month = currentMonth.value.getMonth();
+  
+  // Get first day of month (0 = Sunday, need to adjust to Monday = 0)
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  
+  // Get the weekday (0 = Sunday), convert to Monday = 0
+  let startDate = new Date(firstDay);
+  let dayOfWeek = startDate.getDay();
+  dayOfWeek = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Convert Sunday from 0 to 6
+  
+  startDate.setDate(startDate.getDate() - dayOfWeek);
+  
+  const days = [];
+  const screeningDates = new Map();
+  
+  // Build map of available screening dates and counts
+  upcomingDatesWithCount.value.forEach((d) => {
+    screeningDates.set(d.date, d.count);
+  });
+  
+  // Generate 42 days (6 weeks) for calendar grid
+  for (let i = 0; i < 42; i++) {
+    const date = new Date(startDate);
+    date.setDate(date.getDate() + i);
+    
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    const dateStr = `${y}-${m}-${d}`;
+    const isCurrentMonth = date.getMonth() === month;
+    const hasScreening = screeningDates.has(dateStr);
+    
+    days.push({
+      day: date.getDate(),
+      dateStr: dateStr,
+      isCurrentMonth: isCurrentMonth,
+      hasScreening: hasScreening,
+      screeningCount: screeningDates.get(dateStr) || 0,
+    });
+  }
+  
+  return days;
+});
+
 const filteredShowtimes = computed(() =>
-  showtimes.value.filter((s) => s.startTime?.startsWith(selectedDate.value))
+  showtimes.value.filter((s) => toLocalDateStr(s.startTime) === selectedDate.value)
 );
 
 onMounted(async () => {
@@ -137,13 +259,9 @@ onMounted(async () => {
     movie.value = resMovie.data;
     showtimes.value = resShowtime.data || [];
 
-    const dates = showtimes.value
-      .map((s) => s.startTime?.split("T")[0])
-      .filter(Boolean);
-    availableDates.value = [...new Set(dates)];
-
-    if (availableDates.value.length > 0) {
-      selectedDate.value = availableDates.value[0];
+    // Set default selected date to first available date
+    if (upcomingDatesWithCount.value.length > 0) {
+      selectedDate.value = upcomingDatesWithCount.value[0].date;
     }
   } catch (err) {
     console.error("Lỗi khi tải dữ liệu đặt vé:", err);
@@ -153,26 +271,35 @@ onMounted(async () => {
   }
 });
 
-// Helper methods
-const formatDay = (d) => {
-  const date = new Date(d);
-  return date.getDate();
+const previousMonth = () => {
+  currentMonth.value = new Date(
+    currentMonth.value.getFullYear(),
+    currentMonth.value.getMonth() - 1
+  );
 };
 
-const formatDateText = (d) => {
-  const date = new Date(d);
+const nextMonth = () => {
+  currentMonth.value = new Date(
+    currentMonth.value.getFullYear(),
+    currentMonth.value.getMonth() + 1
+  );
+};
+
+const formatMonthYear = (date) => {
   return date.toLocaleDateString("vi-VN", {
-    weekday: "short",
-    month: "short",
+    month: "long",
+    year: "numeric",
   });
 };
 
-const formatDate = (d) => {
+const formatFullDate = (d) => {
+  if (!d) return "";
   const date = new Date(d);
   return date.toLocaleDateString("vi-VN", {
-    weekday: "short",
-    day: "2-digit",
-    month: "2-digit",
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
   });
 };
 
@@ -307,60 +434,142 @@ const goToSeatMap = (showtimeId) => {
   margin-right: 12px;
 }
 
-/* Dates Grid */
-.dates-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-  gap: 12px;
+/* Date Picker Wrapper */
+.date-picker-wrapper {
+  width: 100%;
 }
 
-.date-button {
-  background: rgba(255, 193, 7, 0.05);
-  border: 2px solid rgba(255, 193, 7, 0.2);
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  /* ngăn wrap trên màn nhỏ */
+  flex-wrap: nowrap;
+}
+
+.calendar-nav .btn {
+  flex: 0 0 auto;
+}
+
+.calendar-month-year {
+  margin: 0;
+  flex: 1 1 auto;        /* chiếm không gian chính giữa */
+  text-align: center;
+  font-weight: 600;
+  white-space: nowrap;   /* không xuống dòng */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Nếu muốn tiêu đề nhỏ hơn trên màn nhỏ */
+@media (max-width: 480px) {
+  .calendar-nav {
+    gap: 6px;
+  }
+  .calendar-month-year {
+    font-size: 0.9rem;
+  }
+}
+
+
+/* ==== TÙY CHỈNH: thu nhỏ calendar ==== */
+.calendar-container {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px; /* giảm gap */
+  padding: 0.5rem; /* giảm padding */
+  background: rgba(0, 0, 0, 0.15);
   border-radius: 8px;
-  padding: 1rem 0.75rem;
-  color: #e0e0e0;
-  cursor: pointer;
-  transition: all 0.3s ease;
+  max-width: 420px; /* giới hạn chiều rộng */
+  margin: 0 auto; /* căn giữa */
+  grid-auto-rows: 42px; /* chiều cao cố định cho hàng */
+}
+
+/* Header của các ngày */
+.calendar-day-header {
+  text-align: center;
+  font-weight: 600;
+  color: #ffc107;
+  padding: 0.4rem 0;
+  font-size: 0.75rem; /* giảm font */
+  text-transform: uppercase;
+  border-bottom: 2px solid rgba(255, 193, 7, 0.15);
+}
+
+/* Các ô ngày */
+.calendar-day {
+  /* bỏ aspect-ratio để dùng grid-auto-rows */
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: center;
+  height: 42px; /* cố định chiều cao */
+  border: 1px solid rgba(255, 193, 7, 0.12);
+  border-radius: 6px;
+  background: rgba(255, 193, 7, 0.02);
+  color: #e0e0e0;
+  cursor: not-allowed;
+  position: relative;
+  transition: all 0.18s ease;
+  font-size: 0.72rem; /* giảm font */
+  padding: 4px;
 }
 
-.date-day {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #ffc107;
+.calendar-day.other-month {
+  opacity: 0.45;
+  background: rgba(0, 0, 0, 0.12);
 }
 
-.date-text {
-  font-size: 0.75rem;
-  color: #bdbdbd;
-  text-transform: uppercase;
+.calendar-day.has-screening {
+  cursor: pointer;
+  border-color: rgba(255, 193, 7, 0.28);
+  background: rgba(255, 193, 7, 0.06);
 }
 
-.date-button:hover {
+.calendar-day.has-screening:hover {
+  background: rgba(255, 193, 7, 0.12);
   border-color: #ffc107;
-  background: rgba(255, 193, 7, 0.1);
   transform: translateY(-2px);
 }
 
-.date-button.active {
+.calendar-day.active {
   background: #ffc107;
   border-color: #ffc107;
   color: #000;
 }
 
-.date-button.active .date-day,
-.date-button.active .date-text {
-  color: #000;
+.day-number {
+  font-weight: 700;
+  font-size: 0.9rem; /* giảm */
 }
+
+/* Responsive: nhỏ hơn trên mobile */
+@media (max-width: 480px) {
+  .calendar-container {
+    max-width: 320px;
+    grid-auto-rows: 36px;
+  }
+  .calendar-day {
+    height: 36px;
+    font-size: 0.65rem;
+  }
+  .day-number {
+    font-size: 0.8rem;
+  }
+  .calendar-day-header {
+    font-size: 0.65rem;
+  }
+}
+
+/* Selected date display */
+/* Removed .selected-date-display styles */
 
 /* Showtimes Grid */
 .showtimes-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 12px;
 }
 
@@ -375,6 +584,7 @@ const goToSeatMap = (showtimeId) => {
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
+  color: #e0e0e0;
 }
 
 .showtime-time {
@@ -423,10 +633,40 @@ const goToSeatMap = (showtimeId) => {
     padding: 1.5rem;
   }
 
-  .dates-grid,
+  .calendar-container {
+    gap: 4px;
+    padding: 0.75rem;
+  }
+
+  .calendar-day {
+    aspect-ratio: 1;
+    font-size: 0.8rem;
+  }
+
+  .day-number {
+    font-size: 0.95rem;
+  }
+
+  .screening-badge {
+    font-size: 0.6rem;
+    bottom: 2px;
+  }
+
   .showtimes-grid {
-    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
     gap: 10px;
   }
+
+  .calendar-nav {
+    flex-wrap: wrap;
+  }
+}
+
+/* Added new header style for selected date in showtimes section */
+.selected-date-header {
+  color: #ffc107;
+  font-size: 1.1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(255, 193, 7, 0.2);
 }
 </style>
