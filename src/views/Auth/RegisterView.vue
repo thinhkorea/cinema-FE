@@ -1,37 +1,47 @@
 <template>
   <div class="container py-5" style="max-width: 500px;">
     <div class="card shadow-sm border-0 p-4">
-      <h4 class="text-center mb-4">🎟️ Đăng ký khách hàng</h4>
+      <h4 class="text-center mb-4 fw-bold text-primary">Đăng ký khách hàng</h4>
 
       <form @submit.prevent="register">
         <div class="mb-3">
           <label class="form-label">Họ và tên</label>
-          <input v-model="form.fullName" class="form-control" required />
+          <input v-model.trim="form.fullName" class="form-control" required />
         </div>
 
         <div class="mb-3">
           <label class="form-label">Email</label>
-          <input v-model="form.email" type="email" class="form-control" required />
+          <input v-model.trim="form.email" type="email" class="form-control" required />
         </div>
 
         <div class="mb-3">
           <label class="form-label">Tên đăng nhập</label>
-          <input v-model="form.username" class="form-control" required />
+          <input v-model.trim="form.username" class="form-control" required />
         </div>
 
         <div class="mb-3">
           <label class="form-label">Mật khẩu</label>
-          <input v-model="form.password" type="password" class="form-control" required />
+          <input
+            v-model.trim="form.password"
+            type="password"
+            class="form-control"
+            required
+            minlength="6"
+          />
         </div>
 
         <div class="mb-3">
           <label class="form-label">Số điện thoại</label>
-          <input v-model="form.phone" class="form-control" />
+          <input v-model.trim="form.phone" class="form-control" placeholder="VD: 0901234567" />
         </div>
 
         <div class="mb-3">
           <label class="form-label">Địa chỉ</label>
-          <input v-model="form.address" class="form-control" />
+          <input
+            v-model.trim="form.address"
+            class="form-control"
+            placeholder="VD: 123 Lý Thường Kiệt, TP.HCM"
+          />
         </div>
 
         <div class="mb-3">
@@ -42,22 +52,34 @@
           </select>
         </div>
 
-        <button type="submit" class="btn btn-primary w-100">Đăng ký</button>
+        <button type="submit" class="btn btn-primary w-100" :disabled="loading">
+          <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
+          Đăng ký
+        </button>
       </form>
 
       <div class="text-center mt-3">
-        <p>Hoặc đăng nhập bằng:</p>
-        <button class="btn btn-outline-danger w-100" @click="loginWithGoogle">
-          <i class="bi bi-google"></i> Đăng nhập bằng Gmail
-        </button>
+        <p class="mb-0">
+          Đã có tài khoản?
+          <router-link to="/login" class="text-decoration-none text-primary fw-semibold">
+            Đăng nhập ngay
+          </router-link>
+        </p>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import axios from "axios";
 import { ref } from "vue";
+import Swal from "sweetalert2";
+import api from "@/api";
+import { useRouter } from "vue-router";
+import { useAuthStore } from "@/stores/auth.store";
+
+const router = useRouter();
+const auth = useAuthStore();
+const loading = ref(false);
 
 const form = ref({
   username: "",
@@ -70,16 +92,62 @@ const form = ref({
 });
 
 const register = async () => {
+  if (!form.value.username || !form.value.password || !form.value.email) {
+    Swal.fire("Thiếu thông tin", "Vui lòng nhập đầy đủ thông tin!", "warning");
+    return;
+  }
+
   try {
-    await axios.post("http://localhost:8080/api/auth/register", form.value);
-    alert("Đăng ký thành công! Hãy đăng nhập.");
+    loading.value = true;
+
+    // B1: Gửi đăng ký tài khoản
+    const res = await api.post("/auth/register", form.value);
+    console.log("Register success:", res.data);
+
+    // B2: Đăng nhập tự động bằng store
+    await auth.login({
+      username: form.value.username,
+      password: form.value.password,
+    });
+
+    // B3: Hiển thị thông báo
+    await Swal.fire({
+      icon: "success",
+      title: "Đăng ký & đăng nhập thành công!",
+      text: `Chào mừng ${auth.fullName || auth.username}!`,
+      timer: 2000,
+      showConfirmButton: false,
+      willClose: () => Swal.close(), // Đảm bảo đóng overlay
+    });
+
+    // B4: Chuyển hướng theo role
+    if (auth.role === "ADMIN") router.push("/admin/dashboard");
+    else if (auth.role === "STAFF") router.push("/staff/seat-map");
+    else router.push("/");
+
   } catch (err) {
-    alert(err.response?.data || "Đăng ký thất bại!");
+    console.error("Register/Login error:", err);
+    const msg =
+      err.response?.data?.error ||
+      err.response?.data ||
+      "Đăng ký thất bại, vui lòng thử lại!";
+    Swal.fire("Lỗi", msg, "error");
+  } finally {
+    loading.value = false;
   }
 };
-
-// Tạm thời mô phỏng login bằng Gmail
-const loginWithGoogle = () => {
-  window.location.href = "http://localhost:8080/oauth2/authorization/google";
-};
 </script>
+
+<style scoped>
+.card {
+  border-radius: 16px;
+}
+.btn-primary {
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  border: none;
+}
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 123, 255, 0.3);
+}
+</style>

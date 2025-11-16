@@ -7,7 +7,8 @@ export const useAuthStore = defineStore('auth', {
     token: localStorage.getItem('token') || null,
     username: localStorage.getItem('username') || null,
     role: localStorage.getItem('role') || null,
-    fullName: localStorage.getItem('fullName') || null
+    fullName: localStorage.getItem('fullName') || null,
+    userId: localStorage.getItem('userId') || null
   }),
 
   getters: {
@@ -25,7 +26,7 @@ export const useAuthStore = defineStore('auth', {
         const response = await api.post('/auth/login', credentials)
         console.log('Response từ server:', response.data)
 
-        const { token, role, message } = response.data
+        const { token, role, message, userId } = response.data
 
         // Kiểm tra response hợp lệ
         if (message !== 'OK') throw new Error(message || 'Sai tài khoản hoặc mật khẩu')
@@ -39,12 +40,14 @@ export const useAuthStore = defineStore('auth', {
         this.role = decoded.role || 'CUSTOMER'
         this.username = decoded.sub
         this.fullName = decoded.fullName || decoded.sub // Lấy fullName, nếu không có thì dùng username
+        this.userId = userId    
 
         // Lưu vào localStorage
         localStorage.setItem('token', token)
         localStorage.setItem('role', this.role)
         localStorage.setItem('username', this.username)
         localStorage.setItem('fullName', this.fullName)
+        localStorage.setItem('userId', this.userId)
 
         console.log('Login thành công!')
         console.log('   Token:', token.substring(0, 30) + '...')
@@ -59,8 +62,10 @@ export const useAuthStore = defineStore('auth', {
         this.role = null
         this.username = null
         this.fullName = null
+        this.userId = null
 
         // Throw error để LoginView.vue xử lý
+        localStorage.clear()
         throw error
       }
     },
@@ -70,11 +75,13 @@ export const useAuthStore = defineStore('auth', {
       this.username = null
       this.role = null
       this.fullName = null
+      this.userId = null
 
       localStorage.removeItem('token')
       localStorage.removeItem('username')
       localStorage.removeItem('role')
       localStorage.removeItem('fullName')
+      localStorage.removeItem('userId')
 
       console.log('Đã logout')
     },
@@ -85,12 +92,14 @@ export const useAuthStore = defineStore('auth', {
       const role = localStorage.getItem('role')
       const username = localStorage.getItem('username')
       const fullName = localStorage.getItem('fullName')
+      const userId = localStorage.getItem('userId')
 
-      if (token && role) {
+      if (token && role && userId) {
         this.token = token
         this.role = role
         this.username = username
         this.fullName = fullName
+        this.userId = userId   
         console.log('Session restored:', { username, role, fullName })
       }
     }

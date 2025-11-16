@@ -49,7 +49,8 @@ const links = [
   { label: 'Rooms', path: '/admin/rooms', icon: 'bi bi-door-open' },
   { label: 'Showtimes', path: '/admin/showtimes', icon: 'bi bi-clock' },
   { label: 'Bookings', path: '/admin/bookings', icon: 'bi bi-ticket' },
-  { path: '/admin/revenue', label: 'Revenue', icon: 'bi bi-graph-up' },
+  { label: 'Revenue', path: '/admin/revenue', icon: 'bi bi-graph-up' },
+  { label: 'Register Staff', path: '/admin/register-staff', icon: 'bi bi-person-plus' }
 ]
 
 const logout = () => {

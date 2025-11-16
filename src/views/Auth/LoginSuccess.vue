@@ -21,6 +21,7 @@ import { ref, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { jwtDecode } from "jwt-decode";
 import { useAuthStore } from "@/stores/auth.store";
+import api from "@/api";
 
 const router = useRouter();
 const route = useRoute();
@@ -31,7 +32,7 @@ const error = ref(null);
 
 const goLogin = () => router.push("/login");
 
-onMounted(() => {
+onMounted(async () => {
   const token = route.query.token;
 
   if (!token) {
@@ -45,38 +46,49 @@ onMounted(() => {
     const decoded = jwtDecode(token);
     console.log("JWT decoded:", decoded);
 
-    // Lấy fullname từ token (nếu backend có trả)
-    const fullName = decoded.fullName || decoded.name || decoded.sub || decoded.email || "Khách hàng";
+    const fullName =
+      decoded.fullName || decoded.name || decoded.sub || decoded.email || "Khách hàng";
 
-    // Lưu vào localStorage
+    // Lưu token vào localStorage
     localStorage.setItem("token", token);
-    localStorage.setItem("username", decoded.sub || decoded.email || "Khách hàng");
-    localStorage.setItem("fullName", fullName);
-    localStorage.setItem("role", decoded.role || "CUSTOMER");
-
-    // Cập nhật Pinia store
     auth.token = token;
-    auth.role = decoded.role || "CUSTOMER";
-    auth.username = decoded.sub || decoded.email || "Khách hàng";
-    auth.fullName = fullName;
+
+    // Gọi /auth/me để lấy thông tin user đầy đủ (bao gồm userId)
+    const res = await api.get("/auth/me", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const user = res.data;
+    console.log("Thông tin user từ /auth/me:", user);
+
+    // Cập nhật Pinia store & localStorage
+    auth.userId = user.userId;
+    auth.username = user.username;
+    auth.fullName = user.fullName || fullName;
+    auth.role = user.role || decoded.role || "CUSTOMER";
+
+    localStorage.setItem("userId", user.userId);
+    localStorage.setItem("username", user.username);
+    localStorage.setItem("fullName", user.fullName || fullName);
+    localStorage.setItem("role", user.role || decoded.role || "CUSTOMER");
 
     // Điều hướng theo vai trò
-    if (decoded.role === "ADMIN") {
+    if (user.role === "ADMIN") {
       router.push("/admin/dashboard");
-    } else if (decoded.role === "STAFF") {
+    } else if (user.role === "STAFF") {
       router.push("/staff/seat-map");
     } else {
-      // Mặc định cho CUSTOMER hoặc vai trò khác không xác định
-      router.push("/"); 
+      router.push("/"); // Mặc định là CUSTOMER
     }
   } catch (err) {
-    console.error("Lỗi giải mã token:", err);
-    error.value = "Token không hợp lệ hoặc đã hết hạn!";
+    console.error("Lỗi khi xử lý đăng nhập Google:", err);
+    error.value = "Đăng nhập thất bại, vui lòng thử lại!";
   } finally {
     loading.value = false;
   }
 });
 </script>
+
 
 <style scoped>
 .container {

@@ -247,10 +247,14 @@ async function processPayment() {
 async function handleCashPayment() {
   try {
     submitting.value = true
+    const totalAmount = props.showtime.price * selectedSeats.value.length
+
     const res = await api.post('/bookings/staff/create-multi', {
       showtimeId: props.showtime.showtimeId,
       seatIds: selectedSeats.value,
-      staffUsername: authStore.username
+      staffUsername: authStore.username,
+      total: totalAmount,
+      paymentMethod: selectedPaymentMethod.value.toUpperCase()
     })
 
     const txnRef = res.data.txnRef
@@ -272,15 +276,19 @@ async function handleCashPayment() {
 async function handleVnPay() {
   try {
     submitting.value = true
+    const totalAmount = props.showtime.price * selectedSeats.value.length
+
+
     const bookingRes = await api.post('/bookings/staff/create-multi', {
       showtimeId: props.showtime.showtimeId,
       seatIds: selectedSeats.value,
-      staffUsername: authStore.username
+      staffUsername: authStore.username,
+      total: totalAmount,
+      paymentMethod: selectedPaymentMethod.value.toUpperCase()
     })
     const txnRef = bookingRes.data.txnRef
     localStorage.setItem('txnRef', txnRef)
 
-    const totalAmount = props.showtime.price * selectedSeats.value.length
     const paymentRes = await api.post('/payments/create-payment', {
       txnRef,
       amount: totalAmount,

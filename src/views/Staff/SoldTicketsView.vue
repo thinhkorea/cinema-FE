@@ -75,16 +75,10 @@
             </span>
 
             <button
-              v-else
               class="btn btn-outline-primary btn-sm"
-              @click="downloadGroupPDF(group.txnRef)"
-              :disabled="downloadingId === group.txnRef"
+              @click="printTicket(group.txnRef)"
             >
-              <span
-                v-if="downloadingId === group.txnRef"
-                class="spinner-border spinner-border-sm me-1"
-              ></span>
-              <i v-else class="bi bi-file-earmark-pdf"></i> Tải vé
+              <i class="bi bi-printer"></i> In vé
             </button>
           </td>
         </tr>
@@ -99,14 +93,16 @@
 
 <script setup>
 import { ref, watchEffect, computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth.store";
 import api from "@/api";
 
 const bookings = ref([]);
 const authStore = useAuthStore();
 const downloadingId = ref(null);
-const selectedDate = ref(""); // 🗓 Ngày được chọn để lọc
+const selectedDate = ref(""); // Ngày được chọn để lọc
 const downloadedRefs = ref(new Set());
+const router = useRouter();
 
 // === Đọc cache vé đã tải
 onMounted(() => {
@@ -194,28 +190,17 @@ function formatDate(date) {
   return new Date(date).toLocaleDateString("vi-VN");
 }
 
-// === Tải PDF ===
-async function downloadGroupPDF(txnRef) {
-  if (!txnRef) return alert("Không tìm thấy mã giao dịch (txnRef)!");
-  if (downloadedRefs.value.has(txnRef)) return alert("Vé này đã được tải trước đó!");
-
-  downloadingId.value = txnRef;
-  try {
-    const res = await api.get(`/bookings/group-ticket/${txnRef}`, { responseType: "blob" });
-    const blob = new Blob([res.data], { type: "application/pdf" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `tickets_${txnRef}.pdf`;
-    link.click();
-    URL.revokeObjectURL(link.href);
-
-    downloadedRefs.value.add(txnRef);
-    localStorage.setItem("downloadedRefs", JSON.stringify([...downloadedRefs.value]));
-  } catch (err) {
-    console.error("Lỗi khi tải vé nhóm:", err);
-    alert("Không thể tải vé nhóm! Kiểm tra console để biết thêm chi tiết.");
-  } finally {
-    downloadingId.value = null;
+function printTicket(txnRef) {
+  if (!txnRef) {
+    alert("Không tìm thấy mã giao dịch!");
+    return;
   }
+  // Mở trang in trong tab mới
+  const printUrl = router.resolve(`/ticket/${txnRef}`).href;
+  window.open(printUrl, "_blank");
+
+  // Cập nhật trạng thái đã tải/in
+  downloadedRefs.value.add(txnRef);
+  localStorage.setItem("downloadedRefs", JSON.stringify([...downloadedRefs.value]));
 }
 </script>

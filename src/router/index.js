@@ -2,107 +2,92 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.store'
 
 const routes = [
+  { path: '/', component: () => import('@/views/HomeView.vue'), meta: { public: true } },
+  { path: '/login', component: () => import('@/views/Auth/LoginView.vue'), meta: { public: true } },
+  { path: '/register', component: () => import('@/views/Auth/RegisterView.vue'), meta: { public: true } },
+  { path: '/login-success', component: () => import('@/views/Auth/LoginSuccess.vue'), meta: { public: true } },
 
-    { path: '/', component: () => import('@/views/HomeView.vue') },
+  { path: '/movie/:id', component: () => import('@/views/MovieDetail.vue'), meta: { public: true } },
+  { path: '/booking/:movieId', component: () => import('@/views/BookingView.vue'), meta: { public: true } },
+  { path: '/booking/:movieId/seats/:showtimeId', component: () => import('@/views/SeatMapView.vue'), meta: { requiresAuth: true } },
 
-    { path: '/login', component: () => import('@/views/Auth/LoginView.vue') },
+  { path: '/payment-result', component: () => import('@/views/Customer/PaymentResult.vue'), meta: { requiresAuth: true } },
+  { path: '/my-bookings/txn/:txnRef', component: () => import('@/views/Customer/MyBookingGroup.vue'), meta: { requiresAuth: true } },
+  { path: '/profile', component: () => import('@/views/Customer/ProfileView.vue'), meta: { requiresAuth: true } },
 
-    { path: '/login-success', component: () => import('@/views/Auth/LoginSuccess.vue') },
+  // ADMIN
+  {
+    path: '/admin',
+    component: () => import('@/layouts/AdminLayout.vue'),
+    meta: { requiresAdmin: true },
+    children: [
+      { path: 'dashboard', component: () => import('@/views/Admin/DashboardView.vue') },
+      { path: 'movies', component: () => import('@/views/Admin/MoviesView.vue') },
+      { path: 'rooms', component: () => import('@/views/Admin/RoomsView.vue') },
+      { path: 'showtimes', component: () => import('@/views/Admin/ShowtimesView.vue') },
+      { path: 'bookings', component: () => import('@/views/Admin/BookingsView.vue') },
+      { path: 'revenue', component: () => import('@/views/Admin/RevenueChart.vue') },
+      { path: 'register-staff', component: () => import('@/views/Admin/RegisterStaffView.vue') }
+    ],
+  },
 
-    {
-        path: '/movie/:id',
-        component: () => import('@/views/MovieDetail.vue'),
-    },
-    {
-        path: '/booking/:movieId',
-        component: () => import('@/views/BookingView.vue'),
-    },
-    {
-        path:'/booking/:movieId/seats/:showtimeId',
-        component: () => import('@/views/SeatMapView.vue')
-    },
-    {
-        path: '/payment-result', 
-        component: () => import('@/views/Customer/PaymentResult.vue'),
-        meta: { requiresAuth: true },
-    },
-    {
-        path: "/my-bookings/txn/:txnRef",
-        component: () => import("@/views/Customer/MyBookingGroup.vue"),
-        meta: { requiresAuth: true },
-    },
+  // STAFF
+  {
+    path: '/staff',
+    component: () => import('@/layouts/StaffLayout.vue'),
+    meta: { requiresStaff: true },
+    children: [
+      { path: 'seat-map', component: () => import('@/views/Staff/SellTicket/SellTicketView.vue') },
+      { path: 'showtimes', component: () => import('@/views/Staff/ShowtimesView.vue') },
+      { path: 'sold-tickets', component: () => import('@/views/Staff/SoldTicketsView.vue') },
+      { path: 'payment-result', component: () => import('@/views/Staff/PaymentResult.vue') },
+      { path: 'search-ticket', component: () => import('@/views/Staff/SearchTicketView.vue') },
+      { path: 'ticket/:txnRef', component: () => import('@/views/Staff/Ticket.vue') },
+    ],
+  },
 
-    // ADMIN layout
-    {
-        path: '/admin',
-        component: () => import('@/layouts/AdminLayout.vue'),
-        meta: { requiresAdmin: true },
-        children: [
-            { path: 'dashboard', component: () => import('@/views/Admin/DashboardView.vue') },
-            { path: 'movies', component: () => import('@/views/Admin/MoviesView.vue') },
-            { path: 'rooms', component: () => import('@/views/Admin/RoomsView.vue') },
-            { path: 'showtimes', component: () => import('@/views/Admin/ShowtimesView.vue') },
-            { path: 'bookings', component: () => import('@/views/Admin/BookingsView.vue') },
-            { path: 'revenue', component: () => import('@/views/Admin/RevenueChart.vue') },
-        ],
-    },
-
-    // STAFF layout
-    {
-        path: '/staff',
-        component: () => import('@/layouts/StaffLayout.vue'),
-        meta: { requiresStaff: true },
-        children: [
-            { path: 'seat-map', component: () => import('@/views/Staff/SellTicket/SellTicketView.vue') },
-            { path: 'showtimes', component: () => import('@/views/Staff/ShowtimesView.vue') },
-            { path: 'sold-tickets', component: () => import('@/views/Staff/SoldTicketsView.vue') },
-            { path: 'payment-result', component: () => import('@/views/Staff/PaymentResult.vue') },
-            { path: 'search-ticket', component: () => import('@/views/Staff/SearchTicketView.vue')},
-
-        ],
-    },
-
-    // 404 fallback
-    { path: '/:pathMatch(.*)*', redirect: '/' },
+  // 404 fallback
+  { path: '/:pathMatch(.*)*', redirect: '/' },
 ]
 
 const router = createRouter({
-    history: createWebHistory(),
-    routes,
+  history: createWebHistory(),
+  routes,
 })
 
-// Middleware bảo vệ quyền truy cập
+// ================== BẢO VỆ QUYỀN TRUY CẬP ==================
 router.beforeEach((to, from, next) => {
-    const auth = useAuthStore()
-    const role = auth.role || localStorage.getItem('role')
+  const auth = useAuthStore()
+  const role = auth.role || localStorage.getItem('role')
 
-    if (to.path === '/' || to.path === '/login' || to.path === '/login-success' || to.path === '/payment-result') {
-        return next()
-    }
+  // Cho phép truy cập các route công khai
+  if (to.meta.public) {
+    return next()
+  }
 
-    // Chưa đăng nhập mà vào trang cần quyền
-    if (!role && (to.meta.requiresAdmin || to.meta.requiresStaff)) {
-        return next('/login')
-    }
+  // Chưa đăng nhập mà vào trang yêu cầu quyền
+  if (!role && (to.meta.requiresAuth || to.meta.requiresAdmin || to.meta.requiresStaff)) {
+    return next('/login')
+  }
 
-    // STAFF vào trang admin → chặn
-    if (to.meta.requiresAdmin && role !== 'ADMIN') {
-        return next('/login')
-    }
+  // STAFF vào khu ADMIN
+  if (to.meta.requiresAdmin && role !== 'ADMIN') {
+    return next('/')
+  }
 
-    // ADMIN vào trang staff → chặn
-    if (to.meta.requiresStaff && role !== 'STAFF') {
-        return next('/login')
-    }
+  // ADMIN vào khu STAFF
+  if (to.meta.requiresStaff && role !== 'STAFF') {
+    return next('/')
+  }
 
-    // Nếu đã đăng nhập → điều hướng đúng khu vực
-    if (to.path === '/login' && role) {
-        if (role === 'ADMIN') return next('/admin/dashboard')
-        if (role === 'STAFF') return next('/staff/seat-map')
-        if (role === 'CUSTOMER') return next('/')
-    }
+  //  Nếu đã login, ngăn quay lại /login hoặc /register
+  if ((to.path === '/login' || to.path === '/register') && role) {
+    if (role === 'ADMIN') return next('/admin/dashboard')
+    if (role === 'STAFF') return next('/staff/seat-map')
+    if (role === 'CUSTOMER') return next('/')
+  }
 
-    next()
+  next()
 })
 
 export default router

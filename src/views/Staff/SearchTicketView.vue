@@ -133,29 +133,18 @@ async function searchTicket() {
 
 // === In tất cả vé trong nhóm ===
 async function printGroup() {
-  if (!txnRef.value) return;
+  const currentTxnRef = txnRef.value.trim();
+  if (!currentTxnRef) return;
+
   printing.value = true;
-  try {
-    const res = await api.get(`/bookings/group-ticket/${txnRef.value}`, {
-      responseType: "blob",
-    });
-    const blob = new Blob([res.data], { type: "application/pdf" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `tickets_${txnRef.value}.pdf`;
-    link.click();
-    URL.revokeObjectURL(link.href);
+  
+  // Mở trang in trong một tab mới
+  const printUrl = `/ticket/${currentTxnRef}`;
+  window.open(printUrl, '_blank');
 
-    // Sau khi in, báo về backend để đánh dấu đã in
-    await api.post(`/bookings/mark-printed/${txnRef.value}`);
-
-    printedTxn.value.push(txnRef.value);
-  } catch (err) {
-    console.error("Lỗi khi in vé nhóm:", err);
-    alert("Không thể in vé nhóm, vui lòng thử lại!");
-  } finally {
-    printing.value = false;
-  }
+  // Giả định rằng việc in đã thành công và cập nhật giao diện
+  printedTxn.value.push(currentTxnRef);
+  printing.value = false;
 }
 
 
