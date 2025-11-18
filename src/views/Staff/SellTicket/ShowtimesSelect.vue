@@ -27,12 +27,16 @@ const props = defineProps({ movieId: Number })
 const groupedShowtimes = ref({})
 
 onMounted(async () => {
-  const res = await api.get(`/staff/showtimes/movie/${props.movieId}`) // Gọi endpoint mới
-  const data = res.data // data giờ là List<Showtime>
+  const res = await api.get(`/staff/showtimes/movie/${props.movieId}`)
+  const data = res.data
+  const now = new Date()
+  
+  // Lọc chỉ những suất chiếu có thời gian bắt đầu sau thời gian hiện tại
+  const validShowtimes = data.filter(s => new Date(s.startTime) > now)
+  
   const grouped = {}
-  data.forEach(s => {
-    // Cắt ngày trực tiếp từ chuỗi ISO
-    const displayDate = s.startTime.split('T')[0] // 2025-11-06
+  validShowtimes.forEach(s => {
+    const displayDate = s.startTime.split('T')[0]
     const [year, month, day] = displayDate.split('-')
     const formattedDate = `${day}/${month}/${year}`
 

@@ -62,6 +62,19 @@
                                             <i class="bi bi-person-circle me-2"></i> Hồ sơ cá nhân
                                         </router-link>
                                     </li>
+                                    <li v-if="auth.isAdmin || auth.isStaff">
+                                        <hr class="dropdown-divider">
+                                    </li>
+                                    <li v-if="auth.isAdmin">
+                                        <button class="dropdown-item w-100 text-start" @click="goDashboard">
+                                            <i class="bi bi-speedometer2 me-2"></i> Admin Dashboard
+                                        </button>
+                                    </li>
+                                    <li v-if="auth.isStaff">
+                                        <button class="dropdown-item w-100 text-start" @click="goDashboard">
+                                            <i class="bi bi-ticket-detailed me-2"></i> Staff Panel
+                                        </button>
+                                    </li>
                                 </ul>
                             </transition>
 
@@ -102,6 +115,15 @@ const showDropdown = ref(false);
 const handleLogout = () => {
     auth.logout();
     router.push("/");
+};
+
+const goDashboard = () => {
+    showDropdown.value = false;
+    if (auth.isAdmin) {
+        router.push("/admin/dashboard");
+    } else if (auth.isStaff) {
+        router.push("/staff/seat-map");
+    }
 };
 </script>
 

@@ -18,18 +18,18 @@ const routes = [
     {
         path: "/payment-result",
         component: () => import("@/views/Customer/PaymentResult.vue"),
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, requiresCustomer: true },
     },
     {
         path: "/my-bookings/txn/:txnRef",
         component: () => import("@/views/Customer/MyBookingGroup.vue"),
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, requiresCustomer: true },
     },
-    { path: "/profile", component: () => import("@/views/Customer/ProfileView.vue"), meta: { requiresAuth: true } },
+    { path: "/profile", component: () => import("@/views/Customer/ProfileView.vue"), meta: { requiresAuth: true, requiresCustomer: true } },
     {
         path: "/my-bookings",
         component: () => import("@/views/Customer/MyBookingView.vue"),
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, requiresCustomer: true },
     },
 
     // ADMIN
@@ -72,7 +72,7 @@ const router = createRouter({
     routes,
 });
 
-// ================== BẢO VỆ QUYỀN TRUY CẬP ==================
+// ================== BẢO VỀ QUYỀN TRUY CẬP ==================
 router.beforeEach((to, from, next) => {
     const auth = useAuthStore();
     const role = auth.role || localStorage.getItem("role");
@@ -83,8 +83,13 @@ router.beforeEach((to, from, next) => {
     }
 
     // Chưa đăng nhập mà vào trang yêu cầu quyền
-    if (!role && (to.meta.requiresAuth || to.meta.requiresAdmin || to.meta.requiresStaff)) {
+    if (!role && (to.meta.requiresAuth || to.meta.requiresAdmin || to.meta.requiresStaff || to.meta.requiresCustomer)) {
         return next("/login");
+    }
+
+    // STAFF/ADMIN vào trang customer
+    if (to.meta.requiresCustomer && role !== "CUSTOMER") {
+        return next("/");
     }
 
     // STAFF vào khu ADMIN
@@ -97,7 +102,7 @@ router.beforeEach((to, from, next) => {
         return next("/");
     }
 
-    //  Nếu đã login, ngăn quay lại /login hoặc /register
+    // Nếu đã login, ngăn quay lại /login hoặc /register
     if ((to.path === "/login" || to.path === "/register") && role) {
         if (role === "ADMIN") return next("/admin/dashboard");
         if (role === "STAFF") return next("/staff/seat-map");

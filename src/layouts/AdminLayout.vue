@@ -23,6 +23,9 @@
       </ul>
 
       <div class="mt-auto pt-3 border-top">
+        <button class="btn btn-outline-light w-100 mb-2" @click="goHome">
+          <i class="bi bi-house me-2"></i> Trang chủ
+        </button>
         <button class="btn btn-outline-light w-100" @click="logout">
           <i class="bi bi-box-arrow-right me-2"></i> Đăng xuất
         </button>
@@ -56,6 +59,10 @@ const links = [
 const logout = () => {
   auth.logout()
   router.push('/login')
+}
+
+const goHome = () => {
+  router.push('/')
 }
 
 import { ref } from 'vue'

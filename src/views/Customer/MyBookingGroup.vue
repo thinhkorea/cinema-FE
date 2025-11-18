@@ -6,7 +6,7 @@
             class="fw-bold mb-5 text-center"
             style="color: #ffc107; font-size: 2.5rem; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3)"
         >
-            🎟️ Vé của bạn
+            Vé của bạn
         </h2>
 
         <!-- Nếu chưa có dữ liệu -->
@@ -80,15 +80,13 @@
             </div>
             <!-- FOOTER -->
             <div class="ticket-footer text-center text-secondary small p-3 border-top border-secondary">
-                <p class="mb-0 text-light">
-                    ✓ Vui lòng đưa mã này đến quầy vé hoặc quét QR khi vào rạp để nhận vé giấy.
-                </p>
+                <p class="mb-0 text-light">Vui lòng đưa mã này đến quầy vé hoặc quét QR khi vào rạp để nhận vé giấy.</p>
             </div>
         </div>
 
         <!-- Nút quay về -->
         <div class="text-center mt-4">
-            <RouterLink to="/" class="btn btn-primary"> <i class="bi bi-house-door me-2"></i>Về trang chủ </RouterLink>
+            <button @click="goHome" class="btn btn-primary"><i class="bi bi-house-door me-2"></i>Về trang chủ</button>
         </div>
     </div>
 </template>
@@ -96,11 +94,14 @@
 <script setup>
 import AppHeader from "@/components/AppHeader.vue";
 import QrcodeVue from "qrcode.vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { ref, onMounted, computed } from "vue";
+import { useAuthStore } from "@/stores/auth.store";
 import api from "@/api";
 
 const route = useRoute();
+const router = useRouter();
+const auth = useAuthStore();
 const txnRef = route.params.txnRef;
 const bookings = ref([]);
 
@@ -114,7 +115,17 @@ onMounted(async () => {
     }
 });
 
-// ==== Các giá trị tính toán ====
+// Hàm điều hướng về trang chủ dựa trên role
+const goHome = () => {
+    const role = auth.role;
+    if (role === "ADMIN") {
+        router.push("/admin/dashboard");
+    } else if (role === "STAFF") {
+        router.push("/staff/seat-map");
+    } else {
+        router.push("/");
+    }
+}; // ==== Các giá trị tính toán ====
 const movieTitle = computed(() => bookings.value[0]?.movieTitle || "N/A");
 const moviePoster = computed(() => bookings.value[0]?.moviePoster || "");
 const roomName = computed(() => bookings.value[0]?.roomName || "N/A");

@@ -36,6 +36,9 @@
       <!-- Thông tin nhân viên -->
       <div class="text-center mt-4 border-top pt-3">
         <p class="mb-1 fw-bold">{{ auth.username || 'Nhân viên' }}</p>
+        <button class="btn btn-outline-light btn-sm w-100 mb-2" @click="goHome">
+          <i class="bi bi-house me-1"></i> Trang chủ
+        </button>
         <button class="btn btn-outline-light btn-sm w-100" @click="logout">
           <i class="bi bi-box-arrow-right me-1"></i> Đăng xuất
         </button>
@@ -59,6 +62,10 @@ const router = useRouter()
 const logout = () => {
   auth.logout()
   router.push('/login')
+}
+
+const goHome = () => {
+  router.push('/')
 }
 </script>
 
