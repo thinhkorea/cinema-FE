@@ -29,6 +29,15 @@ api.interceptors.response.use(
     (err) => {
         if (err.response?.status === 401) {
             console.warn('401 Unauthorized:', err.config.url)
+            // Đăng xuất nếu token không hợp lệ
+            try {
+                const auth = useAuthStore()
+                auth.logout()
+            } catch (e) {
+                localStorage.removeItem('token')
+                localStorage.removeItem('role')
+                window.location.href = '/login'
+            }
         }
         return Promise.reject(err)
     }

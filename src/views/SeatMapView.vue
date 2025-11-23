@@ -1,161 +1,166 @@
 <template>
-    <AppHeader />
+    <div class="seat-map-page">
+        <AppHeader />
 
-    <div class="seat-map container py-5">
-        <!-- Loading -->
-        <div v-if="loading" class="text-center mt-5 py-5">
-            <div class="spinner-border text-warning" role="status"></div>
-            <p class="text-secondary mt-3">Đang tải sơ đồ ghế...</p>
-        </div>
-
-        <!-- Nội dung chính -->
-        <div v-else-if="movie && showtime">
-            <!-- Thông tin phim -->
-            <div class="text-center mb-5">
-                <h2 class="fw-bold">{{ movie.title }}</h2>
-                <p class="text-muted mb-1">
-                    <i class="bi bi-calendar-event me-2"></i>Ngày chiếu:
-                    {{ formatDate(showtime.startTime) }}
-                </p>
-                <p class="text-muted mb-1">
-                    <i class="bi bi-clock me-2"></i>Giờ chiếu:
-                    {{ formatTime(showtime.startTime) }}
-                </p>
-                <p class="text-muted">
-                    <i class="bi bi-house me-2"></i>Phòng:
-                    {{ showtime.room?.roomName }}
-                </p>
+        <div class="container py-5">
+            <!-- Loading -->
+            <div v-if="loading" class="text-center mt-5 py-5">
+                <div class="spinner"></div>
+                <p class="loading-text mt-3">Đang tải sơ đồ ghế...</p>
             </div>
 
-            <!-- Màn hình -->
-            <div class="screen text-center mb-4 py-2 text-dark fw-bold bg-warning rounded">MÀN HÌNH</div>
-
-            <!-- Sơ đồ ghế -->
-            <div class="seat-grid mb-4">
-                <div
-                    v-for="(row, rowIndex) in seatLayout"
-                    :key="rowIndex"
-                    class="seat-row d-flex justify-content-center mb-2"
-                >
-                    <div
-                        v-for="seat in row"
-                        :key="seat.seatId"
-                        class="seat text-center"
-                        :class="{
-                            'seat-selected': selectedSeats.includes(seat.seatId),
-                            'seat-booked': seat.booked,
-                            'seat-vip': seat.seatType === 'VIP',
-                        }"
-                        @click="toggleSeat(seat)"
-                    >
-                        {{ seat.seatNumber }}
+            <!-- Nội dung chính -->
+            <div v-else-if="movie && showtime">
+                <!-- Thông tin phim -->
+                <div class="movie-info-card">
+                    <h2 class="movie-title">{{ movie.title }}</h2>
+                    <div class="movie-details">
+                        <div class="detail-item">
+                            <span class="detail-icon">📅</span>
+                            <span>{{ formatDate(showtime.startTime) }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-icon">🕐</span>
+                            <span>{{ formatTime(showtime.startTime) }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-icon">🏠</span>
+                            <span>{{ showtime.room?.roomName }}</span>
+                        </div>
                     </div>
+                </div>
+
+                <!-- Màn hình -->
+                <div class="screen">MÀN HÌNH</div>
+
+                <!-- Sơ đồ ghế -->
+                <div class="seat-grid mb-4">
+                    <div
+                        v-for="(row, rowIndex) in seatLayout"
+                        :key="rowIndex"
+                        class="seat-row d-flex justify-content-center mb-2"
+                    >
+                        <div
+                            v-for="seat in row"
+                            :key="seat.seatId"
+                            class="seat text-center"
+                            :class="{
+                                'seat-selected': selectedSeats.includes(seat.seatId),
+                                'seat-booked': seat.booked,
+                                'seat-vip': seat.seatType === 'VIP' || seat.type === 'VIP',
+                                'seat-sweetbox': seat.seatType === 'SWEETBOX' || seat.type === 'SWEETBOX',
+                                'seat-sweetbox-row': isInSweetboxRow(seat),
+                            }"
+                            @click="toggleSeat(seat)"
+                        >
+                            {{ seat.seatNumber }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ghi chú -->
+                <div class="seat-legend">
+                    <div class="legend-item">
+                        <span class="legend-dot seat-regular"></span>
+                        <span>Thường</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-dot seat-vip"></span>
+                        <span>VIP</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-dot seat-sweetbox"></span>
+                        <span>Sweetbox</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-dot seat-selected"></span>
+                        <span>Đang chọn</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-dot seat-booked"></span>
+                        <span>Đã đặt</span>
+                    </div>
+                </div>
+
+                <!-- Tổng tiền & Điểm -->
+                <div class="booking-summary">
+                    <div class="price-info">
+                        <p class="total-price">
+                            Tổng: <span class="price">{{ totalPrice.toLocaleString() }}</span
+                            >đ
+                        </p>
+                        <p class="loyalty-info">
+                            Bạn sẽ nhận được <strong>{{ Math.floor(totalPrice / 20000) }}</strong> điểm tích lũy
+                        </p>
+                    </div>
+                    <button
+                        class="btn-confirm"
+                        :class="{ disabled: selectedSeats.length === 0 }"
+                        :disabled="selectedSeats.length === 0"
+                        @click="openPhoneModal"
+                    >
+                        Xác nhận đặt vé
+                    </button>
                 </div>
             </div>
 
-            <!-- Ghi chú -->
-            <div class="d-flex justify-content-center gap-4 mb-4 text-secondary small">
-                <div><span class="legend seat-regular"></span> Thường</div>
-                <div><span class="legend seat-vip"></span> VIP</div>
-                <div><span class="legend seat-selected"></span> Đang chọn</div>
-                <div><span class="legend seat-booked"></span> Đã đặt</div>
+            <!-- Nếu không tải được -->
+            <div v-else class="error-state">
+                <p>Không thể tải dữ liệu ghế. Vui lòng thử lại sau.</p>
             </div>
-
-            <!-- Tổng tiền & Điểm -->
-            <div class="text-center mt-4 mb-3">
-                <p class="fw-bold fs-5">
-                    Tổng: <span class="text-warning">{{ totalPrice.toLocaleString() }}</span> đ
-                </p>
-                <p class="small text-muted">
-                    💎 Bạn sẽ nhận được <strong>{{ Math.floor(totalPrice / 20000) }}</strong> điểm tích lũy
-                </p>
-                <button
-                    class="btn btn-warning btn-lg px-5 fw-bold"
-                    :disabled="selectedSeats.length === 0"
-                    @click="openPhoneModal"
-                >
-                    Xác nhận đặt vé
-                </button>
-            </div>
-        </div>
-
-        <!-- Nếu không tải được -->
-        <div v-else class="text-center text-danger py-5">
-            <p>Không thể tải dữ liệu ghế. Vui lòng thử lại sau.</p>
         </div>
 
         <!-- Modal nhập SĐT để tích điểm -->
-        <div v-if="showPhoneModal" class="modal d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.5)">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header bg-warning">
-                        <h5 class="modal-title fw-bold">Thông tin thanh toán</h5>
-                        <button type="button" class="btn-close" @click="closePhoneModal"></button>
+        <div v-if="showPhoneModal" class="modal-overlay" @click="closePhoneModal">
+            <div class="modal-content" @click.stop>
+                <div class="modal-header">
+                    <h5 class="modal-title">Thông tin thanh toán</h5>
+                    <button type="button" class="btn-close" @click="closePhoneModal">×</button>
+                </div>
+                <div class="modal-body">
+                    <!-- Phần 1: SĐT tích điểm -->
+                    <div class="form-section">
+                        <h6 class="section-title">Thông tin tích điểm</h6>
+                        <p class="section-desc">Nhập số điện thoại để tích điểm vào tài khoản:</p>
+                        <input v-model="customerPhone" type="tel" class="form-input" placeholder="Nhập hoặc bỏ qua" />
+                        <div class="info-box">
+                            Nếu nhập SĐT, {{ Math.floor(totalPrice / 20000) }} điểm sẽ được cộng vào tài khoản
+                        </div>
                     </div>
-                    <div class="modal-body">
-                        <!-- Phần 1: SĐT tích điểm -->
-                        <div class="mb-4">
-                            <h6 class="fw-semibold mb-3">Thông tin tích điểm</h6>
-                            <p class="text-muted small mb-2">Nhập số điện thoại để tích điểm vào tài khoản:</p>
+
+                    <div class="divider"></div>
+
+                    <!-- Phần 2: Dùng điểm giảm giá -->
+                    <div class="form-section">
+                        <h6 class="section-title">Dùng điểm giảm giá</h6>
+                        <p class="section-desc">
+                            Số điểm hiện có: <strong>{{ customerLoyaltyPoints }}</strong> điểm ({{
+                                (customerLoyaltyPoints * 1000).toLocaleString()
+                            }}đ)
+                        </p>
+
+                        <div class="input-group">
                             <input
-                                v-model="customerPhone"
-                                type="tel"
-                                class="form-control"
-                                placeholder="Nhập hoặc bỏ qua"
+                                v-model.number="pointsToUse"
+                                type="number"
+                                class="form-input"
+                                min="0"
+                                :max="Math.min(customerLoyaltyPoints, Math.floor(totalPrice / 1000))"
+                                placeholder="Nhập số điểm (1 điểm = 1.000đ)"
                             />
-                            <div class="alert alert-info small mt-2 mb-0">
-                                <i class="bi bi-info-circle me-2"></i>
-                                Nếu nhập SĐT, {{ Math.floor(totalPrice / 20000) }} điểm sẽ được cộng vào tài khoản
-                            </div>
+                            <span class="input-suffix">điểm</span>
                         </div>
 
-                        <hr />
-
-                        <!-- Phần 2: Dùng điểm giảm giá -->
-                        <div>
-                            <h6 class="fw-semibold mb-3">Dùng điểm giảm giá</h6>
-                            <p class="text-muted small mb-2">
-                                Số điểm hiện có: <strong>{{ customerLoyaltyPoints }}</strong> điểm ({{
-                                    (customerLoyaltyPoints * 1000).toLocaleString()
-                                }}đ)
-                            </p>
-
-                            <div class="input-group mb-2">
-                                <input
-                                    v-model.number="pointsToUse"
-                                    type="number"
-                                    class="form-control"
-                                    min="0"
-                                    :max="Math.min(customerLoyaltyPoints, Math.floor(totalPrice / 1000))"
-                                    placeholder="Nhập số điểm (1 điểm = 1.000đ)"
-                                    @input="
-                                        console.log(
-                                            `[INPUT] pointsToUse: ${pointsToUse}, max: ${Math.min(
-                                                customerLoyaltyPoints,
-                                                Math.floor(totalPrice / 1000)
-                                            )}`
-                                        )
-                                    "
-                                />
-                                <span class="input-group-text">điểm</span>
-                            </div>
-
-                            <div v-if="pointsToUse > 0" class="alert alert-success small mb-0">
-                                <i class="bi bi-check-circle me-2"></i>
-                                Giảm: {{ (pointsToUse * 1000).toLocaleString() }}đ
-                                <br />
-                                <strong
-                                    >Tổng thanh toán: {{ (totalPrice - pointsToUse * 1000).toLocaleString() }}đ</strong
-                                >
-                            </div>
+                        <div v-if="pointsToUse > 0" class="success-box">
+                            Giảm: {{ (pointsToUse * 1000).toLocaleString() }}đ
+                            <br />
+                            <strong>Tổng thanh toán: {{ (totalPrice - pointsToUse * 1000).toLocaleString() }}đ</strong>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" @click="closePhoneModal">Hủy</button>
-                        <button type="button" class="btn btn-warning fw-bold" @click="proceedToPayment">
-                            Tiếp tục thanh toán
-                        </button>
-                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" @click="closePhoneModal">Hủy</button>
+                    <button type="button" class="btn-primary" @click="proceedToPayment">Tiếp tục thanh toán</button>
                 </div>
             </div>
         </div>
@@ -208,7 +213,6 @@ const openPhoneModal = async () => {
     pointsToUse.value = 0;
     pointsRedeemed.value = 0;
     showPhoneModal.value = true;
-    alert(`Debug: Bạn có ${customerLoyaltyPoints.value} điểm. Tổng tiền: ${totalPrice.value}đ`);
 };
 const closePhoneModal = () => {
     showPhoneModal.value = false;
@@ -259,7 +263,35 @@ onMounted(async () => {
 
         movie.value = resMovie.data;
         showtime.value = resShowtime.data;
-        seats.value = resSeats.data || [];
+
+        // Xử lý dữ liệu ghế - tách ghế Sweetbox thành 2 ghế riêng biệt
+        const rawSeats = resSeats.data || [];
+        const processedSeats = [];
+
+        rawSeats.forEach((seat) => {
+            // Kiểm tra nếu là ghế Sweetbox có dạng F1-2, F3-4, etc.
+            if ((seat.type === "SWEETBOX" || seat.seatType === "SWEETBOX") && seat.seatNumber.includes("-")) {
+                const [start, end] = seat.seatNumber.split("-");
+                const rowLetter = start.charAt(0);
+                const startNum = parseInt(start.substring(1));
+                const endNum = parseInt(end);
+
+                // Tạo 2 ghế riêng biệt
+                for (let i = startNum; i <= endNum; i++) {
+                    processedSeats.push({
+                        ...seat,
+                        seatId: `${seat.seatId}_${i}`, // Tạo ID duy nhất cho mỗi ghế
+                        seatNumber: `${rowLetter}${i}`,
+                        originalSweetboxId: seat.seatId, // Lưu ID gốc để xử lý booking
+                    });
+                }
+            } else {
+                // Ghế thường, giữ nguyên
+                processedSeats.push(seat);
+            }
+        });
+
+        seats.value = processedSeats;
     } catch (err) {
         console.error("Lỗi khi tải dữ liệu ghế:", err);
     } finally {
@@ -305,9 +337,48 @@ const totalPrice = computed(() => {
 const toggleSeat = (seat) => {
     if (seat.booked) return;
 
-    const index = selectedSeats.value.indexOf(seat.seatId);
-    if (index !== -1) selectedSeats.value.splice(index, 1);
-    else selectedSeats.value.push(seat.seatId);
+    // Logic đặc biệt cho ghế Sweetbox
+    if (seat.type === "SWEETBOX" || seat.seatType === "SWEETBOX") {
+        const index = selectedSeats.value.indexOf(seat.seatId);
+
+        if (index !== -1) {
+            // Bỏ chọn ghế Sweetbox - bỏ chọn cả cặp
+            selectedSeats.value.splice(index, 1);
+
+            // Tìm ghế cặp (cùng originalSweetboxId) và bỏ chọn luôn
+            const pairSeat = seats.value.find(
+                (s) => s.originalSweetboxId === seat.originalSweetboxId && s.seatId !== seat.seatId
+            );
+
+            if (pairSeat) {
+                const pairIndex = selectedSeats.value.indexOf(pairSeat.seatId);
+                if (pairIndex !== -1) {
+                    selectedSeats.value.splice(pairIndex, 1);
+                }
+            }
+
+            console.log(`Bỏ chọn ghế Sweetbox: ${seat.seatNumber} và ghế cặp`);
+        } else {
+            // Chọn ghế Sweetbox - chọn cả cặp
+            selectedSeats.value.push(seat.seatId);
+
+            // Tìm ghế cặp (cùng originalSweetboxId) và chọn luôn
+            const pairSeat = seats.value.find(
+                (s) => s.originalSweetboxId === seat.originalSweetboxId && s.seatId !== seat.seatId && !s.booked
+            );
+
+            if (pairSeat && !selectedSeats.value.includes(pairSeat.seatId)) {
+                selectedSeats.value.push(pairSeat.seatId);
+            }
+
+            console.log(`Chọn ghế Sweetbox: ${seat.seatNumber} và ghế cặp`);
+        }
+    } else {
+        // Logic thường cho ghế Regular và VIP
+        const index = selectedSeats.value.indexOf(seat.seatId);
+        if (index !== -1) selectedSeats.value.splice(index, 1);
+        else selectedSeats.value.push(seat.seatId);
+    }
 };
 
 // Format ngày & giờ
@@ -315,6 +386,12 @@ const formatDate = (d) =>
     new Date(d).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
 
 const formatTime = (time) => (time ? time.split("T")[1].substring(0, 5) : "");
+
+// Check if seat is in sweetbox row (usually row M)
+const isInSweetboxRow = (seat) => {
+    const rowLetter = seat.seatNumber.charAt(0);
+    return rowLetter === "M" || seat.seatType === "SWEETBOX" || seat.type === "SWEETBOX";
+};
 
 // Xác nhận đặt vé + thanh toán VNPay
 const confirmBooking = async () => {
@@ -331,10 +408,20 @@ const confirmBooking = async () => {
     }
 
     try {
+        // Chuyển đổi seatIds về dạng gốc cho backend
+        const seatIdsForBooking = selectedSeats.value.map((seatId) => {
+            const seat = seats.value.find((s) => s.seatId === seatId);
+            // Nếu là ghế Sweetbox đã được tách, dùng originalSweetboxId
+            return seat.originalSweetboxId || seatId;
+        });
+
+        // Loại bỏ ID trùng lặp (vì Sweetbox được tách thành 2 ghế nhưng chỉ cần 1 booking)
+        const uniqueSeatIds = [...new Set(seatIdsForBooking)];
+
         // Tạo booking giữ ghế (PENDING)
         const res = await api.post(`/bookings`, {
             showtimeId,
-            seatIds: selectedSeats.value,
+            seatIds: uniqueSeatIds,
         });
 
         const txnRef = res.data.txnRef;
@@ -355,13 +442,16 @@ const confirmBooking = async () => {
         });
 
         const paymentUrl = payRes.data.paymentUrl;
-        
+
         // Lưu pointsToUse vào sessionStorage (sẽ được xóa khi đóng tab)
         if (pointsToUse.value > 0) {
-            sessionStorage.setItem('pendingPointsRedeem', JSON.stringify({
-                txnRef: txnRef,
-                pointsToUse: pointsToUse.value
-            }));
+            sessionStorage.setItem(
+                "pendingPointsRedeem",
+                JSON.stringify({
+                    txnRef: txnRef,
+                    pointsToUse: pointsToUse.value,
+                })
+            );
         }
 
         // Redirect đến VNPay thật (sandbox) - URL nguyên bản, không thêm params
@@ -374,79 +464,477 @@ const confirmBooking = async () => {
 </script>
 
 <style scoped>
-/* Màn hình */
-.screen {
-    font-size: 18px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
+/* Global styling */
+.seat-map-page {
+    background: #0a0a0a;
+    color: #ffffff;
+    min-height: 100vh;
 }
 
-/* Ghế */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
+
+/* Loading */
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(255, 215, 0, 0.2);
+    border-top-color: #ffd700;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.loading-text {
+    color: #888;
+    font-size: 1rem;
+}
+
+/* Movie info card */
+.movie-info-card {
+    background: #1a1a1a;
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    text-align: center;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.movie-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #ffd700;
+    margin-bottom: 1.5rem;
+}
+
+.movie-details {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.detail-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #ccc;
+    font-size: 1rem;
+}
+
+.detail-icon {
+    font-size: 1.2rem;
+}
+
+/* Screen */
+.screen {
+    background: linear-gradient(135deg, #ffd700, #ffed4e);
+    color: #000;
+    text-align: center;
+    padding: 1rem;
+    margin: 2rem auto;
+    border-radius: 12px;
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+    max-width: 400px;
+}
+
+/* Seat grid */
 .seat-grid {
     display: flex;
     flex-direction: column;
     align-items: center;
+    margin-bottom: 2rem;
 }
 
 .seat-row {
-    gap: 10px;
+    display: flex;
+    gap: 4px;
+    margin-bottom: 8px;
+    justify-content: center;
+    max-width: 600px;
+}
+
+/* Sweetbox row - wider and closer spacing */
+.seat-row:has(.seat-sweetbox-row) {
+    gap: 2px;
+    max-width: 700px;
 }
 
 .seat {
-    width: 36px;
-    height: 36px;
-    line-height: 36px;
-    border-radius: 6px;
-    font-size: 14px;
-    background: #444;
-    color: #fff;
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
+    text-align: center;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
+    background: #333;
+    color: #fff;
+    border: 2px solid transparent;
 }
 
-.seat:hover {
-    transform: scale(1.05);
+.seat:hover:not(.seat-booked) {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
 }
 
 .seat-vip {
-    background: #9c27b0;
+    background: linear-gradient(135deg, #9c27b0, #e91e63);
+    border-color: #9c27b0;
+}
+
+.seat-sweetbox {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-color: #667eea;
+    box-shadow: 0 0 8px rgba(102, 126, 234, 0.3);
+}
+
+/* Sweetbox row styling - make them look connected like CGV */
+.seat-sweetbox-row {
+    border-radius: 6px;
+    margin: 0 1px;
+    position: relative;
+    overflow: hidden;
+}
+
+.seat-sweetbox-row::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent);
+    pointer-events: none;
+}
+
+/* First seat in sweetbox row */
+.seat-sweetbox-row:first-of-type {
+    border-radius: 8px 6px 6px 8px;
+    margin-left: 0;
+}
+
+/* Last seat in sweetbox row */
+.seat-sweetbox-row:last-of-type {
+    border-radius: 6px 8px 8px 6px;
+    margin-right: 0;
 }
 
 .seat-selected {
-    background: #ffc107;
+    background: linear-gradient(135deg, #ffd700, #ffed4e);
     color: #000;
-    font-weight: bold;
+    border-color: #ffd700;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
 }
 
 .seat-booked {
-    background: #777;
+    background: #666;
+    color: #999;
     cursor: not-allowed;
-    text-decoration: line-through;
+    opacity: 0.5;
 }
 
-/* Ghi chú */
-.legend {
-    display: inline-block;
-    width: 20px;
-    height: 20px;
+/* Legend */
+.seat-legend {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #ccc;
+    font-size: 0.9rem;
+}
+
+.legend-dot {
+    width: 16px;
+    height: 16px;
     border-radius: 4px;
-    margin-right: 5px;
-    vertical-align: middle;
+    display: inline-block;
 }
 
-.seat-regular {
-    background: #444;
+.legend-dot.seat-regular {
+    background: #333;
+}
+.legend-dot.seat-vip {
+    background: linear-gradient(135deg, #9c27b0, #e91e63);
+}
+.legend-dot.seat-sweetbox {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+}
+.legend-dot.seat-selected {
+    background: linear-gradient(135deg, #ffd700, #ffed4e);
+}
+.legend-dot.seat-booked {
+    background: #666;
 }
 
-.seat-vip {
-    background: #9c27b0;
+/* Booking summary */
+.booking-summary {
+    background: #1a1a1a;
+    border-radius: 16px;
+    padding: 2rem;
+    text-align: center;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
-.seat-selected {
-    background: #ffc107;
+.price-info {
+    margin-bottom: 1.5rem;
 }
 
-.seat-booked {
+.total-price {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.price {
+    color: #ffd700;
+}
+
+.loyalty-info {
+    color: #ccc;
+    font-size: 0.9rem;
+}
+
+.btn-confirm {
+    background: linear-gradient(135deg, #ffd700, #ffed4e);
+    color: #000;
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+}
+
+.btn-confirm:hover:not(.disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(255, 215, 0, 0.4);
+}
+
+.btn-confirm.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Error state */
+.error-state {
+    text-align: center;
+    color: #ff6b6b;
+    font-size: 1.2rem;
+    padding: 3rem;
+}
+
+/* Modal */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: #1a1a1a;
+    border-radius: 16px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.modal-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid #333;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #ffd700;
+    margin: 0;
+}
+
+.btn-close {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background 0.2s;
+}
+
+.btn-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.form-section {
+    margin-bottom: 1.5rem;
+}
+
+.section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #ffd700;
+    margin-bottom: 0.5rem;
+}
+
+.section-desc {
+    color: #ccc;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+.form-input {
+    width: 100%;
+    padding: 0.75rem;
+    background: #333;
+    border: 2px solid #444;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #ffd700;
+}
+
+.input-group {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.input-suffix {
+    color: #ccc;
+    font-size: 0.9rem;
+}
+
+.divider {
+    height: 1px;
+    background: #333;
+    margin: 1.5rem 0;
+}
+
+.info-box,
+.success-box {
+    padding: 0.75rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+}
+
+.info-box {
+    background: rgba(0, 123, 255, 0.1);
+    color: #4dabf7;
+    border: 1px solid rgba(0, 123, 255, 0.2);
+}
+
+.success-box {
+    background: rgba(40, 167, 69, 0.1);
+    color: #51cf66;
+    border: 1px solid rgba(40, 167, 69, 0.2);
+}
+
+.modal-footer {
+    padding: 1.5rem;
+    border-top: 1px solid #333;
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+.btn-secondary,
+.btn-primary {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-secondary {
+    background: #666;
+    color: #fff;
+}
+
+.btn-secondary:hover {
     background: #777;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #ffd700, #ffed4e);
+    color: #000;
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .container {
+        padding: 0 1rem;
+    }
+
+    .movie-details {
+        gap: 1rem;
+    }
+
+    .seat-legend {
+        gap: 1rem;
+    }
+
+    .seat {
+        width: 35px;
+        height: 35px;
+        line-height: 35px;
+    }
 }
 </style>
