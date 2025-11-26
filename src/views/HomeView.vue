@@ -179,49 +179,13 @@
         </section>
 
         <!-- FOOTER -->
-        <footer class="footer mt-5">
-            <div class="container">
-                <div class="row mb-4">
-                    <div class="col-md-3 footer-column">
-                        <h5>📍 Về CGV</h5>
-                        <ul class="list-unstyled">
-                            <li><a href="#">Giới thiệu</a></li>
-                            <li><a href="#">Tin tức</a></li>
-                            <li><a href="#">Liên hệ</a></li>
-                        </ul>
-                    </div>
-                    <div class="col-md-3 footer-column">
-                        <h5>❓ Hỗ trợ</h5>
-                        <ul class="list-unstyled">
-                            <li><a href="#">FAQ</a></li>
-                            <li><a href="#">Điều khoản</a></li>
-                            <li><a href="#">Chính sách bảo mật</a></li>
-                        </ul>
-                    </div>
-                    <div class="col-md-3 footer-column">
-                        <h5>🌐 Kết nối</h5>
-                        <div class="social-links">
-                            <a href="#" class="social-link">Facebook</a>
-                            <a href="#" class="social-link">Instagram</a>
-                            <a href="#" class="social-link">YouTube</a>
-                        </div>
-                    </div>
-                    <div class="col-md-3 footer-column">
-                        <h5>📞 Liên hệ</h5>
-                        <p class="small">Cinema And Joy<br />Khu II, Đường 3/2<br />Cần Thơ</p>
-                    </div>
-                </div>
-                <hr class="bg-secondary" />
-                <div class="footer-bottom text-center">
-                    <p class="small">© 2025 CAJ Vietnam. All rights reserved.</p>
-                </div>
-            </div>
-        </footer>
+        <AppFooter />
     </div>
 </template>
 
 <script setup>
 import AppHeader from "@/components/AppHeader.vue";
+import AppFooter from "@/components/AppFooter.vue";
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth.store";
@@ -972,7 +936,6 @@ const offers = [
         align-items: flex-start;
         gap: 1rem;
     }
-
     .nav-button {
         width: 40px;
         height: 40px;

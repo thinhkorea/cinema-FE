@@ -25,12 +25,6 @@
                             <i class="bi me-1"></i>Vé của tôi
                         </router-link>
                     </li>
-                    <li class="nav-item">
-                        <router-link to="/promotions" class="nav-link">Khuyến mãi</router-link>
-                    </li>
-                    <li class="nav-item">
-                        <router-link to="/contact" class="nav-link">Liên hệ</router-link>
-                    </li>
                 </ul>
 
                 <!-- User -->

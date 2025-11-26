@@ -82,15 +82,12 @@
                     </div>
                 </div>
 
-                <!-- Tổng tiền & Điểm -->
+                <!-- Tổng tiền -->
                 <div class="booking-summary">
                     <div class="price-info">
                         <p class="total-price">
                             Tổng: <span class="price">{{ totalPrice.toLocaleString() }}</span
                             >đ
-                        </p>
-                        <p class="loyalty-info">
-                            Bạn sẽ nhận được <strong>{{ Math.floor(totalPrice / 20000) }}</strong> điểm tích lũy
                         </p>
                     </div>
                     <button
@@ -114,25 +111,13 @@
         <div v-if="showPhoneModal" class="modal-overlay" @click="closePhoneModal">
             <div class="modal-content" @click.stop>
                 <div class="modal-header">
-                    <h5 class="modal-title">Thông tin thanh toán</h5>
+                    <h5 class="modal-title">Sử dụng điểm tích lũy</h5>
                     <button type="button" class="btn-close" @click="closePhoneModal">×</button>
                 </div>
                 <div class="modal-body">
-                    <!-- Phần 1: SĐT tích điểm -->
+                    <!-- Dùng điểm giảm giá -->
                     <div class="form-section">
-                        <h6 class="section-title">Thông tin tích điểm</h6>
-                        <p class="section-desc">Nhập số điện thoại để tích điểm vào tài khoản:</p>
-                        <input v-model="customerPhone" type="tel" class="form-input" placeholder="Nhập hoặc bỏ qua" />
-                        <div class="info-box">
-                            Nếu nhập SĐT, {{ Math.floor(totalPrice / 20000) }} điểm sẽ được cộng vào tài khoản
-                        </div>
-                    </div>
-
-                    <div class="divider"></div>
-
-                    <!-- Phần 2: Dùng điểm giảm giá -->
-                    <div class="form-section">
-                        <h6 class="section-title">Dùng điểm giảm giá</h6>
+                        <h6 class="section-title">Sử dụng điểm tích lũy</h6>
                         <p class="section-desc">
                             Số điểm hiện có: <strong>{{ customerLoyaltyPoints }}</strong> điểm ({{
                                 (customerLoyaltyPoints * 1000).toLocaleString()
@@ -186,7 +171,7 @@ const showPhoneModal = ref(false);
 const customerPhone = ref("");
 const customerLoyaltyPoints = ref(0);
 const pointsToUse = ref(0);
-const pointsRedeemed = ref(0); // Điểm đã dùng thành công
+const pointsRedeemed = ref(0);
 
 const openPhoneModal = async () => {
     if (selectedSeats.value.length === 0) {
@@ -216,31 +201,14 @@ const openPhoneModal = async () => {
 };
 const closePhoneModal = () => {
     showPhoneModal.value = false;
-    customerPhone.value = "";
     // KHÔNG reset pointsToUse ở đây, nó sẽ được dùng trong confirmBooking()
 };
 
 const proceedToPayment = async () => {
-    // Lưu pointsToUse trước khi đóng modal
-    const pointsToUseTemp = pointsToUse.value;
-
+    // Đóng modal và tiếp tục thanh toán
     showPhoneModal.value = false;
 
-    // Nếu nhập SĐT, cập nhật vào profile
-    if (customerPhone.value.trim()) {
-        try {
-            const userId = auth.userId || localStorage.getItem("userId");
-            if (userId) {
-                await api.put(`/auth/profile/${userId}`, {
-                    phone: customerPhone.value,
-                });
-            }
-        } catch (err) {
-            console.error("Lỗi khi cập nhật SĐT:", err);
-        }
-    }
-
-    console.log(`[DEBUG] proceedToPayment - pointsToUse: ${pointsToUseTemp}`);
+    console.log(`[DEBUG] proceedToPayment - pointsToUse: ${pointsToUse.value}`);
 
     // Tiếp tục thanh toán
     await confirmBooking();

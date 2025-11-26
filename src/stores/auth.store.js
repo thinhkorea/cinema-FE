@@ -70,6 +70,47 @@ export const useAuthStore = defineStore("auth", {
             }
         },
 
+        async register(userData) {
+            try {
+                console.log("Đang register với:", userData.username);
+
+                // Bước 1: Đăng ký tài khoản
+                const registerResponse = await api.post("/auth/register", userData);
+                console.log("Register response từ server:", registerResponse.data);
+
+                const { message } = registerResponse.data;
+
+                // Kiểm tra đăng ký thành công
+                const successMessages = ["OK", "Đăng ký thành công!"];
+                if (!successMessages.includes(message)) {
+                    throw new Error(message || "Đăng ký thất bại");
+                }
+
+                console.log("Đăng ký thành công, đang tự động đăng nhập...");
+
+                // Bước 2: Tự động đăng nhập để lấy token
+                await this.login({
+                    username: userData.username,
+                    password: userData.password
+                });
+
+                console.log("Đăng ký và đăng nhập thành công!");
+            } catch (error) {
+                console.error("Register thất bại:", error);
+
+                // Reset state khi lỗi
+                this.token = null;
+                this.role = null;
+                this.username = null;
+                this.fullName = null;
+                this.userId = null;
+
+                // Throw error để RegisterView.vue xử lý
+                localStorage.clear();
+                throw error;
+            }
+        },
+
         logout() {
             this.token = null;
             this.username = null;

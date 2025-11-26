@@ -4,9 +4,9 @@
         <div class="bg-decoration bg-decoration-1"></div>
         <div class="bg-decoration bg-decoration-2"></div>
 
-        <div class="container-fluid h-100 d-flex align-items-center justify-content-center py-5">
+        <div class="container-fluid h-100 d-flex align-items-center justify-content-center py-3">
             <div class="register-wrapper">
-                <div class="text-center mb-5">
+                <div class="text-center mb-3">
                     <div class="logo-icon mb-3">
                         <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <!-- Updated logo color from orange to blue -->
@@ -20,7 +20,7 @@
 
                 <div class="register-card">
                     <form @submit.prevent="register">
-                        <div class="form-group mb-4">
+                        <div class="form-group mb-3">
                             <label class="form-label fw-600">Họ và tên</label>
                             <div class="input-wrapper">
                                 <span class="input-icon">
@@ -47,7 +47,7 @@
                             </div>
                         </div>
 
-                        <div class="form-group mb-4">
+                        <div class="form-group mb-3">
                             <label class="form-label fw-600">Email</label>
                             <div class="input-wrapper">
                                 <span class="input-icon">
@@ -75,7 +75,7 @@
                             </div>
                         </div>
 
-                        <div class="form-group mb-4">
+                        <div class="form-group mb-3">
                             <label class="form-label fw-600">Tên đăng nhập</label>
                             <div class="input-wrapper">
                                 <span class="input-icon">
@@ -102,7 +102,7 @@
                             </div>
                         </div>
 
-                        <div class="form-group mb-4">
+                        <div class="form-group mb-3">
                             <label class="form-label fw-600">Mật khẩu</label>
                             <div class="input-wrapper">
                                 <span class="input-icon">
@@ -163,7 +163,7 @@
                             </div>
                         </div>
 
-                        <div class="form-group mb-4">
+                        <div class="form-group mb-3">
                             <label class="form-label fw-600">Số điện thoại</label>
                             <div class="input-wrapper">
                                 <span class="input-icon">
@@ -189,7 +189,7 @@
                             </div>
                         </div>
 
-                        <div class="form-group mb-4">
+                        <div class="form-group mb-3">
                             <label class="form-label fw-600">Địa chỉ</label>
                             <div class="input-wrapper">
                                 <span class="input-icon">
@@ -215,7 +215,7 @@
                             </div>
                         </div>
 
-                        <div class="form-group mb-4">
+                        <div class="form-group mb-3">
                             <label class="form-label fw-600">Giới tính</label>
                             <select v-model="form.gender" class="form-select form-select-lg">
                                 <option value="MALE">Nam</option>
@@ -224,7 +224,7 @@
                         </div>
 
                         <!-- Updated button color from orange gradient to blue gradient -->
-                        <button type="submit" class="btn btn-register w-100 fw-600 py-2 mb-4" :disabled="loading">
+                        <button type="submit" class="btn btn-register w-100 fw-600 py-2 mb-3" :disabled="loading">
                             <span v-if="!loading">Đăng ký</span>
                             <span v-else class="d-flex align-items-center justify-content-center">
                                 <span class="spinner-border spinner-border-sm me-2"></span>
@@ -232,7 +232,7 @@
                             </span>
                         </button>
 
-                        <div class="divider mb-4">
+                        <div class="divider mb-3">
                             <span class="divider-text">hoặc</span>
                         </div>
 
@@ -281,7 +281,6 @@
 <script setup>
 import { ref } from "vue";
 import Swal from "sweetalert2";
-import api from "@/api";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth.store";
 
@@ -307,12 +306,26 @@ const register = async () => {
 
     try {
         loading.value = true;
-        const response = await api.register(form.value);
-        auth.setUser(response.data);
-        router.push("/dashboard");
+        await auth.register(form.value);
+        
+        Swal.fire("Thành công", "Đăng ký tài khoản thành công!", "success");
+        
+        // Chuyển hướng theo role
+        setTimeout(() => {
+            const role = auth.role;
+            if (role === "ADMIN") {
+                router.push("/admin/dashboard");
+            } else if (role === "STAFF") {
+                router.push("/staff/seat-map");
+            } else if (role === "CUSTOMER") {
+                router.push("/");
+            } else {
+                router.push("/");
+            }
+        }, 1000);
     } catch (err) {
-        console.error("Register/Login error:", err);
-        const msg = err.response?.data?.error || err.response?.data || "Đăng ký thất bại, vui lòng thử lại!";
+        console.error("Register error:", err);
+        const msg = err.response?.data?.message || err.response?.data?.error || err.response?.data || err.message || "Đăng ký thất bại, vui lòng thử lại!";
         Swal.fire("Lỗi", msg, "error");
     } finally {
         loading.value = false;
@@ -430,12 +443,10 @@ function loginWithGoogle() {
 .register-card {
     background: white;
     border-radius: 16px;
-    padding: 40px;
+    padding: 25px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
     backdrop-filter: blur(10px);
     animation: fadeIn 0.6s ease-out 0.2s both;
-    max-height: 80vh;
-    overflow-y: auto;
 }
 
 @keyframes fadeIn {
@@ -450,7 +461,7 @@ function loginWithGoogle() {
 .form-label {
     font-size: 14px;
     color: #333;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
     display: block;
     font-weight: 600;
 }
@@ -473,7 +484,7 @@ function loginWithGoogle() {
 
 .form-control-lg,
 .form-select-lg {
-    padding: 10px 12px 10px 44px;
+    padding: 8px 12px 8px 44px;
     font-size: 15px;
     background: white;
     border: 2px solid #e8e8e8;
@@ -482,6 +493,7 @@ function loginWithGoogle() {
     transition: all 0.3s ease;
     font-weight: 500;
     width: 100%;
+    height: 42px;
 }
 
 .form-control-lg:focus,

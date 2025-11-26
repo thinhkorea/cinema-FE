@@ -1,15 +1,18 @@
 <template>
-    <div
-        class="container-fluid py-5"
-        style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); min-height: 100vh"
-    >
+    <div class="booking-page">
         <div class="container">
+            <!-- BACK BUTTON -->
+            <div class="back-button-container mb-4">
+                <button @click="goHome" class="btn-back">
+                    <i class="bi bi-arrow-left"></i>
+                    <span>Quay lại trang chủ</span>
+                </button>
+            </div>
+
             <!-- HEADER -->
-            <div class="mb-5">
-                <h1 class="fw-bold mb-2" style="color: #ffc107; font-size: 2.5rem">
-                    <i class="bi bi-ticket-perforated me-3"></i>Lịch sử vé của tôi
-                </h1>
-                <p class="text-light fs-6">Quản lý và xem chi tiết các vé đã đặt</p>
+            <div class="page-header mb-4">
+                <h1 class="page-title"><i class="bi bi-ticket-perforated me-2"></i>Lịch sử vé của tôi</h1>
+                <p class="page-subtitle">Quản lý và xem chi tiết các vé đã đặt</p>
             </div>
 
             <!-- LOADING -->
@@ -29,27 +32,23 @@
             <!-- CONTENT -->
             <div v-else>
                 <!-- STATS -->
-                <div class="row mb-4">
-                    <div class="col-md-4">
-                        <div class="stat-card bg-warning bg-opacity-10 border border-warning rounded-3 p-4">
-                            <div class="d-flex align-items-center">
-                                <i class="bi bi-ticket-fill fs-3 text-warning"></i>
-                                <div class="ms-3">
-                                    <p class="text-light-emphasis mb-0 small">Tổng vé</p>
-                                    <h4 class="text-warning mb-0 fw-bold">{{ paidCount }}</h4>
-                                </div>
-                            </div>
+                <div class="stats-container mb-4">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="bi bi-ticket-fill"></i>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-number">{{ paidCount }}</div>
+                            <div class="stat-label">Tổng vé</div>
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <div class="stat-card bg-success bg-opacity-10 border border-success rounded-3 p-4">
-                            <div class="d-flex align-items-center">
-                                <i class="bi bi-calendar-check-fill fs-3 text-success"></i>
-                                <div class="ms-3">
-                                    <p class="text-light-emphasis mb-0 small">Đã thanh toán</p>
-                                    <h4 class="text-success mb-0 fw-bold">{{ paidCount }}</h4>
-                                </div>
-                            </div>
+                    <div class="stat-card">
+                        <div class="stat-icon success">
+                            <i class="bi bi-calendar-check-fill"></i>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-number">{{ paidCount }}</div>
+                            <div class="stat-label">Đã thanh toán</div>
                         </div>
                     </div>
                 </div>
@@ -58,149 +57,104 @@
                 <div>
                     <div v-for="dateGroup in paginatedDateGroups" :key="dateGroup.date" class="mb-4">
                         <!-- DATE GROUP HEADER -->
-                        <div
-                            class="date-group-header mb-3 p-3 bg-secondary bg-opacity-10 border border-secondary rounded-2 cursor-pointer d-flex align-items-center justify-content-between"
-                            @click="dateGroup.expanded = !dateGroup.expanded"
-                        >
-                            <div class="d-flex align-items-center gap-3">
-                                <i class="bi" :class="dateGroup.expanded ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
-                                <i class="bi bi-calendar-event text-warning"></i>
-                                <strong class="text-light">{{ dateGroup.date }}</strong>
-                                <span class="badge bg-warning text-dark">{{ dateGroup.groups.length }} lịch chiếu</span>
+                        <div class="date-group-header" @click="dateGroup.expanded = !dateGroup.expanded">
+                            <div class="date-header-content">
+                                <i
+                                    class="bi chevron-icon"
+                                    :class="dateGroup.expanded ? 'bi-chevron-down' : 'bi-chevron-right'"
+                                ></i>
+                                <i class="bi bi-calendar-event date-icon"></i>
+                                <strong class="date-text">{{ dateGroup.date }}</strong>
+                                <span class="date-badge">{{ dateGroup.groups.length }} lịch chiếu</span>
                             </div>
-                            <span class="text-light-50 small">{{ dateGroup.totalTickets }} vé</span>
+                            <span class="ticket-count">{{ dateGroup.totalTickets }} vé</span>
                         </div>
 
                         <!-- TICKETS IN THIS DATE -->
                         <transition name="collapse" @enter="enter" @leave="leave">
                             <div v-show="dateGroup.expanded" class="date-group-tickets">
-                                <div v-for="group in dateGroup.groups" :key="group.txnRef" class="mb-4">
-                                    <div class="ticket-card h-100">
+                                <div v-for="group in dateGroup.groups" :key="group.txnRef" class="mb-3">
+                                    <div class="ticket-card">
                                         <!-- CARD HEADER -->
-                                        <div class="ticket-card-header position-relative overflow-hidden">
-                                            <div class="position-absolute top-0 end-0 p-3">
-                                                <span class="badge bg-success rounded-pill">
-                                                    <i class="bi bi-check-circle me-1"></i
-                                                    >{{ group.bookings.length }} vé
-                                                </span>
+                                        <div class="ticket-header">
+                                            <div class="ticket-title-section">
+                                                <h5 class="ticket-movie-title">{{ group.movieTitle }}</h5>
+                                                <p class="ticket-txn-ref">{{ group.txnRef }}</p>
                                             </div>
-                                            <div class="p-4">
-                                                <h5 class="text-white fw-bold mb-1" style="font-size: 1.3rem">
-                                                    {{ group.movieTitle }}
-                                                </h5>
-                                                <p class="text-white-50 mb-0 small">Mã giao dịch: {{ group.txnRef }}</p>
+                                            <div class="ticket-badge">
+                                                <i class="bi bi-check-circle"></i>
+                                                <span>{{ group.bookings.length }} vé</span>
                                             </div>
                                         </div>
 
-                                        <!-- CARD DIVIDER -->
-                                        <div class="ticket-divider"></div>
-
                                         <!-- CARD BODY -->
-                                        <div class="ticket-card-body p-4">
-                                            <!-- INFO GRID -->
-                                            <div class="info-grid mb-4">
+                                        <div class="ticket-body">
+                                            <div class="ticket-info-grid">
                                                 <div class="info-item">
-                                                    <div class="info-icon">
-                                                        <i class="bi bi-door-closed"></i>
-                                                    </div>
-                                                    <div>
-                                                        <p class="info-label">Phòng chiếu</p>
-                                                        <p class="info-value">{{ group.roomName }}</p>
+                                                    <i class="bi bi-door-closed info-icon"></i>
+                                                    <div class="info-content">
+                                                        <span class="info-label">Phòng</span>
+                                                        <span class="info-value">{{ group.roomName }}</span>
                                                     </div>
                                                 </div>
-
                                                 <div class="info-item">
-                                                    <div class="info-icon">
-                                                        <i class="bi bi-calendar"></i>
-                                                    </div>
-                                                    <div>
-                                                        <p class="info-label">Ngày chiếu</p>
-                                                        <p class="info-value">{{ formatDate(group.startTime) }}</p>
+                                                    <i class="bi bi-calendar info-icon"></i>
+                                                    <div class="info-content">
+                                                        <span class="info-label">Ngày chiếu</span>
+                                                        <span class="info-value">{{
+                                                            formatDate(group.startTime)
+                                                        }}</span>
                                                     </div>
                                                 </div>
-                                            </div>
-
-                                            <div class="info-grid mb-4">
                                                 <div class="info-item">
-                                                    <div class="info-icon">
-                                                        <i class="bi bi-clock"></i>
-                                                    </div>
-                                                    <div>
-                                                        <p class="info-label">Giờ chiếu</p>
-                                                        <p class="info-value">{{ formatTime(group.startTime) }}</p>
+                                                    <i class="bi bi-clock info-icon"></i>
+                                                    <div class="info-content">
+                                                        <span class="info-label">Giờ chiếu</span>
+                                                        <span class="info-value">{{
+                                                            formatTime(group.startTime)
+                                                        }}</span>
                                                     </div>
                                                 </div>
-
                                                 <div class="info-item">
-                                                    <div class="info-icon">
-                                                        <i class="fa-solid fa-couch"></i>
-                                                    </div>
-                                                    <div>
-                                                        <p class="info-label">Ghế</p>
-                                                        <p class="info-value">{{ group.seats.join(", ") }}</p>
+                                                    <i class="bi bi-collection info-icon"></i>
+                                                    <div class="info-content">
+                                                        <span class="info-label">Ghế</span>
+                                                        <span class="info-value">{{ group.seats.join(", ") }}</span>
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            <div class="info-grid mb-4">
-                                                <div class="info-item">
-                                                    <div class="info-icon">
-                                                        <i class="bi bi-calendar-event"></i>
-                                                    </div>
-                                                    <div>
-                                                        <p class="info-label">Ngày đặt vé</p>
-                                                        <p class="info-value">{{ formatDate(group.createdAt) }}</p>
-                                                    </div>
-                                                </div>
-
-                                                <div class="info-item">
-                                                    <div class="info-icon">
-                                                        <i class="bi bi-hourglass-split"></i>
-                                                    </div>
-                                                    <div>
-                                                        <p class="info-label">Giờ đặt</p>
-                                                        <p class="info-value">{{ formatTime(group.createdAt) }}</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <!-- SEPARATOR -->
-                                            <hr class="my-3 border-light-subtle" />
-
-                                            <!-- PRICE -->
-                                            <div class="price-section mb-3">
-                                                <div class="d-flex justify-content-between align-items-center">
-                                                    <span class="text-light">Tổng tiền:</span>
-                                                    <span class="text-warning fw-bold fs-5">{{
+                                            <div class="ticket-price">
+                                                <div class="price-main">
+                                                    <span class="price-label">Tổng tiền:</span>
+                                                    <span class="price-value">{{
                                                         formatPrice(getGroupFinalPrice(group))
                                                     }}</span>
                                                 </div>
                                                 <div
                                                     v-if="group.bookings.some((b) => b.pointsUsed > 0)"
-                                                    class="small text-muted mt-2"
+                                                    class="points-used"
                                                 >
-                                                    <i class="bi bi-info-circle me-1"></i>
+                                                    <i class="bi bi-gem"></i>
                                                     Đã sử dụng
                                                     {{
                                                         group.bookings.reduce((sum, b) => sum + (b.pointsUsed || 0), 0)
                                                     }}
-                                                    điểm tích lũy
+                                                    điểm
                                                 </div>
                                             </div>
                                         </div>
 
                                         <!-- CARD FOOTER -->
-                                        <div class="ticket-card-footer p-3 d-flex gap-2">
-                                            <button
-                                                class="btn btn-sm btn-primary flex-grow-1"
-                                                @click="viewGroupDetails(group.txnRef)"
-                                            >
-                                                <i class="bi bi-eye me-1"></i> Xem chi tiết
+                                        <div class="ticket-footer">
+                                            <button class="btn-details" @click="viewGroupDetails(group.txnRef)">
+                                                <i class="bi bi-eye"></i>
+                                                <span>Chi tiết</span>
                                             </button>
                                             <button
-                                                class="btn btn-sm btn-outline-secondary"
+                                                class="btn-copy"
                                                 @click="copyTxnRef(group.txnRef)"
-                                                title="Sao chép mã giao dịch"
+                                                title="Sao chép mã"
                                             >
                                                 <i class="bi bi-files"></i>
                                             </button>
@@ -253,6 +207,8 @@ const loading = ref(true);
 const filterStatus = ref("ALL");
 const currentPage = ref(1);
 const itemsPerPage = ref(10); // Số lượng vé tối đa per trang
+
+const goHome = () => router.push("/");
 
 // Auto scroll to top khi chuyển trang
 watch(currentPage, () => {
@@ -485,94 +441,270 @@ const leave = (el) => {
 </script>
 
 <style scoped>
-.booking-details {
-    font-size: 0.95rem;
-    color: #666;
+/* Global Styles */
+.booking-page {
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+    min-height: 100vh;
+    color: #ffffff;
+    padding: 2rem 0;
 }
 
-.card {
-    transition: transform 0.2s, box-shadow 0.2s;
+.container {
+    max-width: 1000px;
 }
 
-.card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+/* Back Button */
+.back-button-container {
+    display: flex;
+    justify-content: flex-start;
+    margin-top: 1rem;
 }
 
-code {
-    background: #f5f5f5;
-    padding: 2px 6px;
-    border-radius: 3px;
+.btn-back {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.8rem 1.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    color: #fff;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
 }
 
-/* STAT CARD */
+.btn-back:hover {
+    background: rgba(255, 215, 0, 0.2);
+    border-color: rgba(255, 215, 0, 0.3);
+    color: #ffd700;
+    transform: translateX(-2px);
+}
+
+.btn-back i {
+    font-size: 1.1rem;
+}
+
+/* Page Header */
+.page-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.page-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #ffd700;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 2px 4px rgba(255, 215, 0, 0.3);
+}
+
+.page-subtitle {
+    color: #ccc;
+    font-size: 1rem;
+    margin: 0;
+}
+
+/* Stats Container */
+.stats-container {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-bottom: 2rem;
+}
+
 .stat-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 1rem 1.5rem;
+    backdrop-filter: blur(10px);
     transition: all 0.3s ease;
 }
 
 .stat-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(255, 215, 0, 0.2);
+    border-color: rgba(255, 215, 0, 0.3);
 }
 
-/* TICKET CARD */
-.ticket-card {
-    background: #fff;
-    border: none;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
-}
-
-.ticket-card:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
-}
-
-.ticket-card-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-}
-
-.ticket-divider {
-    height: 2px;
-    background: linear-gradient(90deg, transparent, #e0e0e0, transparent);
-}
-
-.ticket-card-body {
-    background: #fff;
-}
-
-.ticket-card-footer {
-    background: #f8f9fa;
-    border-top: 1px solid #e0e0e0;
-}
-
-/* INFO GRID */
-.info-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-}
-
-.info-item {
-    display: flex;
-    gap: 0.75rem;
-    align-items: flex-start;
-}
-
-.info-icon {
+.stat-icon {
     display: flex;
     align-items: center;
     justify-content: center;
     width: 40px;
     height: 40px;
-    background: #f0f0f0;
-    border-radius: 8px;
-    color: #667eea;
+    background: rgba(255, 215, 0, 0.2);
+    border-radius: 10px;
+    color: #ffd700;
     font-size: 1.2rem;
-    flex-shrink: 0;
+}
+
+.stat-icon.success {
+    background: rgba(40, 167, 69, 0.2);
+    color: #28a745;
+}
+
+.stat-number {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #ffd700;
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: #ccc;
+    margin-top: 0.25rem;
+}
+
+/* Date Group Header */
+.date-group-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.date-group-header:hover {
+    background: rgba(255, 215, 0, 0.1);
+    border-color: rgba(255, 215, 0, 0.3);
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.1);
+}
+
+.date-header-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.chevron-icon {
+    color: #ffd700;
+    font-size: 1rem;
+    transition: transform 0.3s ease;
+}
+
+.date-icon {
+    color: #ffd700;
+    font-size: 1.1rem;
+}
+
+.date-text {
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.date-badge {
+    background: rgba(255, 215, 0, 0.2);
+    color: #ffd700;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.ticket-count {
+    color: #ccc;
+    font-size: 0.9rem;
+}
+
+/* Ticket Cards */
+.ticket-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    backdrop-filter: blur(20px);
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.ticket-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(255, 215, 0, 0.15);
+    border-color: rgba(255, 215, 0, 0.3);
+}
+
+.ticket-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 215, 0, 0.1));
+    border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+    padding: 1.25rem 1.5rem;
+}
+
+.ticket-title-section {
+    flex: 1;
+}
+
+.ticket-movie-title {
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0 0 0.25rem 0;
+    line-height: 1.3;
+}
+
+.ticket-txn-ref {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.8rem;
+    margin: 0;
+}
+
+.ticket-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(40, 167, 69, 0.2);
+    color: #28a745;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    border: 1px solid rgba(40, 167, 69, 0.3);
+}
+
+.ticket-body {
+    padding: 1.5rem;
+}
+
+.ticket-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.info-icon {
+    color: #ffd700;
+    font-size: 1rem;
+    width: 20px;
+    text-align: center;
+}
+
+.info-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
 }
 
 .info-label {
@@ -580,52 +712,183 @@ code {
     color: #999;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin: 0 0 4px 0;
-}
-
-.info-value {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #333;
     margin: 0;
 }
 
-/* PRICE SECTION */
-.price-section {
-    background: #f8f9fa;
-    padding: 1rem;
-    border-radius: 8px;
+.info-value {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #fff;
+    margin: 0;
 }
 
-/* DATE GROUP HEADER */
-.date-group-header {
+.ticket-price {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.price-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.price-label {
+    color: #ccc;
+    font-size: 0.9rem;
+}
+
+.price-value {
+    color: #ffd700;
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.points-used {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #28a745;
+    font-size: 0.8rem;
+}
+
+.points-used i {
+    font-size: 0.9rem;
+}
+
+.ticket-footer {
+    display: flex;
+    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-details {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: linear-gradient(45deg, #ffd700, #ffed4e);
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.85rem;
     cursor: pointer;
     transition: all 0.3s ease;
-    user-select: none;
 }
 
-.date-group-header:hover {
-    background-color: rgba(255, 193, 7, 0.1) !important;
-    border-color: #ffc107 !important;
-    box-shadow: 0 2px 8px rgba(255, 193, 7, 0.1);
+.btn-details:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
 }
 
-.date-group-tickets {
-    overflow: hidden;
+.btn-copy {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #ccc;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
 }
 
-/* RESPONSIVE */
+.btn-copy:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    transform: translateY(-1px);
+}
+
+/* Loading and Empty States */
+.loading-state,
+.empty-state {
+    text-align: center;
+    padding: 3rem 0;
+}
+
+/* Pagination */
+.pagination {
+    margin-top: 2rem;
+}
+
+.page-link {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    padding: 0.75rem 1rem;
+    transition: all 0.3s ease;
+}
+
+.page-link:hover {
+    background: rgba(255, 215, 0, 0.2);
+    border-color: rgba(255, 215, 0, 0.3);
+    color: #ffd700;
+}
+
+.page-item.active .page-link {
+    background: linear-gradient(45deg, #ffd700, #ffed4e);
+    border-color: #ffd700;
+    color: #000;
+    font-weight: 600;
+}
+
+/* Responsive Design */
 @media (max-width: 768px) {
-    .info-grid {
+    .booking-page {
+        padding: 1rem 0;
+    }
+
+    .stats-container {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .ticket-info-grid {
         grid-template-columns: 1fr;
+        gap: 0.75rem;
     }
 
-    .ticket-card-header {
-        padding: 1.5rem 1rem !important;
+    .ticket-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+        text-align: left;
     }
 
-    .ticket-card-body {
-        padding: 1rem !important;
+    .ticket-badge {
+        align-self: flex-start;
+    }
+
+    .date-header-content {
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .page-title {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .ticket-footer {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .btn-copy {
+        width: 100%;
+        height: 40px;
     }
 }
 </style>

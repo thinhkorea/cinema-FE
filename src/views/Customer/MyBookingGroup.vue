@@ -1,92 +1,135 @@
 <template>
-    <AppHeader />
+    <div class="booking-page">
+        <AppHeader />
 
-    <div class="container py-5">
-        <h2
-            class="fw-bold mb-5 text-center"
-            style="color: #ffc107; font-size: 2.5rem; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3)"
-        >
-            Vé của bạn
-        </h2>
-
-        <!-- Nếu chưa có dữ liệu -->
-        <div v-if="!bookings.length" class="text-center py-5">
-            <div class="spinner-border text-warning mb-3"></div>
-            <p class="text-light">Đang tải thông tin vé...</p>
-        </div>
-
-        <!-- Nếu có dữ liệu -->
-        <div v-else class="ticket-card mx-auto shadow-lg">
-            <!-- HEADER -->
-            <div class="ticket-header d-flex p-3">
-                <img
-                    :src="moviePoster || '/placeholder.svg?height=400&width=300'"
-                    alt="poster"
-                    class="poster rounded-start"
-                />
-                <div class="ps-4 flex-fill">
-                    <h4 class="fw-bold text-warning mb-3" style="font-size: 1.5rem">{{ movieTitle }}</h4>
-                    <p class="mb-2 text-light">
-                        <i class="bi bi-calendar-event me-2 text-warning"></i
-                        ><span class="text-light">{{ formatDate(startTime) }}</span>
-                    </p>
-                    <p class="mb-2 text-light">
-                        <i class="bi bi-clock me-2 text-warning"></i
-                        ><span class="text-light">{{ formatTime(startTime) }}</span>
-                    </p>
-                    <p class="mb-2 text-light">
-                        <i class="bi bi-house me-2 text-warning"></i><span class="text-light">{{ roomName }}</span>
-                    </p>
-                    <p class="mb-0 text-light">
-                        <i class="bi bi-chair me-2 text-warning"></i>Ghế:
-                        <strong class="text-warning">{{ seatList }}</strong>
-                    </p>
-                </div>
+        <div class="container py-5">
+            <!-- Back Button -->
+            <div class="back-button-container mb-4">
+                <button @click="goBack" class="btn-back">
+                    <i class="bi bi-arrow-left"></i>
+                    <span>Quay lại</span>
+                </button>
             </div>
 
-            <!-- ĐƯỜNG CẮT -->
-            <div class="cut-line">
-                <div class="circle left"></div>
-                <div class="dashed"></div>
-                <div class="circle right"></div>
+            <!-- Page Header -->
+            <div class="page-header text-center mb-5">
+                <h1 class="page-title">
+                    <i class="bi bi-ticket-perforated-fill me-3"></i>
+                    Chi tiết vé xem phim
+                </h1>
+                <p class="page-subtitle">Thông tin chi tiết về vé đã đặt</p>
             </div>
 
-            <!-- BODY -->
-            <div class="ticket-body p-4 text-center">
-                <qrcode-vue :value="`CINEMA-TXN-${txnRef}`" :size="140" level="M" />
-                <p class="mt-3 text-secondary small">
-                    Mã giao dịch: <strong class="text-light">{{ txnRef }}</strong>
-                </p>
+            <!-- Loading state -->
+            <div v-if="!bookings.length" class="loading-state">
+                <div class="loading-spinner"></div>
+                <p class="loading-text">Đang tải thông tin vé...</p>
+            </div>
 
-                <div class="mt-4 small text-start">
-                    <div class="d-flex justify-content-between mb-2 text-light">
-                        <span>Giá vé trung bình:</span>
-                        <span class="text-warning">{{ formatCurrency(avgPrice) }}</span>
+            <!-- Main ticket content -->
+            <div v-else class="ticket-container">
+                <!-- Movie Info Card -->
+                <div class="movie-info-card">
+                    <div class="movie-poster-wrapper">
+                        <img
+                            :src="moviePoster || '/placeholder.svg?height=400&width=300'"
+                            :alt="movieTitle"
+                            class="movie-poster"
+                        />
+                        <div class="poster-overlay"></div>
                     </div>
-                    <div class="d-flex justify-content-between mb-2 text-light">
-                        <span>Số lượng vé:</span>
-                        <span class="text-warning">{{ bookings.length }}</span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2 text-light">
-                        <span>Phương thức thanh toán:</span>
-                        <span class="text-warning">{{ bookings[0].paymentMethod || "VNPAY" }}</span>
-                    </div>
-                    <hr class="text-secondary" />
-                    <div class="d-flex justify-content-between fw-bold">
-                        <span class="text-light">Tổng cộng:</span>
-                        <span class="text-warning fs-5">{{ formatCurrency(totalAmount) }}</span>
+
+                    <div class="movie-details">
+                        <h2 class="movie-title">{{ movieTitle }}</h2>
+
+                        <div class="cinema-info">
+                            <div class="cinema-row">
+                                <i class="bi bi-building"></i>
+                                <span class="label-text">Rạp chiếu phim: </span>
+                                <span class="cinema-name">CinemaAndJoy</span>
+                            </div>
+                        </div>
+
+                        <div class="movie-meta">
+                            <div class="meta-item">
+                                <i class="bi bi-calendar-event"></i>
+                                <span>{{ formatDate(startTime) }}</span>
+                            </div>
+                            <div class="meta-item">
+                                <i class="bi bi-clock"></i>
+                                <span>{{ formatTime(startTime) }}</span>
+                            </div>
+                            <div class="meta-item">
+                                <i class="bi bi-house-door"></i>
+                                <span>{{ roomName }}</span>
+                            </div>
+                        </div>
+
+                        <div class="seats-info">
+                            <i class="bi bi-person-check"></i>
+                            <span class="seats-label">Ghế đã chọn:</span>
+                            <span class="seats-list">{{ seatList }}</span>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <!-- FOOTER -->
-            <div class="ticket-footer text-center text-secondary small p-3 border-top border-secondary">
-                <p class="mb-0 text-light">Vui lòng đưa mã này đến quầy vé hoặc quét QR khi vào rạp để nhận vé giấy.</p>
-            </div>
-        </div>
 
-        <!-- Nút quay về -->
-        <div class="text-center mt-4">
-            <button @click="goHome" class="btn btn-primary"><i class="bi bi-house-door me-2"></i>Về trang chủ</button>
+                <!-- Digital Ticket -->
+                <div class="digital-ticket">
+                    <div class="ticket-header">
+                        <h3 class="ticket-title">Vé điện tử</h3>
+                    </div>
+
+                    <div class="ticket-content">
+                        <div class="qr-section">
+                            <div class="qr-wrapper">
+                                <qrcode-vue :value="`CINEMA-TXN-${txnRef}`" :size="160" level="M" />
+                            </div>
+                            <p class="qr-instruction">Quét mã QR này cho nhân viên khi vào rạp</p>
+                        </div>
+
+                        <div class="transaction-info">
+                            <div class="transaction-id">
+                                <span class="label">Mã giao dịch:</span>
+                                <span class="value">{{ txnRef }}</span>
+                            </div>
+
+                            <div class="payment-details">
+                                <div class="detail-row">
+                                    <span class="label">Số lượng vé:</span>
+                                    <span class="value">{{ bookings.length }} vé</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="label">Giá vé trung bình:</span>
+                                    <span class="value">{{ formatCurrency(avgPrice) }}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="label">Phương thức:</span>
+                                    <span class="value payment-method">{{ bookings[0].paymentMethod || "VNPAY" }}</span>
+                                </div>
+                                <div class="detail-row total-row">
+                                    <span class="label">Tổng thanh toán:</span>
+                                    <span class="value total-amount">{{ formatCurrency(totalAmount) }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ticket-footer">
+                        <div class="notice">
+                            <i class="bi bi-info-circle"></i>
+                            <p>Vui lòng đưa mã QR này cho nhân viên khi vào rạp. Vé có hiệu lực trong ngày chiếu.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Print button only for staff -->
+                <div v-if="auth.role === 'STAFF'" class="action-buttons">
+                    <button @click="printTicket" class="btn-print">
+                        <i class="bi bi-printer"></i>
+                        <span>In vé</span>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 </template>
@@ -115,16 +158,14 @@ onMounted(async () => {
     }
 });
 
-// Hàm điều hướng về trang chủ dựa trên role
-const goHome = () => {
-    const role = auth.role;
-    if (role === "ADMIN") {
-        router.push("/admin/dashboard");
-    } else if (role === "STAFF") {
-        router.push("/staff/seat-map");
-    } else {
-        router.push("/");
-    }
+// Hàm quay lại trang chủ
+const goBack = () => {
+    router.push("/");
+};
+
+// Hàm in vé (chỉ dành cho nhân viên)
+const printTicket = () => {
+    window.print();
 }; // ==== Các giá trị tính toán ====
 const movieTitle = computed(() => bookings.value[0]?.movieTitle || "N/A");
 const moviePoster = computed(() => bookings.value[0]?.moviePoster || "");
@@ -160,59 +201,465 @@ const formatCurrency = (temp) => (temp || 0).toLocaleString("vi-VN", { style: "c
 </script>
 
 <style scoped>
-.ticket-card {
-    background: #1a1a1a;
-    color: #fff;
-    border-radius: 20px;
-    overflow: hidden;
-    max-width: 700px;
-    position: relative;
+/* Global Styling */
+.booking-page {
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+    min-height: 100vh;
+    color: #ffffff;
 }
-.poster {
-    width: 150px;
-    height: 220px;
-    object-fit: cover;
+
+.container {
+    max-width: 1000px;
 }
-.ticket-header {
-    background: #2c2c2c;
+
+/* Back Button */
+.back-button-container {
+    display: flex;
+    justify-content: flex-start;
 }
-.ticket-body {
-    background: #111;
-}
-.ticket-footer {
-    background: #000;
-}
-.cut-line {
-    position: relative;
-    height: 30px;
-    background: #111;
+
+.btn-back {
     display: flex;
     align-items: center;
-    justify-content: center;
-}
-.cut-line .dashed {
-    width: 90%;
-    border-top: 2px dashed rgba(255, 255, 255, 0.3);
-}
-.cut-line .circle {
-    position: absolute;
-    top: 50%;
-    width: 30px;
-    height: 30px;
-    background: #f5f5f5;
-    border-radius: 50%;
-    transform: translateY(-50%);
-}
-.cut-line .circle.left {
-    left: -15px;
-}
-.cut-line .circle.right {
-    right: -15px;
-}
-.btn-outline-warning:hover {
-    background: #ffc107;
-    color: #000;
-    transform: translateY(-2px);
+    gap: 0.8rem;
+    padding: 0.8rem 1.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    color: #fff;
+    font-weight: 500;
+    cursor: pointer;
     transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.btn-back:hover {
+    background: rgba(255, 215, 0, 0.2);
+    border-color: rgba(255, 215, 0, 0.3);
+    color: #ffd700;
+    transform: translateX(-2px);
+}
+
+.btn-back i {
+    font-size: 1.1rem;
+}
+
+/* Page Header */
+.page-header {
+    margin-bottom: 3rem;
+}
+
+.page-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #ffd700;
+    margin-bottom: 1rem;
+    text-shadow: 0 4px 8px rgba(255, 215, 0, 0.3);
+}
+
+.page-subtitle {
+    font-size: 1.1rem;
+    color: #ccc;
+    margin: 0;
+}
+
+/* Loading State */
+.loading-state {
+    text-align: center;
+    padding: 4rem 0;
+}
+
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid rgba(255, 215, 0, 0.2);
+    border-top-color: #ffd700;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1.5rem;
+}
+
+.loading-text {
+    color: #ccc;
+    font-size: 1.1rem;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Ticket Container */
+.ticket-container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+/* Movie Info Card */
+.movie-info-card {
+    background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    display: flex;
+    gap: 2rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 215, 0, 0.1);
+}
+
+.movie-poster-wrapper {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.movie-poster {
+    width: 200px;
+    height: 280px;
+    object-fit: cover;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.poster-overlay {
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    background: linear-gradient(45deg, rgba(255, 215, 0, 0.1), transparent);
+    pointer-events: none;
+}
+
+.movie-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.movie-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #ffd700;
+    margin-bottom: 1.5rem;
+    line-height: 1.2;
+}
+
+.movie-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    margin-bottom: 1.5rem;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    color: #e0e0e0;
+    font-size: 1rem;
+}
+
+.meta-item i {
+    color: #ffd700;
+    font-size: 1.1rem;
+    width: 20px;
+}
+
+.seats-info {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 1rem;
+    background: rgba(255, 215, 0, 0.1);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+.seats-info i {
+    color: #ffd700;
+    font-size: 1.2rem;
+}
+
+.seats-label {
+    color: #ccc;
+    font-weight: 500;
+}
+
+.seats-list {
+    color: #ffd700;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+/* Digital Ticket */
+.digital-ticket {
+    background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 215, 0, 0.1);
+    margin-bottom: 2rem;
+}
+
+.ticket-header {
+    background: linear-gradient(135deg, #ffd700, #ffed4e);
+    color: #000;
+    padding: 1.5rem 2rem;
+    text-align: center;
+}
+
+.cinema-info {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: rgba(255, 215, 0, 0.1);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+.cinema-row {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.cinema-row i {
+    color: #ffd700;
+    font-size: 1.1rem;
+}
+
+.cinema-row .label-text {
+    color: #ccc;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.cinema-row .cinema-name {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #ffd700;
+    letter-spacing: 1px;
+    text-shadow: 0 2px 4px rgba(255, 215, 0, 0.3);
+}
+
+.ticket-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.ticket-content {
+    padding: 2rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    align-items: center;
+}
+
+.qr-section {
+    text-align: center;
+}
+
+.qr-wrapper {
+    display: inline-block;
+    padding: 1rem;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    margin-bottom: 1rem;
+}
+
+.qr-instruction {
+    color: #ccc;
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.transaction-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.transaction-id {
+    text-align: center;
+    padding: 1rem;
+    background: rgba(255, 215, 0, 0.1);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+.transaction-id .label {
+    display: block;
+    color: #ccc;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.transaction-id .value {
+    color: #ffd700;
+    font-weight: 600;
+    font-size: 1.1rem;
+    font-family: monospace;
+}
+
+.payment-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+}
+
+.detail-row .label {
+    color: #ccc;
+    font-weight: 500;
+}
+
+.detail-row .value {
+    color: #e0e0e0;
+    font-weight: 600;
+}
+
+.payment-method {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: #fff !important;
+    padding: 0.3rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+}
+
+.total-row {
+    border-top: 2px solid rgba(255, 215, 0, 0.3);
+    padding-top: 1rem;
+    margin-top: 0.5rem;
+}
+
+.total-amount {
+    color: #ffd700 !important;
+    font-size: 1.3rem;
+    font-weight: 700;
+}
+
+.ticket-footer {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 1.5rem 2rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.8rem;
+    color: #ccc;
+}
+
+.notice i {
+    color: #17a2b8;
+    font-size: 1.2rem;
+    margin-top: 0.2rem;
+    flex-shrink: 0;
+}
+
+.notice p {
+    margin: 0;
+    line-height: 1.5;
+    font-size: 0.95rem;
+}
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 2rem;
+}
+
+.btn-home,
+.btn-print {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 1rem 2rem;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+}
+
+.btn-home {
+    background: linear-gradient(135deg, #6c757d, #5a6268);
+    color: #fff;
+}
+
+.btn-home:hover {
+    background: linear-gradient(135deg, #5a6268, #495057);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(108, 117, 125, 0.3);
+}
+
+.btn-print {
+    background: linear-gradient(135deg, #ffd700, #ffed4e);
+    color: #000;
+}
+
+.btn-print:hover {
+    background: linear-gradient(135deg, #ffed4e, #fff176);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(255, 215, 0, 0.3);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .movie-info-card {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .movie-poster {
+        width: 150px;
+        height: 210px;
+        margin: 0 auto;
+    }
+
+    .ticket-content {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .btn-home,
+    .btn-print {
+        width: 100%;
+        max-width: 300px;
+        justify-content: center;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .booking-page {
+        background: white !important;
+        color: black !important;
+    }
+
+    .action-buttons {
+        display: none;
+    }
+
+    .page-header {
+        color: black !important;
+    }
 }
 </style>
