@@ -137,7 +137,14 @@
 
                         <div class="col-md-4">
                             <label class="form-label">Thời lượng (phút)</label>
-                            <input type="number" v-model.number="form.duration" class="form-control" required />
+                            <input
+                                type="number"
+                                v-model.number="form.duration"
+                                class="form-control"
+                                required
+                                min="1"
+                                @input="validateDuration"
+                            />
                         </div>
 
                         <div class="col-md-8">
@@ -221,7 +228,7 @@ const form = reactive({
     movieId: null,
     title: "",
     genre: "",
-    duration: 0,
+    duration: 1,
     description: "",
     posterUrl: "",
     trailerUrl: "",
@@ -273,7 +280,9 @@ const save = async () => {
             actors: form.actors,
         };
         console.log("Saving payload:", payload);
-        const response = form.movieId ? await api.put(`/movies/${form.movieId}`, payload) : await api.post("/movies", payload);
+        const response = form.movieId
+            ? await api.put(`/movies/${form.movieId}`, payload)
+            : await api.post("/movies", payload);
         console.log("Save response:", response);
         modal.hide();
         await fetchMovies();
@@ -309,7 +318,7 @@ const resetForm = () => {
         movieId: null,
         title: "",
         genre: "",
-        duration: 0,
+        duration: 1,
         description: "",
         posterUrl: "",
         trailerUrl: "",
@@ -317,6 +326,14 @@ const resetForm = () => {
         ageRating: "P",
         actors: "",
     });
+};
+
+const validateDuration = (event) => {
+    const value = parseInt(event.target.value);
+    if (value < 1 || isNaN(value)) {
+        form.duration = 1;
+        event.target.value = 1;
+    }
 };
 
 onMounted(async () => {
