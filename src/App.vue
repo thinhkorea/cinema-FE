@@ -18,6 +18,24 @@
             <button type="button" class="btn-close ms-2" @click="dismissNotification" aria-label="Close"></button>
         </div>
     </div>
+
+    <!-- Toast thông báo concurrent login -->
+    <div v-if="showConcurrentLoginNotification" class="position-fixed bottom-0 end-0 p-3" style="z-index: 9999">
+        <div
+            class="alert alert-warning alert-dismissible fade show d-flex align-items-center"
+            role="alert"
+            style="min-width: 350px"
+        >
+            <i class="bi bi-info-circle-fill me-3" style="font-size: 1.5rem"></i>
+            <div class="flex-grow-1">
+                <strong>Phiên đăng nhập đã hết hạn!</strong>
+                <p class="mb-0 small">
+                    Do có đăng nhập mới từ thiết bị khác. Chuyển hướng trong {{ redirectCountdown }} giây...
+                </p>
+            </div>
+            <button type="button" class="btn-close ms-2" @click="dismissNotification" aria-label="Close"></button>
+        </div>
+    </div>
 </template>
 
 <script setup>
@@ -28,12 +46,29 @@ import { useRouter } from "vue-router";
 const auth = useAuthStore();
 const router = useRouter();
 const showAccountLockedNotification = ref(false);
+const showConcurrentLoginNotification = ref(false);
 const redirectCountdown = ref(3);
 let checkInterval = null;
 let countdownInterval = null;
 
+const handleAccountStatus = (reason) => {
+    if (reason === "ACCOUNT_LOCKED") {
+        showAccountLockedNotification.value = true;
+        showConcurrentLoginNotification.value = false;
+        startRedirectCountdown();
+    } else if (reason === "CONCURRENT_LOGIN") {
+        showConcurrentLoginNotification.value = true;
+        showAccountLockedNotification.value = false;
+        startRedirectCountdown();
+    } else if (reason === "TOKEN_EXPIRED") {
+        // Token expired - redirect im lặng
+        router.push("/login");
+    }
+};
+
 const dismissNotification = () => {
     showAccountLockedNotification.value = false;
+    showConcurrentLoginNotification.value = false;
     if (countdownInterval) clearInterval(countdownInterval);
 };
 
@@ -43,10 +78,9 @@ onMounted(() => {
 
     // Check account status ngay khi load
     if (auth.isAuthenticated) {
-        auth.checkAccountStatus().then((isActive) => {
-            if (!isActive) {
-                showAccountLockedNotification.value = true;
-                startRedirectCountdown();
+        auth.checkAccountStatus().then((result) => {
+            if (!result.isActive) {
+                handleAccountStatus(result.reason);
             }
         });
     }
@@ -54,11 +88,9 @@ onMounted(() => {
     // Check account status mỗi 10 giây nếu user đã login
     checkInterval = setInterval(async () => {
         if (auth.isAuthenticated) {
-            const isActive = await auth.checkAccountStatus();
-            if (!isActive) {
-                // Tài khoản bị khóa
-                showAccountLockedNotification.value = true;
-                startRedirectCountdown();
+            const result = await auth.checkAccountStatus();
+            if (!result.isActive) {
+                handleAccountStatus(result.reason);
             }
         }
     }, 10000); // Check mỗi 10 giây
@@ -75,6 +107,7 @@ const startRedirectCountdown = () => {
         if (redirectCountdown.value <= 0) {
             clearInterval(countdownInterval);
             showAccountLockedNotification.value = false;
+            showConcurrentLoginNotification.value = false;
             router.push("/login");
         }
     }, 1000);

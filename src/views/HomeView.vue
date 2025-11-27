@@ -91,12 +91,16 @@
         <section class="news-section">
             <div class="container">
                 <div class="section-header">
-                    <h2 class="section-title">📰 Tin nóng CGV</h2>
+                    <h2 class="section-title">Tin nóng CGV</h2>
                     <a href="#" class="view-all">Xem tất cả →</a>
                 </div>
                 <div class="row g-4">
                     <div v-for="(news, index) in newsItems" :key="news.id" class="col-md-6 col-lg-4">
-                        <div class="news-card" :style="{ animationDelay: `${index * 0.1}s` }">
+                        <div
+                            class="news-card"
+                            :style="{ animationDelay: `${index * 0.1}s` }"
+                            @click="openNewsDetail(news)"
+                        >
                             <div class="news-image-wrapper">
                                 <img :src="news.image" :alt="news.title" class="news-image" />
                                 <div class="news-overlay">
@@ -105,7 +109,7 @@
                             </div>
                             <div class="news-content">
                                 <h3 class="news-title">{{ news.title }}</h3>
-                                <p class="news-date">📅 {{ news.date }}</p>
+                                <p class="news-date">{{ news.date }}</p>
                                 <a href="#" class="read-more">Đọc thêm →</a>
                             </div>
                         </div>
@@ -118,7 +122,7 @@
         <section class="egift-section">
             <div class="container">
                 <div class="section-header">
-                    <h2 class="section-title">🎁 Thẻ quà tặng CGV</h2>
+                    <h2 class="section-title">Thẻ quà tặng CGV</h2>
                     <a href="#" class="view-all">Xem tất cả →</a>
                 </div>
                 <div class="row g-4">
@@ -141,12 +145,16 @@
         <section class="videos-section">
             <div class="container">
                 <div class="section-header">
-                    <h2 class="section-title">🎬 Trailer & Videos</h2>
+                    <h2 class="section-title">Trailer & Videos</h2>
                     <a href="#" class="view-all">Xem tất cả →</a>
                 </div>
                 <div class="row g-4">
                     <div v-for="(video, index) in videos" :key="video.id" class="col-md-6 col-lg-4">
-                        <div class="video-card" :style="{ animationDelay: `${index * 0.1}s` }">
+                        <div
+                            class="video-card"
+                            :style="{ animationDelay: `${index * 0.1}s` }"
+                            @click="openVideo(video.url)"
+                        >
                             <div class="video-thumbnail-wrapper">
                                 <img :src="video.thumbnail" :alt="video.title" class="video-thumbnail" />
                                 <div class="play-icon-wrapper">
@@ -164,7 +172,7 @@
         <!-- OFFERS Section -->
         <section class="offers-section">
             <div class="container">
-                <h2 class="section-title text-center mb-5">⭐ Ưu đãi đặc biệt</h2>
+                <h2 class="section-title text-center mb-5">Ưu đãi đặc biệt</h2>
                 <div class="row g-4">
                     <div v-for="(offer, index) in offers" :key="offer.id" class="col-md-6 col-lg-4">
                         <div class="offer-card" :style="{ animationDelay: `${index * 0.1}s` }">
@@ -180,6 +188,21 @@
 
         <!-- FOOTER -->
         <AppFooter />
+
+        <!-- Video Modal -->
+        <div v-if="showVideoModal" class="video-modal" @click="closeVideoModal">
+            <div class="video-modal-content" @click.stop>
+                <button class="video-modal-close" @click="closeVideoModal">×</button>
+                <div class="video-wrapper">
+                    <iframe
+                        :src="currentVideoEmbed"
+                        frameborder="0"
+                        allowfullscreen
+                        allow="autoplay; encrypted-media"
+                    ></iframe>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -269,22 +292,22 @@ onUnmounted(() => {
 const newsItems = [
     {
         id: 1,
-        title: "CGV ưu đãi Halloween cực khủng",
-        image: "https://www.cgv.vn/media/wysiwyg/2025/102025/240x201_2_.jpg",
+        title: "CAJ ưu đãi Halloween cực khủng",
+        image: "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80",
         date: "28/10/2025",
         category: "Khuyến mãi",
     },
     {
         id: 2,
         title: "Quà sinh nhật miễn phí trong tháng 11",
-        image: "https://www.cgv.vn/media/wysiwyg/2025/102025/240x201.jpg",
+        image: "https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
         date: "3/11/2025",
         category: "Ưu đãi",
     },
     {
         id: 3,
         title: "Phim mới Đông 2025 - Cơn bão giải trí",
-        image: "https://via.placeholder.com/400x300?text=Movie+News",
+        image: "https://images.unsplash.com/photo-1440404653325-ab127d49abc1?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
         date: "20/10/2025",
         category: "Phim mới",
     },
@@ -300,22 +323,46 @@ const videos = [
     {
         id: 1,
         title: "Zootopia 2 - Trailer Chính Thức",
-        thumbnail: "https://www.youtube.com/watch?v=sGgjtYuuaFg",
+        thumbnail: "https://img.youtube.com/vi/sGgjtYuuaFg/maxresdefault.jpg",
+        url: "https://www.youtube.com/watch?v=sGgjtYuuaFg",
         duration: "2:13",
     },
     {
         id: 2,
         title: "Sonic 4 - Phim Bom Tấn Năm 2025",
-        thumbnail: "https://www.youtube.com/watch?v=xBIxYeUNxV8",
+        thumbnail: "https://img.youtube.com/vi/xBIxYeUNxV8/maxresdefault.jpg",
+        url: "https://www.youtube.com/watch?v=xBIxYeUNxV8",
         duration: "1:52",
     },
     {
         id: 3,
         title: "Wicked - Vở nhạc kịch huyền thoại",
-        thumbnail: "https://www.youtube.com/watch?v=6COmYeLsz4c",
+        thumbnail: "https://img.youtube.com/vi/6COmYeLsz4c/maxresdefault.jpg",
+        url: "https://www.youtube.com/watch?v=6COmYeLsz4c",
         duration: "3:32",
     },
 ];
+
+const showVideoModal = ref(false);
+const currentVideoEmbed = ref("");
+
+const openVideo = (url) => {
+    // Convert YouTube URL to embed URL
+    const videoId = url.split("v=")[1];
+    currentVideoEmbed.value = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+    showVideoModal.value = true;
+};
+
+const closeVideoModal = () => {
+    showVideoModal.value = false;
+    currentVideoEmbed.value = "";
+};
+
+const openNewsDetail = (news) => {
+    // Tạm thời hiển thị thông báo, có thể chuyển đến trang chi tiết sau
+    alert(`Đang xem: ${news.title}\n\nNội dung: ${news.category} - ${news.date}`);
+    // router.push(`/news/${news.id}`); // Chức năng trang chi tiết sau này
+};
 
 const offers = [
     { id: 1, icon: "💑", title: "Giảm 50% vé cặp đôi", desc: "Dành cho khách hàng đặt online" },
@@ -910,6 +957,93 @@ const offers = [
 .footer-bottom {
     margin-top: 2rem;
     padding-top: 1.5rem;
+}
+
+/* ============ VIDEO MODAL ============ */
+.video-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.video-modal-content {
+    position: relative;
+    width: 90%;
+    max-width: 800px;
+    background: #1a1a1a;
+    border-radius: 12px;
+    overflow: hidden;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-50px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.video-modal-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 35px;
+    height: 35px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid #ffd700;
+    border-radius: 50%;
+    font-size: 18px;
+    font-weight: bold;
+    color: #ffd700;
+    cursor: pointer;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.video-modal-close:hover {
+    background: #ffd700;
+    color: #000;
+    transform: scale(1.1);
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.video-wrapper {
+    position: relative;
+    width: 100%;
+    height: 0;
+    padding-bottom: 56.25%; /* 16:9 aspect ratio */
+}
+
+.video-wrapper iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
 }
 
 /* ============ RESPONSIVE ============ */

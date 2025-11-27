@@ -9,6 +9,9 @@ export const useAuthStore = defineStore("auth", {
         role: localStorage.getItem("role") || null,
         fullName: localStorage.getItem("fullName") || null,
         userId: localStorage.getItem("userId") || null,
+        sessionValidationInterval: null, // Để lưu interval ID
+        isValidatingSession: false, // Flag để tránh validation đồng thời
+        hasShownConcurrentLoginAlert: false, // Flag để tránh multiple alerts
     }),
 
     getters: {
@@ -54,6 +57,9 @@ export const useAuthStore = defineStore("auth", {
                 console.log("   Role:", this.role);
                 console.log("   Username:", this.username);
                 console.log("   FullName:", this.fullName);
+
+                // Bắt đầu kiểm tra session định kỳ
+                this.startSessionValidation();
             } catch (error) {
                 console.error("Login thất bại:", error);
 
@@ -91,7 +97,7 @@ export const useAuthStore = defineStore("auth", {
                 // Bước 2: Tự động đăng nhập để lấy token
                 await this.login({
                     username: userData.username,
-                    password: userData.password
+                    password: userData.password,
                 });
 
                 console.log("Đăng ký và đăng nhập thành công!");
@@ -111,20 +117,42 @@ export const useAuthStore = defineStore("auth", {
             }
         },
 
-        logout() {
-            this.token = null;
-            this.username = null;
-            this.role = null;
-            this.fullName = null;
-            this.userId = null;
+        async logout() {
+            try {
+                // Gọi API logout để xóa session trong database
+                if (this.token) {
+                    await api.post(
+                        "/auth/logout",
+                        {},
+                        {
+                            headers: { Authorization: `Bearer ${this.token}` },
+                        }
+                    );
+                }
+            } catch (error) {
+                console.error("Lỗi khi logout:", error);
+                // Tiếp tục logout dù có lỗi API
+            } finally {
+                // Xóa dữ liệu local
+                this.token = null;
+                this.username = null;
+                this.role = null;
+                this.fullName = null;
+                this.userId = null;
+                this.isValidatingSession = false;
+                this.hasShownConcurrentLoginAlert = false;
 
-            localStorage.removeItem("token");
-            localStorage.removeItem("username");
-            localStorage.removeItem("role");
-            localStorage.removeItem("fullName");
-            localStorage.removeItem("userId");
+                localStorage.removeItem("token");
+                localStorage.removeItem("username");
+                localStorage.removeItem("role");
+                localStorage.removeItem("fullName");
+                localStorage.removeItem("userId");
 
-            console.log("Đã logout");
+                // Dừng session validation
+                this.stopSessionValidation();
+
+                console.log("Đã logout");
+            }
         },
 
         // Khôi phục session khi reload trang
@@ -142,12 +170,100 @@ export const useAuthStore = defineStore("auth", {
                 this.fullName = fullName;
                 this.userId = userId;
                 console.log("Session restored:", { username, role, fullName });
+
+                // Bắt đầu session validation khi restore
+                this.startSessionValidation();
+            }
+        },
+
+        // Kiểm tra session còn hợp lệ không (cho concurrent login)
+        async validateSession() {
+            if (!this.token || this.isValidatingSession) return true;
+
+            this.isValidatingSession = true;
+            console.log("Đang kiểm tra session validation...");
+
+            try {
+                // Gọi API để validate token hiện tại
+                const response = await api.get("/auth/me");
+                console.log("Session validation thành công");
+                // Reset flag khi thành công
+                this.hasShownConcurrentLoginAlert = false;
+                return true; // Session còn hợp lệ
+            } catch (error) {
+                console.log("Session validation thất bại:", error.response?.status);
+                const errorData = error.response?.data;
+                console.log("Error data full:", JSON.stringify(errorData, null, 2));
+                console.log("Error message:", errorData?.message);
+                console.log("Error code:", errorData?.code);
+
+                // Kiểm tra nếu là lỗi CONCURRENT_LOGIN - thử nhiều pattern khác nhau
+                if (
+                    errorData?.code === "CONCURRENT_LOGIN" ||
+                    errorData?.message?.includes("CONCURRENT_LOGIN") ||
+                    errorData?.message?.includes("concurrent") ||
+                    errorData?.message?.includes("already logged in") ||
+                    errorData === "CONCURRENT_LOGIN"
+                ) {
+                    console.warn("CONCURRENT_LOGIN detected - Session đã bị vô hiệu hóa");
+                    console.log("Hiển thị thông báo concurrent login...");
+
+                    // Chỉ logout nếu chưa thực hiện trước đó
+                    if (!this.hasShownConcurrentLoginAlert) {
+                        this.hasShownConcurrentLoginAlert = true;
+                        await this.logout();
+                        setTimeout(() => {
+                            window.location.href = "/login";
+                        }, 1000);
+                    }
+                    return false;
+                }
+
+                // Các lỗi khác cũng logout (chỉ khi chưa alert)
+                if (error.response?.status === 401 && !this.hasShownConcurrentLoginAlert) {
+                    console.warn("Session expired (401)");
+                    this.hasShownConcurrentLoginAlert = true;
+                    await this.logout();
+                    window.location.href = "/login";
+                    return false;
+                }
+
+                return true;
+            } finally {
+                this.isValidatingSession = false;
+            }
+        },
+
+        // Bắt đầu kiểm tra session định kỳ
+        startSessionValidation() {
+            if (this.sessionValidationInterval) {
+                clearInterval(this.sessionValidationInterval);
+            }
+
+            console.log("Bắt đầu session validation (mỗi 30 giây)");
+
+            // Kiểm tra mỗi 30 giây (thay vì 5 giây để giảm tải)
+            this.sessionValidationInterval = setInterval(async () => {
+                if (this.isAuthenticated && !this.isValidatingSession) {
+                    console.log("Thực hiện session validation...");
+                    await this.validateSession();
+                } else {
+                    console.log("⏸Không authenticated hoặc đang validation, bỏ qua");
+                }
+            }, 30000); // 30 giây
+        },
+
+        // Dừng kiểm tra session
+        stopSessionValidation() {
+            if (this.sessionValidationInterval) {
+                clearInterval(this.sessionValidationInterval);
+                this.sessionValidationInterval = null;
             }
         },
 
         // Kiểm tra xem tài khoản có còn active không
         async checkAccountStatus() {
-            if (!this.token) return true; // Không có token thì không cần check
+            if (!this.token) return { isActive: true, reason: null }; // Không có token thì không cần check
 
             try {
                 const response = await api.get("/auth/me");
@@ -157,29 +273,42 @@ export const useAuthStore = defineStore("auth", {
 
                 // Kiểm tra xem isActive có tồn tại và là false
                 if (userData.isActive === false) {
-                    console.warn("Account is locked!");
-                    this.logout();
-                    return false;
+                    console.warn("Account is locked by admin!");
+                    await this.logout();
+                    return { isActive: false, reason: "ACCOUNT_LOCKED" };
                 }
 
-                return true;
+                return { isActive: true, reason: null };
             } catch (error) {
                 console.warn("Account check error:", error.response?.status, error.response?.data);
+                const errorData = error.response?.data;
+
+                // Kiểm tra concurrent login
+                if (
+                    errorData?.code === "CONCURRENT_LOGIN" ||
+                    errorData?.message?.includes("CONCURRENT_LOGIN") ||
+                    errorData?.message?.includes("concurrent") ||
+                    errorData?.message?.includes("already logged in") ||
+                    errorData === "CONCURRENT_LOGIN"
+                ) {
+                    console.warn("Concurrent login detected in checkAccountStatus");
+                    await this.logout();
+                    return { isActive: false, reason: "CONCURRENT_LOGIN" };
+                }
 
                 // Nếu bị lỗi 400 hoặc 401, tài khoản bị khóa hoặc token không hợp lệ
                 if (error.response?.status === 400 || error.response?.status === 401) {
-                    const errorData = error.response?.data;
                     if (errorData?.message === "Account is locked" || errorData === "Account is locked") {
-                        console.warn("Account is locked (from error)!");
-                        this.logout();
-                        return false;
+                        console.warn("Account is locked (from API error)!");
+                        await this.logout();
+                        return { isActive: false, reason: "ACCOUNT_LOCKED" };
                     }
                     // Token expired hoặc không hợp lệ
                     this.logout();
-                    return false;
+                    return { isActive: false, reason: "TOKEN_EXPIRED" };
                 }
 
-                return true;
+                return { isActive: true, reason: null };
             }
         },
     },

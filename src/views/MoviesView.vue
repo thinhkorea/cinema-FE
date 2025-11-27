@@ -1,7 +1,7 @@
 <template>
     <div class="movies-page">
         <AppHeader />
-
+        
         <!-- Page Title -->
         <section class="page-title-section">
             <div class="container">
@@ -121,7 +121,7 @@
 
                 <!-- Empty State -->
                 <div v-if="!loading && filteredMovies.length === 0" class="empty-section">
-                    <div class="empty-icon">🎬</div>
+                    <div class="empty-icon"></div>
                     <h3 class="empty-title">Không có phim nào</h3>
                     <p class="empty-text">Hiện tại không có phim nào trong danh mục này</p>
                 </div>

@@ -4,7 +4,7 @@
             <!-- Main Footer Content -->
             <div class="row mb-4">
                 <div class="col-md-3 mb-4">
-                    <h5 class="footer-title">Về CAJ Cinema</h5>
+                    <h5 class="footer-title">Về CAJ</h5>
                     <ul class="footer-links">
                         <li><a href="#">Giới thiệu</a></li>
                         <li><a href="#">Tin tức</a></li>
@@ -45,7 +45,7 @@
 
             <!-- Footer Bottom -->
             <div class="footer-bottom text-center pt-4">
-                <p class="copyright">© 2025 CAJ Cinema Vietnam. All rights reserved.</p>
+                <p class="copyright">© 2025 CinemaAndJoy Vietnam. All rights reserved.</p>
             </div>
         </div>
     </footer>

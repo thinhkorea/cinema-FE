@@ -133,7 +133,9 @@ async function deleteRoom(id) {
     await api.delete(`/rooms/${id}`)
     await loadRooms()
   } catch (e) {
-    alert('Failed to delete room!')
+    const errorMsg = e.response?.data?.message || e.response?.data || 'Failed to delete room!'
+    alert(`Lỗi: ${errorMsg}`)
+    console.error('Delete error:', e)
   }
 }
 </script>

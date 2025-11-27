@@ -23,12 +23,21 @@ api.interceptors.request.use(
     return config
 })
 
-// interceptor lỗi 401 (chỉ log, không logout ngay)
+// interceptor lỗi 401 và xử lý concurrent login
 api.interceptors.response.use(
     (res) => res,
     (err) => {
         if (err.response?.status === 401) {
-            console.warn('401 Unauthorized:', err.config.url)
+            const errorData = err.response?.data;
+            
+            // Kiểm tra nếu là lỗi concurrent login
+            if (errorData?.code === 'CONCURRENT_LOGIN') {
+                console.warn('Tài khoản đã được đăng nhập từ nơi khác - xử lý bởi auth store');
+                // Không hiển thị alert, để auth store xử lý qua toast
+            } else {
+                console.warn('401 Unauthorized:', err.config.url);
+            }
+            
             // Đăng xuất nếu token không hợp lệ
             try {
                 const auth = useAuthStore()

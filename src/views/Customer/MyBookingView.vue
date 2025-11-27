@@ -1,17 +1,11 @@
 <template>
     <div class="booking-page">
-        <div class="container">
-            <!-- BACK BUTTON -->
-            <div class="back-button-container mb-4">
-                <button @click="goHome" class="btn-back">
-                    <i class="bi bi-arrow-left"></i>
-                    <span>Quay lại trang chủ</span>
-                </button>
-            </div>
+        <AppHeader />
 
+        <div class="container mt-4">
             <!-- HEADER -->
             <div class="page-header mb-4">
-                <h1 class="page-title"><i class="bi bi-ticket-perforated me-2"></i>Lịch sử vé của tôi</h1>
+                <h1 class="page-title">Lịch sử vé của tôi</h1>
                 <p class="page-subtitle">Quản lý và xem chi tiết các vé đã đặt</p>
             </div>
 
@@ -199,6 +193,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
+import AppHeader from "@/components/AppHeader.vue";
 import api from "@/api";
 
 const router = useRouter();
@@ -446,7 +441,7 @@ const leave = (el) => {
     background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
     min-height: 100vh;
     color: #ffffff;
-    padding: 2rem 0;
+    padding: 0 0 2rem 0;
 }
 
 .container {

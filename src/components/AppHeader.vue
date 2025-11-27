@@ -1,9 +1,9 @@
 <template>
     <nav class="navbar navbar-expand-lg navbar-dark sticky-top py-4 px-4">
-        <div class="container-fluid">
+        <div class="container">
             <!-- Logo -->
-            <router-link class="navbar-brand fw-bold fs-3" to="/">
-                <span class="brand-text">CAJ Cinema</span>
+            <router-link class="navbar-brand fw-bold fs-3 d-flex align-items-center" to="/">
+                <img src="../assets/logo.png" alt="Cinema Logo" class="logo-img me-2" />
             </router-link>
 
             <!-- Toggle (mobile) -->
@@ -13,23 +13,24 @@
 
             <!-- Menu -->
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav mx-auto gap-4">
+                <ul class="navbar-nav mx-auto gap-4 ms-5">
                     <li class="nav-item">
                         <router-link to="/" class="nav-link" exact>Trang chủ</router-link>
                     </li>
                     <li class="nav-item">
                         <router-link to="/movies" class="nav-link">Phim</router-link>
                     </li>
-                    <li v-if="auth.isAuthenticated" class="nav-item">
-                        <router-link to="/my-bookings" class="nav-link">
-                            <i class="bi me-1"></i>Vé của tôi
-                        </router-link>
+                    <li class="nav-item">
+                        <router-link to="/about" class="nav-link">Giới thiệu</router-link>
+                    </li>
+                    <li class="nav-item">
+                        <router-link to="/my-bookings" class="nav-link"> Vé của tôi </router-link>
                     </li>
                 </ul>
 
                 <!-- User -->
                 <ul class="navbar-nav ms-auto gap-2">
-                    <template v-if="auth.isAuthenticated">
+                    <template v-if="isAuthenticated">
                         <li
                             class="nav-item d-flex align-items-center position-relative user-area"
                             @mouseenter="showDropdown = true"
@@ -96,13 +97,17 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth.store";
 
 const router = useRouter();
 const auth = useAuthStore();
 const showDropdown = ref(false);
+
+// Computed để đảm bảo reactive
+const isAuthenticated = computed(() => auth.isAuthenticated);
+const isCustomer = computed(() => auth.isCustomer);
 
 const handleLogout = () => {
     auth.logout();
@@ -134,6 +139,19 @@ const goDashboard = () => {
     color: #ffc107 !important;
     font-weight: 700;
     letter-spacing: 0.5px;
+}
+
+/* Logo styling */
+.logo-img {
+    height: 40px;
+    width: auto;
+    object-fit: contain;
+    border-radius: 8px;
+    transition: transform 0.3s ease;
+}
+
+.navbar-brand:hover .logo-img {
+    transform: scale(1.05);
 }
 
 /* Light text for navigation links on dark background */
