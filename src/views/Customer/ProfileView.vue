@@ -92,7 +92,7 @@
                                         Email
                                     </label>
                                     <input
-                                        v-model="profile.email"
+                                        v-model="profile.user.email"
                                         type="email"
                                         class="form-input"
                                         placeholder="example@email.com"
@@ -106,7 +106,7 @@
                                         Số điện thoại
                                     </label>
                                     <input
-                                        v-model="profile.phone"
+                                        v-model="profile.user.phone"
                                         class="form-input"
                                         placeholder="0123 456 789"
                                         pattern="[0-9\s\-\+\(\)]+"
@@ -178,6 +178,9 @@ onMounted(async () => {
 
         const res = await api.get(`/auth/profile/${userId}`);
         profile.value = res.data;
+        profile.value.user = profile.value.user || {};
+        profile.value.user.email = profile.value.user.email || profile.value.email || "";
+        profile.value.user.phone = profile.value.user.phone || profile.value.phone || "";
     } catch (err) {
         console.error(err);
         Swal.fire("Lỗi", "Không thể tải hồ sơ", "error");

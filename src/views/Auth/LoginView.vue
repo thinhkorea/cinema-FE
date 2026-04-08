@@ -19,7 +19,7 @@
                 <div class="login-card">
                     <form @submit.prevent="handleLogin">
                         <div class="form-group mb-4">
-                            <label class="form-label fw-600">Tên đăng nhập</label>
+                            <label class="form-label fw-600">Email hoặc số điện thoại</label>
                             <div class="input-wrapper">
                                 <span class="input-icon">
                                     <svg
@@ -36,10 +36,10 @@
                                     </svg>
                                 </span>
                                 <input
-                                    v-model.trim="form.username"
+                                    v-model.trim="form.identifier"
                                     type="text"
                                     class="form-control form-control-lg"
-                                    placeholder="Nhập username..."
+                                    placeholder="Nhập email hoặc số điện thoại..."
                                     required
                                     autocomplete="username"
                                 />
@@ -147,7 +147,7 @@ const router = useRouter();
 const auth = useAuthStore();
 
 const form = reactive({
-    username: "",
+    identifier: "",
     password: "",
 });
 
@@ -167,7 +167,7 @@ async function handleLogin() {
 
     try {
         await auth.login({
-            username: form.username,
+            identifier: form.identifier,
             password: form.password,
         });
 
@@ -192,7 +192,7 @@ async function handleLogin() {
         if (errorMsg === "Account is locked") {
             error.value = "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.";
         } else {
-            error.value = errorMsg || "Tên đăng nhập hoặc mật khẩu không đúng.";
+            error.value = errorMsg || "Email/số điện thoại hoặc mật khẩu không đúng.";
         }
     } finally {
         loading.value = false;

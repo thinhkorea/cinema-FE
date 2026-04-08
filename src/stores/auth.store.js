@@ -24,7 +24,7 @@ export const useAuthStore = defineStore("auth", {
     actions: {
         async login(credentials) {
             try {
-                console.log("Đang login với:", credentials.username);
+                console.log("Đang login với:", credentials.identifier || credentials.username);
 
                 const response = await api.post("/auth/login", credentials);
                 console.log("Response từ server:", response.data);
@@ -78,7 +78,7 @@ export const useAuthStore = defineStore("auth", {
 
         async register(userData) {
             try {
-                console.log("Đang register với:", userData.username);
+                console.log("Đang register với:", userData.email);
 
                 // Bước 1: Đăng ký tài khoản
                 const registerResponse = await api.post("/auth/register", userData);
@@ -96,7 +96,7 @@ export const useAuthStore = defineStore("auth", {
 
                 // Bước 2: Tự động đăng nhập để lấy token
                 await this.login({
-                    username: userData.username,
+                    identifier: userData.email,
                     password: userData.password,
                 });
 

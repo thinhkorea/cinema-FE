@@ -76,33 +76,6 @@
                         </div>
 
                         <div class="form-group mb-3">
-                            <label class="form-label fw-600">Tên đăng nhập</label>
-                            <div class="input-wrapper">
-                                <span class="input-icon">
-                                    <svg
-                                        width="20"
-                                        height="20"
-                                        viewBox="0 0 20 20"
-                                        fill="none"
-                                        xmlns="http://www.w3.org/2000/svg"
-                                    >
-                                        <path
-                                            d="M10 0C4.48 0 0 4.48 0 10C0 15.52 4.48 20 10 20C15.52 20 20 15.52 20 10C20 4.48 15.52 0 10 0ZM10 3C11.66 3 13 4.34 13 6C13 7.66 11.66 9 10 9C8.34 9 7 7.66 7 6C7 4.34 8.34 3 10 3ZM10 17.2C7.5 17.2 5.29 15.92 4 13.98C4.02 11.99 8 11 10 11C11.99 11 15.97 11.99 16 13.98C14.71 15.92 12.5 17.2 10 17.2Z"
-                                            fill="#0066ff"
-                                        />
-                                    </svg>
-                                </span>
-                                <input
-                                    v-model.trim="form.username"
-                                    type="text"
-                                    class="form-control form-control-lg"
-                                    placeholder="Nhập username..."
-                                    required
-                                />
-                            </div>
-                        </div>
-
-                        <div class="form-group mb-3">
                             <label class="form-label fw-600">Mật khẩu</label>
                             <div class="input-wrapper">
                                 <span class="input-icon">
@@ -185,6 +158,7 @@
                                     type="tel"
                                     class="form-control form-control-lg"
                                     placeholder="VD: 0901234567"
+                                    required
                                 />
                             </div>
                         </div>
@@ -258,7 +232,6 @@ const showPassword = ref(false);
 const form = ref({
     fullName: "",
     email: "",
-    username: "",
     password: "",
     phone: "",
     address: "",
@@ -266,7 +239,7 @@ const form = ref({
 });
 
 const register = async () => {
-    if (!form.value.username || !form.value.password || !form.value.email) {
+    if (!form.value.password || !form.value.email || !form.value.phone) {
         Swal.fire("Thiếu thông tin", "Vui lòng nhập đầy đủ thông tin!", "warning");
         return;
     }
