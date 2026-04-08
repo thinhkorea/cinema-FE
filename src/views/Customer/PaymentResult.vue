@@ -541,4 +541,92 @@ const goToMyBookings = () => {
 body:has(.payment-modal-overlay) {
     overflow: hidden;
 }
+
+/* Redesign Theme: Light + Orange */
+.payment-modal-overlay {
+    background: rgba(0, 0, 0, 0.32);
+    backdrop-filter: blur(6px);
+}
+
+.payment-modal {
+    background: #fff;
+    border: 1px solid #e6e6e6;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.18);
+    color: #333;
+}
+
+.close-btn {
+    background: #fff5f1;
+    color: #ff6b35;
+}
+
+.close-btn:hover {
+    background: #ff6b35;
+    color: #fff;
+}
+
+.status-title {
+    color: #2f2f2f;
+}
+
+.status-subtitle,
+.info-label,
+.countdown-info,
+.cinema-branding {
+    color: #666;
+}
+
+.booking-info,
+.error-info {
+    background: #fff8f4;
+    border: 1px solid #f0ddd4;
+}
+
+.info-value {
+    color: #333;
+}
+
+.transaction-code {
+    background: linear-gradient(45deg, #ff6b35, #ff8a5f);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.countdown-info {
+    background: #fff5f1;
+    border: 1px solid #f2ddd4;
+}
+
+.countdown-info i,
+.cinema-icon {
+    color: #ff6b35;
+}
+
+.btn-primary {
+    background: linear-gradient(45deg, #ff6b35, #ff8a5f);
+    color: #fff;
+    box-shadow: 0 4px 15px rgba(255, 107, 53, 0.25);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(45deg, #ff8a5f, #ff6b35);
+    box-shadow: 0 8px 25px rgba(255, 107, 53, 0.35);
+}
+
+.cinema-row {
+    background: #fff5f1;
+    border: 1px solid #ffd8cb;
+}
+
+.cinema-name {
+    background: linear-gradient(45deg, #ff6b35, #ff8a5f);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.payment-modal:focus {
+    outline: 2px solid #ff6b35;
+}
 </style>

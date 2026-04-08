@@ -1,5 +1,5 @@
 <template>
-    <nav class="navbar navbar-expand-lg navbar-dark sticky-top py-4 px-4">
+    <nav class="navbar navbar-expand-lg navbar-light sticky-top py-4 px-4">
         <div class="container">
             <!-- Logo -->
             <router-link class="navbar-brand fw-bold fs-3 d-flex align-items-center" to="/">
@@ -38,7 +38,7 @@
                         >
                             <!-- Vùng chào -->
                             <div class="d-flex align-items-center px-3 py-2 user-trigger">
-                                <span class="me-2 text-light">Xin chào,</span>
+                                <span class="me-2 greeting-text">Xin chào,</span>
                                 <span class="fw-bold user-name">
                                     {{ auth.fullName || auth.username }}
                                 </span>
@@ -125,23 +125,21 @@ const goDashboard = () => {
 </script>
 
 <style scoped>
-/* Dark theme navbar with black background and gold accents */
 .navbar {
-    background: linear-gradient(to bottom, #1a1a1a, #121212);
+    background: #ffffff;
     font-size: 17px;
     z-index: 1050;
-    border-bottom: 1px solid #2a2a2a;
+    border-bottom: 1px solid #e6e6e6;
     min-height: 70px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
-/* Brand text in gold/yellow */
 .brand-text {
-    color: #ffc107 !important;
+    color: #ff6b35 !important;
     font-weight: 700;
     letter-spacing: 0.5px;
 }
 
-/* Logo styling */
 .logo-img {
     height: 40px;
     width: auto;
@@ -154,9 +152,8 @@ const goDashboard = () => {
     transform: scale(1.05);
 }
 
-/* Light text for navigation links on dark background */
 .nav-link {
-    color: #e0e0e0 !important;
+    color: #555 !important;
     font-weight: 500;
     transition: all 0.3s ease;
     padding: 0.5rem 1rem;
@@ -165,24 +162,22 @@ const goDashboard = () => {
 
 .nav-link:hover,
 .router-link-active {
-    color: #ffc107 !important;
-    text-shadow: 0 0 8px rgba(255, 193, 7, 0.3);
+    color: #ff6b35 !important;
+    text-shadow: none;
 }
 
 .navbar-brand {
     font-weight: bold;
 }
 
-/* Dark navbar toggler for mobile */
 .navbar-toggler {
-    border-color: rgba(255, 193, 7, 0.5);
+    border-color: rgba(255, 107, 53, 0.5);
 }
 
 .navbar-toggler:focus {
-    box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.25);
+    box-shadow: 0 0 0 0.25rem rgba(255, 107, 53, 0.2);
 }
 
-/* Hover vùng user rộng hơn */
 .user-area {
     position: relative;
     cursor: pointer;
@@ -194,17 +189,20 @@ const goDashboard = () => {
 }
 
 .user-trigger:hover {
-    background-color: rgba(255, 193, 7, 0.1);
+    background-color: rgba(255, 107, 53, 0.1);
 }
 
 .user-name {
-    color: #ffc107 !important;
+    color: #ff6b35 !important;
 }
 
-/* Dark dropdown menu */
+.greeting-text {
+    color: #444;
+}
+
 .dropdown-menu {
-    background-color: #1a1a1a;
-    border: 1px solid #2a2a2a;
+    background-color: #ffffff;
+    border: 1px solid #e6e6e6;
     border-radius: 8px;
     padding: 0.5rem 0;
     min-width: 180px;
@@ -216,59 +214,54 @@ const goDashboard = () => {
     transform: translateY(-10px);
     pointer-events: none;
     transition: all 0.2s ease-in-out;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
 }
 
-/* Khi hiện */
 .dropdown-menu.show {
     opacity: 1;
     transform: translateY(0);
     pointer-events: auto;
 }
 
-/* Item */
 .dropdown-item {
     font-size: 14px;
     padding: 0.5rem 1.2rem;
     transition: all 0.2s ease;
-    color: #e0e0e0 !important;
+    color: #444 !important;
 }
 
 .dropdown-item:hover {
-    background-color: rgba(255, 193, 7, 0.1);
-    color: #ffc107 !important;
+    background-color: rgba(255, 107, 53, 0.08);
+    color: #ff6b35 !important;
 }
 
-/* Dropdown divider */
 .dropdown-divider {
-    border-color: #2a2a2a;
+    border-color: #ececec;
 }
 
-/* Gold buttons matching dark theme */
 .btn-outline-gold {
-    color: #ffc107;
-    border-color: #ffc107;
+    color: #ff6b35;
+    border-color: #ff6b35;
 }
 
 .btn-outline-gold:hover {
-    background-color: #ffc107;
-    border-color: #ffc107;
-    color: #1a1a1a;
+    background-color: #ff6b35;
+    border-color: #ff6b35;
+    color: #fff;
 }
 
 .btn-gold {
-    background-color: #ffc107;
-    border-color: #ffc107;
-    color: #1a1a1a;
+    background-color: #ff6b35;
+    border-color: #ff6b35;
+    color: #fff;
     font-weight: 600;
 }
 
 .btn-gold:hover {
-    background-color: #ffb300;
-    border-color: #ffb300;
+    background-color: #ff5722;
+    border-color: #ff5722;
 }
 
-/* Hiệu ứng transition */
 .fade-slide-enter-active,
 .fade-slide-leave-active {
     transition: all 0.25s ease;
@@ -280,13 +273,13 @@ const goDashboard = () => {
     transform: translateY(-10px);
 }
 
-/* Responsive adjustments */
 @media (max-width: 991px) {
     .navbar-collapse {
-        background-color: rgba(26, 26, 26, 0.95);
-        border-top: 1px solid #2a2a2a;
+        background-color: rgba(255, 255, 255, 0.98);
+        border-top: 1px solid #ececec;
         margin-top: 0.5rem;
         padding-top: 0.5rem;
+        border-radius: 0 0 8px 8px;
     }
 }
 </style>

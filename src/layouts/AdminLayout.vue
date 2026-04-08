@@ -5,11 +5,11 @@
 
     <div class="admin-layout d-flex">
         <!-- Sidebar -->
-        <aside class="sidebar bg-dark text-white p-3">
+        <aside class="sidebar p-3" :class="{ show: showSidebar }">
             <h5 class="mb-4 d-flex align-items-center"><i class="bi bi-film me-2"></i> Admin Panel</h5>
             <ul class="nav flex-column">
                 <li v-for="link in links" :key="link.path" class="nav-item">
-                    <RouterLink :to="link.path" class="nav-link text-white" active-class="active">
+                    <RouterLink :to="link.path" class="nav-link" active-class="active">
                         <i :class="link.icon + ' me-2'"></i>
                         {{ link.label }}
                     </RouterLink>
@@ -17,10 +17,10 @@
             </ul>
 
             <div class="mt-auto pt-3 border-top">
-                <button class="btn btn-outline-light w-100 mb-2" @click="goHome">
+                <button class="btn btn-outline-primary w-100 mb-2" @click="goHome">
                     <i class="bi bi-house me-2"></i> Trang chủ
                 </button>
-                <button class="btn btn-outline-light w-100" @click="logout">
+                <button class="btn btn-primary w-100" @click="logout">
                     <i class="bi bi-box-arrow-right me-2"></i> Đăng xuất
                 </button>
             </div>
@@ -74,26 +74,30 @@ const toggleSidebar = () => (showSidebar.value = !showSidebar.value);
     width: 240px;
     display: flex;
     flex-direction: column;
+    background: #ffffff;
+    border-right: 1px solid #e6e6e6;
+    color: #333;
 }
 
 .nav-link {
-    color: #ccc;
+    color: #666;
     padding: 8px 12px;
-    border-radius: 4px;
+    border-radius: 8px;
     transition: background 0.2s;
 }
 
 .nav-link:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 107, 53, 0.1);
+    color: #ff6b35;
 }
 
 .nav-link.active {
-    background: #0d6efd;
+    background: #ff6b35;
     color: white !important;
 }
 
 .content {
-    background: #f8f9fa;
+    background: #f5f5f5;
     overflow-y: auto;
 }
 
@@ -107,6 +111,7 @@ const toggleSidebar = () => (showSidebar.value = !showSidebar.value);
         z-index: 1000;
         left: -250px;
     }
+
     .sidebar.show {
         left: 0;
     }

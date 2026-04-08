@@ -179,25 +179,44 @@ const openPhoneModal = async () => {
         return;
     }
 
-    // Load điểm hiện tại của khách
     try {
-        const userId = auth.userId || localStorage.getItem("userId");
-        if (userId) {
-            const res = await api.get(`/auth/profile/${userId}`);
-            customerLoyaltyPoints.value = res.data.loyaltyPoints || 0;
-            console.log(`[DEBUG] Điểm hiện có: ${customerLoyaltyPoints.value}`);
-            console.log(`[DEBUG] Tổng tiền: ${totalPrice.value}đ`);
-            const maxPoints = Math.min(customerLoyaltyPoints.value, Math.floor(totalPrice.value / 1000));
-            console.log(`[DEBUG] Max điểm có thể dùng: ${maxPoints}`);
-        }
-    } catch (err) {
-        console.error("Lỗi khi lấy điểm:", err);
-        customerLoyaltyPoints.value = 0;
-    }
+        // Save booking data to sessionStorage with seat details and expiry time
+        const selectedSeatDetails = selectedSeats.value
+            .map((seatId) => {
+                const seat = seats.value.find((s) => s.seatId === seatId);
+                if (!seat) {
+                    console.error(`Không tìm thấy ghế với ID: ${seatId}`);
+                    return null;
+                }
+                return {
+                    seatId: seat.seatId,
+                    seatNumber: seat.seatNumber,
+                    seatType: seat.seatType || seat.type,
+                    price: getSeatPrice(seat),
+                };
+            })
+            .filter(Boolean); // Remove any null entries
 
-    pointsToUse.value = 0;
-    pointsRedeemed.value = 0;
-    showPhoneModal.value = true;
+        if (selectedSeatDetails.length === 0) {
+            alert("Lỗi: Không thể lấy thông tin ghế. Vui lòng thử lại!");
+            return;
+        }
+
+        const bookingData = {
+            selectedSeats: selectedSeatDetails,
+            totalPrice: totalPrice.value,
+            showtimeId: showtimeId,
+            movieId: movieId,
+            expiryTime: new Date().getTime() + 10 * 60 * 1000, // Backend giữ ghế 10 phút (600 seconds)
+        };
+        sessionStorage.setItem("tempBookingData", JSON.stringify(bookingData));
+
+        // Navigate to snack selection page
+        router.push(`/booking/${movieId}/seats/${showtimeId}/snacks`);
+    } catch (error) {
+        console.error("Lỗi khi xác nhận đặt vé:", error);
+        alert("Có lỗi xảy ra. Vui lòng thử lại!");
+    }
 };
 const closePhoneModal = () => {
     showPhoneModal.value = false;
@@ -301,6 +320,20 @@ const totalPrice = computed(() => {
         }, 0);
 });
 
+// Helper function to calculate individual seat price
+const getSeatPrice = (seat) => {
+    const basePrice = showtime.value?.price || 0;
+    const VIP_SURCHARGE = 20000;
+
+    let seatPrice = basePrice;
+    if (seat.type === "VIP" || seat.seatType === "VIP") {
+        seatPrice += VIP_SURCHARGE;
+    } else if (seat.type === "SWEETBOX" || seat.seatType === "SWEETBOX") {
+        seatPrice = basePrice * 2;
+    }
+    return seatPrice;
+};
+
 // Chọn / bỏ chọn ghế
 const toggleSeat = (seat) => {
     if (seat.booked) return;
@@ -315,7 +348,7 @@ const toggleSeat = (seat) => {
 
             // Tìm ghế cặp (cùng originalSweetboxId) và bỏ chọn luôn
             const pairSeat = seats.value.find(
-                (s) => s.originalSweetboxId === seat.originalSweetboxId && s.seatId !== seat.seatId
+                (s) => s.originalSweetboxId === seat.originalSweetboxId && s.seatId !== seat.seatId,
             );
 
             if (pairSeat) {
@@ -332,7 +365,7 @@ const toggleSeat = (seat) => {
 
             // Tìm ghế cặp (cùng originalSweetboxId) và chọn luôn
             const pairSeat = seats.value.find(
-                (s) => s.originalSweetboxId === seat.originalSweetboxId && s.seatId !== seat.seatId && !s.booked
+                (s) => s.originalSweetboxId === seat.originalSweetboxId && s.seatId !== seat.seatId && !s.booked,
             );
 
             if (pairSeat && !selectedSeats.value.includes(pairSeat.seatId)) {
@@ -418,7 +451,7 @@ const confirmBooking = async () => {
                 JSON.stringify({
                     txnRef: txnRef,
                     pointsToUse: pointsToUse.value,
-                })
+                }),
             );
         }
 
@@ -434,8 +467,8 @@ const confirmBooking = async () => {
 <style scoped>
 /* Global styling */
 .seat-map-page {
-    background: #0a0a0a;
-    color: #ffffff;
+    background: #f5f5f5;
+    color: #333;
     min-height: 100vh;
 }
 
@@ -449,8 +482,8 @@ const confirmBooking = async () => {
 .spinner {
     width: 40px;
     height: 40px;
-    border: 4px solid rgba(255, 215, 0, 0.2);
-    border-top-color: #ffd700;
+    border: 4px solid rgba(255, 107, 53, 0.2);
+    border-top-color: #ff6b35;
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
@@ -462,24 +495,25 @@ const confirmBooking = async () => {
 }
 
 .loading-text {
-    color: #888;
+    color: #666;
     font-size: 1rem;
 }
 
 /* Movie info card */
 .movie-info-card {
-    background: #1a1a1a;
+    background: #fff;
+    border: 1px solid #e6e6e6;
     border-radius: 16px;
     padding: 2rem;
     margin-bottom: 2rem;
     text-align: center;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
 .movie-title {
     font-size: 2rem;
     font-weight: 700;
-    color: #ffd700;
+    color: #2f2f2f;
     margin-bottom: 1.5rem;
 }
 
@@ -494,7 +528,7 @@ const confirmBooking = async () => {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    color: #ccc;
+    color: #666;
     font-size: 1rem;
 }
 
@@ -504,8 +538,8 @@ const confirmBooking = async () => {
 
 /* Screen */
 .screen {
-    background: linear-gradient(135deg, #ffd700, #ffed4e);
-    color: #000;
+    background: linear-gradient(135deg, #ff6b35, #ff8a5f);
+    color: #fff;
     text-align: center;
     padding: 1rem;
     margin: 2rem auto;
@@ -514,7 +548,7 @@ const confirmBooking = async () => {
     font-weight: 700;
     letter-spacing: 2px;
     text-transform: uppercase;
-    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.25);
     max-width: 400px;
 }
 
@@ -550,14 +584,14 @@ const confirmBooking = async () => {
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
-    background: #333;
-    color: #fff;
-    border: 2px solid transparent;
+    background: #fff;
+    color: #444;
+    border: 1px solid #d7d7d7;
 }
 
 .seat:hover:not(.seat-booked) {
     transform: scale(1.1);
-    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.25);
 }
 
 .seat-vip {
@@ -603,15 +637,15 @@ const confirmBooking = async () => {
 }
 
 .seat-selected {
-    background: linear-gradient(135deg, #ffd700, #ffed4e);
-    color: #000;
-    border-color: #ffd700;
-    box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+    background: linear-gradient(135deg, #ff6b35, #ff8a5f);
+    color: #fff;
+    border-color: #ff6b35;
+    box-shadow: 0 0 16px rgba(255, 107, 53, 0.35);
 }
 
 .seat-booked {
     background: #666;
-    color: #999;
+    color: #d0d0d0;
     cursor: not-allowed;
     opacity: 0.5;
 }
@@ -629,7 +663,7 @@ const confirmBooking = async () => {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    color: #ccc;
+    color: #555;
     font-size: 0.9rem;
 }
 
@@ -641,7 +675,8 @@ const confirmBooking = async () => {
 }
 
 .legend-dot.seat-regular {
-    background: #333;
+    background: #fff;
+    border: 1px solid #d7d7d7;
 }
 .legend-dot.seat-vip {
     background: linear-gradient(135deg, #9c27b0, #e91e63);
@@ -650,7 +685,7 @@ const confirmBooking = async () => {
     background: linear-gradient(135deg, #667eea, #764ba2);
 }
 .legend-dot.seat-selected {
-    background: linear-gradient(135deg, #ffd700, #ffed4e);
+    background: linear-gradient(135deg, #ff6b35, #ff8a5f);
 }
 .legend-dot.seat-booked {
     background: #666;
@@ -658,11 +693,12 @@ const confirmBooking = async () => {
 
 /* Booking summary */
 .booking-summary {
-    background: #1a1a1a;
+    background: #fff;
+    border: 1px solid #e6e6e6;
     border-radius: 16px;
     padding: 2rem;
     text-align: center;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
 .price-info {
@@ -676,17 +712,17 @@ const confirmBooking = async () => {
 }
 
 .price {
-    color: #ffd700;
+    color: #ff6b35;
 }
 
 .loyalty-info {
-    color: #ccc;
+    color: #666;
     font-size: 0.9rem;
 }
 
 .btn-confirm {
-    background: linear-gradient(135deg, #ffd700, #ffed4e);
-    color: #000;
+    background: linear-gradient(135deg, #ff6b35, #ff8a5f);
+    color: #fff;
     border: none;
     padding: 1rem 2rem;
     border-radius: 12px;
@@ -694,12 +730,12 @@ const confirmBooking = async () => {
     font-weight: 700;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.25);
 }
 
 .btn-confirm:hover:not(.disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(255, 215, 0, 0.4);
+    box-shadow: 0 8px 24px rgba(255, 107, 53, 0.35);
 }
 
 .btn-confirm.disabled {
@@ -722,7 +758,7 @@ const confirmBooking = async () => {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.45);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -730,18 +766,18 @@ const confirmBooking = async () => {
 }
 
 .modal-content {
-    background: #1a1a1a;
+    background: #fff;
     border-radius: 16px;
     max-width: 500px;
     width: 90%;
     max-height: 90vh;
     overflow-y: auto;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
 }
 
 .modal-header {
     padding: 1.5rem;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid #ececec;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -750,14 +786,14 @@ const confirmBooking = async () => {
 .modal-title {
     font-size: 1.3rem;
     font-weight: 700;
-    color: #ffd700;
+    color: #ff6b35;
     margin: 0;
 }
 
 .btn-close {
     background: none;
     border: none;
-    color: #fff;
+    color: #666;
     font-size: 1.5rem;
     cursor: pointer;
     padding: 0;
@@ -771,7 +807,7 @@ const confirmBooking = async () => {
 }
 
 .btn-close:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: #f4f4f4;
 }
 
 .modal-body {
@@ -785,12 +821,12 @@ const confirmBooking = async () => {
 .section-title {
     font-size: 1.1rem;
     font-weight: 600;
-    color: #ffd700;
+    color: #ff6b35;
     margin-bottom: 0.5rem;
 }
 
 .section-desc {
-    color: #ccc;
+    color: #666;
     font-size: 0.9rem;
     margin-bottom: 1rem;
 }
@@ -798,17 +834,17 @@ const confirmBooking = async () => {
 .form-input {
     width: 100%;
     padding: 0.75rem;
-    background: #333;
-    border: 2px solid #444;
+    background: #fff;
+    border: 1px solid #d8d8d8;
     border-radius: 8px;
-    color: #fff;
+    color: #333;
     font-size: 1rem;
     transition: border-color 0.3s;
 }
 
 .form-input:focus {
     outline: none;
-    border-color: #ffd700;
+    border-color: #ff6b35;
 }
 
 .input-group {
@@ -818,7 +854,7 @@ const confirmBooking = async () => {
 }
 
 .input-suffix {
-    color: #ccc;
+    color: #666;
     font-size: 0.9rem;
 }
 
@@ -850,7 +886,7 @@ const confirmBooking = async () => {
 
 .modal-footer {
     padding: 1.5rem;
-    border-top: 1px solid #333;
+    border-top: 1px solid #ececec;
     display: flex;
     gap: 1rem;
     justify-content: flex-end;
@@ -867,22 +903,22 @@ const confirmBooking = async () => {
 }
 
 .btn-secondary {
-    background: #666;
+    background: #e9ecef;
     color: #fff;
 }
 
 .btn-secondary:hover {
-    background: #777;
+    background: #dbe1e6;
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, #ffd700, #ffed4e);
-    color: #000;
+    background: linear-gradient(135deg, #ff6b35, #ff8a5f);
+    color: #fff;
 }
 
 .btn-primary:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
 }
 
 /* Responsive */

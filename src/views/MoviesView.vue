@@ -1,7 +1,7 @@
 <template>
     <div class="movies-page">
         <AppHeader />
-        
+
         <!-- Page Title -->
         <section class="page-title-section">
             <div class="container">
@@ -354,9 +354,9 @@ onMounted(() => {
 <style scoped>
 /* Global Styles */
 .movies-page {
-    background: linear-gradient(135deg, #0f1419 0%, #1e2a3a 100%);
+    background: #f5f5f5;
     min-height: 100vh;
-    color: #ffffff;
+    color: #333;
 }
 
 .container {
@@ -369,15 +369,16 @@ onMounted(() => {
 .page-title-section {
     padding: 3rem 0 2rem 0;
     text-align: center;
-    background: linear-gradient(135deg, #0f1419 0%, #1e2a3a 100%);
+    background: #fff;
+    border-bottom: 1px solid #e9e9e9;
 }
 
 .page-main-title {
     font-size: 3.5rem;
     font-weight: 900;
-    color: #ffffff;
+    color: #2f2f2f;
     margin: 0 0 2rem 0;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    text-shadow: none;
     letter-spacing: 3px;
 }
 
@@ -390,9 +391,9 @@ onMounted(() => {
 }
 
 .tab-btn {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: rgba(255, 255, 255, 0.8);
+    background: #fff;
+    border: 1px solid #dedede;
+    color: #666;
     padding: 0.75rem 1.5rem;
     border-radius: 25px;
     font-weight: 600;
@@ -405,16 +406,16 @@ onMounted(() => {
 }
 
 .tab-btn:hover {
-    background: rgba(255, 215, 0, 0.2);
-    border-color: rgba(255, 215, 0, 0.4);
-    color: #ffd700;
+    background: #fff5f2;
+    border-color: #ffbfa8;
+    color: #ff6b35;
     transform: translateY(-2px);
 }
 
 .tab-btn.active {
-    background: linear-gradient(45deg, #ffd700, #ffed4e);
-    border-color: #ffd700;
-    color: #000;
+    background: #ff6b35;
+    border-color: #ff6b35;
+    color: #fff;
     font-weight: 700;
 }
 
@@ -436,20 +437,19 @@ onMounted(() => {
 .movie-item {
     display: flex;
     flex-direction: row;
-    background: rgba(255, 255, 255, 0.03);
+    background: #fff;
     border-radius: 15px;
     overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid #e2e2e2;
     transition: all 0.3s ease;
-    backdrop-filter: blur(10px);
     min-height: 320px;
     height: auto;
 }
 
 .movie-item:hover {
     transform: translateY(-3px);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 10px 24px rgba(255, 107, 53, 0.2);
+    border-color: #ffc8b4;
 }
 
 .movie-poster-section {
@@ -491,7 +491,7 @@ onMounted(() => {
 .movie-title {
     font-size: 1.1rem;
     font-weight: 700;
-    color: #ffffff;
+    color: #2f2f2f;
     margin: 0;
     line-height: 1.2;
     display: -webkit-box;
@@ -506,9 +506,9 @@ onMounted(() => {
 }
 
 .detail-btn {
-    background: rgba(255, 215, 0, 0.2);
-    border: 1px solid rgba(255, 215, 0, 0.4);
-    color: #ffd700;
+    background: #fff5f2;
+    border: 1px solid #ffcab8;
+    color: #ff6b35;
     padding: 0.4rem;
     border-radius: 50%;
     font-size: 0.9rem;
@@ -523,9 +523,9 @@ onMounted(() => {
 }
 
 .detail-btn:hover {
-    background: rgba(255, 215, 0, 0.3);
-    border-color: #ffd700;
-    color: #ffed4e;
+    background: #ff6b35;
+    border-color: #ff6b35;
+    color: #fff;
     transform: translateY(-1px);
 }
 
@@ -542,13 +542,13 @@ onMounted(() => {
     display: flex;
     align-items: center;
     gap: 0.4rem;
-    color: rgba(255, 255, 255, 0.8);
+    color: #666;
     font-size: 0.8rem;
     width: 100%;
 }
 
 .info-icon {
-    color: #ffd700;
+    color: #ff6b35;
     font-size: 1rem;
 }
 
@@ -575,12 +575,12 @@ onMounted(() => {
 }
 
 .showtimes-content::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.1);
+    background: #f0f0f0;
     border-radius: 2px;
 }
 
 .showtimes-content::-webkit-scrollbar-thumb {
-    background: rgba(255, 215, 0, 0.5);
+    background: rgba(255, 107, 53, 0.5);
     border-radius: 2px;
 }
 
@@ -590,24 +590,24 @@ onMounted(() => {
     justify-content: space-between;
     margin-bottom: 0.75rem;
     padding-bottom: 0.4rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid #ececec;
 }
 
 .showtime-date h4 {
     font-size: 0.95rem;
     font-weight: 600;
-    color: #ffffff;
+    color: #333;
     margin: 0;
 }
 
 .showtime-type {
-    background: rgba(255, 215, 0, 0.2);
-    color: #ffd700;
+    background: #fff1eb;
+    color: #ff6b35;
     padding: 0.25rem 0.75rem;
     border-radius: 15px;
     font-size: 0.8rem;
     font-weight: 600;
-    border: 1px solid rgba(255, 215, 0, 0.3);
+    border: 1px solid #ffc6b3;
 }
 
 .showtime-buttons {
@@ -618,9 +618,9 @@ onMounted(() => {
 }
 
 .showtime-btn {
-    background: linear-gradient(45deg, #4a5a7a, #5a6a8a);
-    color: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: #fff;
+    color: #444;
+    border: 1px solid #dedede;
     padding: 0.4rem 0.8rem;
     border-radius: 6px;
     font-weight: 600;
@@ -630,29 +630,29 @@ onMounted(() => {
 }
 
 .showtime-btn:hover {
-    background: linear-gradient(45deg, #ffd700, #ffed4e);
-    color: #000;
-    border-color: #ffd700;
+    background: #ff6b35;
+    color: #fff;
+    border-color: #ff6b35;
     transform: translateY(-2px);
 }
 
 .showtime-btn.more-btn {
-    background: rgba(255, 215, 0, 0.2);
-    border-color: rgba(255, 215, 0, 0.4);
-    color: #ffd700;
+    background: #fff4ef;
+    border-color: #ffc6b3;
+    color: #ff6b35;
     font-weight: 700;
 }
 
 .showtime-btn.more-btn:hover {
-    background: rgba(255, 215, 0, 0.3);
-    border-color: #ffd700;
-    color: #ffed4e;
+    background: #ff6b35;
+    border-color: #ff6b35;
+    color: #fff;
 }
 
 .more-showtimes-btn {
     background: none;
     border: none;
-    color: #ffd700;
+    color: #ff6b35;
     font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;
@@ -665,7 +665,7 @@ onMounted(() => {
 }
 
 .more-showtimes-btn:hover {
-    color: #ffed4e;
+    color: #ff5722;
 }
 
 /* Loading State */
@@ -680,15 +680,15 @@ onMounted(() => {
 .loading-spinner {
     width: 50px;
     height: 50px;
-    border: 4px solid rgba(255, 215, 0, 0.2);
-    border-top-color: #ffd700;
+    border: 4px solid rgba(255, 107, 53, 0.15);
+    border-top-color: #ff6b35;
     border-radius: 50%;
     animation: spin 1s linear infinite;
     margin-bottom: 1rem;
 }
 
 .loading-text {
-    color: rgba(255, 255, 255, 0.7);
+    color: #666;
     font-size: 1.1rem;
 }
 
@@ -720,19 +720,19 @@ onMounted(() => {
 .no-showtimes {
     text-align: center;
     padding: 1rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: #888;
     font-style: italic;
     font-size: 0.9rem;
 }
 
 .empty-title {
     font-size: 1.5rem;
-    color: #fff;
+    color: #333;
     margin-bottom: 0.5rem;
 }
 
 .empty-text {
-    color: rgba(255, 255, 255, 0.6);
+    color: #666;
     font-size: 1rem;
 }
 

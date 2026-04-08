@@ -125,6 +125,24 @@
                                                         formatPrice(getGroupFinalPrice(group))
                                                     }}</span>
                                                 </div>
+                                                <div v-if="getGroupSnacks(group).length" class="snack-summary mt-2">
+                                                    <div
+                                                        v-for="snack in getGroupSnacks(group)"
+                                                        :key="`${group.txnRef}-${snack.id || snack.snackId}`"
+                                                        class="snack-row"
+                                                    >
+                                                        <span class="snack-name">
+                                                            {{ snack.snackName }} x{{ snack.quantity }}
+                                                        </span>
+                                                        <span class="snack-price">{{
+                                                            formatPrice(snack.subtotal || 0)
+                                                        }}</span>
+                                                    </div>
+                                                    <div class="snack-total">
+                                                        <span>Tổng bắp nước:</span>
+                                                        <strong>{{ formatPrice(getGroupSnackTotal(group)) }}</strong>
+                                                    </div>
+                                                </div>
                                                 <div
                                                     v-if="group.bookings.some((b) => b.pointsUsed > 0)"
                                                     class="points-used"
@@ -198,6 +216,7 @@ import api from "@/api";
 
 const router = useRouter();
 const bookings = ref([]);
+const snacksByTxn = ref({});
 const loading = ref(true);
 const filterStatus = ref("ALL");
 const currentPage = ref(1);
@@ -215,6 +234,9 @@ onMounted(async () => {
         const response = await api.get("/bookings/my-bookings");
         // Chỉ lấy những vé đã thanh toán (PAID)
         bookings.value = (response.data || []).filter((b) => b.status === "PAID");
+
+        const txnRefs = [...new Set(bookings.value.map((b) => b.txnRef).filter(Boolean))];
+        await fetchSnacksForTransactions(txnRefs);
     } catch (error) {
         console.error("Lỗi khi tải lịch sử vé:", error);
         alert("Không thể tải lịch sử vé");
@@ -262,6 +284,34 @@ const bookingGroups = computed(() => {
 });
 
 const paidCount = computed(() => bookings.value.length);
+
+const fetchSnacksForTransactions = async (txnRefs) => {
+    if (!txnRefs.length) return;
+
+    const requests = txnRefs.map((txnRef) =>
+        api
+            .get(`/snacks/txn/${txnRef}`)
+            .then((res) => ({ txnRef, snacks: res.data || [] }))
+            .catch(() => ({ txnRef, snacks: [] })),
+    );
+
+    const results = await Promise.all(requests);
+    const snackMap = {};
+
+    results.forEach(({ txnRef, snacks }) => {
+        snackMap[txnRef] = snacks;
+    });
+
+    snacksByTxn.value = snackMap;
+};
+
+const getGroupSnacks = (group) => {
+    return snacksByTxn.value[group.txnRef] || [];
+};
+
+const getGroupSnackTotal = (group) => {
+    return getGroupSnacks(group).reduce((sum, item) => sum + (item.subtotal || 0), 0);
+};
 
 // Helper function: Tính giá cuối cùng của group (total đã là giá cuối)
 const getGroupFinalPrice = (group) => {
@@ -754,6 +804,42 @@ const leave = (el) => {
     font-size: 0.9rem;
 }
 
+.snack-summary {
+    border-top: 1px dashed #ececec;
+    padding-top: 0.65rem;
+}
+
+.snack-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.85rem;
+    margin-bottom: 0.35rem;
+}
+
+.snack-name {
+    color: #555;
+}
+
+.snack-price {
+    color: #ff6b35;
+    font-weight: 600;
+}
+
+.snack-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.35rem;
+    color: #555;
+    font-size: 0.85rem;
+}
+
+.snack-total strong {
+    color: #ff6b35;
+}
+
 .ticket-footer {
     display: flex;
     gap: 0.75rem;
@@ -836,6 +922,134 @@ const leave = (el) => {
     border-color: #ffd700;
     color: #000;
     font-weight: 600;
+}
+
+/* Redesign Theme: Light + Orange */
+.booking-page {
+    background: #f5f5f5;
+    color: #333;
+}
+
+.page-title {
+    color: #2f2f2f;
+    text-shadow: none;
+}
+
+.page-subtitle {
+    color: #666;
+}
+
+.stat-card,
+.date-group-header,
+.ticket-card {
+    background: #fff;
+    border: 1px solid #e6e6e6;
+    backdrop-filter: none;
+}
+
+.stat-card:hover,
+.ticket-card:hover {
+    box-shadow: 0 10px 24px rgba(255, 107, 53, 0.14);
+    border-color: #ffc4b1;
+}
+
+.stat-icon,
+.date-icon,
+.chevron-icon,
+.info-icon {
+    color: #ff6b35;
+    background: rgba(255, 107, 53, 0.1);
+}
+
+.stat-icon.success {
+    background: rgba(25, 135, 84, 0.12);
+    color: #198754;
+}
+
+.stat-number,
+.price-value {
+    color: #ff6b35;
+}
+
+.stat-label,
+.ticket-count,
+.price-label,
+.info-label,
+.ticket-txn-ref {
+    color: #777;
+}
+
+.date-group-header:hover {
+    background: #fff7f2;
+    border-color: #ffc9b8;
+    box-shadow: 0 4px 14px rgba(255, 107, 53, 0.12);
+}
+
+.date-text,
+.ticket-movie-title,
+.info-value {
+    color: #333;
+}
+
+.date-badge {
+    background: #fff2ec;
+    color: #ff6b35;
+    border-color: #ffc5b2;
+}
+
+.ticket-header {
+    background: #fff7f2;
+    border-bottom: 1px solid #f0ddd4;
+}
+
+.ticket-badge {
+    background: rgba(25, 135, 84, 0.12);
+    color: #198754;
+    border-color: rgba(25, 135, 84, 0.25);
+}
+
+.ticket-price,
+.ticket-footer {
+    background: #fff;
+    border-top-color: #ececec;
+}
+
+.btn-details {
+    background: linear-gradient(45deg, #ff6b35, #ff8a5f);
+    color: #fff;
+}
+
+.btn-details:hover {
+    box-shadow: 0 4px 15px rgba(255, 107, 53, 0.32);
+}
+
+.btn-copy {
+    background: #fff5f1;
+    color: #ff6b35;
+    border-color: #ffd2c4;
+}
+
+.btn-copy:hover {
+    background: #ff6b35;
+    color: #fff;
+}
+
+.page-link {
+    background: #fff;
+    border: 1px solid #ddd;
+    color: #555;
+}
+
+.page-link:hover {
+    background: #fff5f1;
+    border-color: #ffbfa9;
+    color: #ff6b35;
+}
+
+.page-item.active .page-link {
+    background: #ff6b35;
+    border-color: #ff6b35;
+    color: #fff;
 }
 
 /* Responsive Design */

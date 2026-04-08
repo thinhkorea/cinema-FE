@@ -314,7 +314,9 @@ const updateProfile = async () => {
     overflow: hidden;
     box-shadow: 0 20px 40px rgba(255, 215, 0, 0.3);
     color: #000;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    transition:
+        transform 0.3s ease,
+        box-shadow 0.3s ease;
 }
 
 .loyalty-card:hover {
@@ -577,6 +579,124 @@ const updateProfile = async () => {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+}
+
+/* Redesign Theme: Light + Orange */
+.profile-page {
+    background: #f5f5f5;
+    color: #333;
+}
+
+.btn-back {
+    background: #fff;
+    border: 1px solid #e1e1e1;
+    color: #444;
+    backdrop-filter: none;
+}
+
+.btn-back:hover {
+    background: #fff3ed;
+    border-color: #ffc4b1;
+    color: #ff6b35;
+}
+
+.page-title {
+    color: #2f2f2f;
+    text-shadow: none;
+}
+
+.page-subtitle,
+.loading-text {
+    color: #666;
+}
+
+.loading-spinner {
+    border-color: rgba(255, 107, 53, 0.2);
+    border-top-color: #ff6b35;
+}
+
+.loyalty-card,
+.info-card {
+    background: #fff;
+    border: 1px solid #e6e6e6;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+    color: #333;
+}
+
+.loyalty-card {
+    background: linear-gradient(180deg, #fff8f4 0%, #fff2ec 100%);
+    box-shadow: 0 10px 24px rgba(255, 107, 53, 0.15);
+}
+
+.loyalty-header {
+    background: rgba(255, 107, 53, 0.08);
+}
+
+.loyalty-icon i,
+.loyalty-title,
+.points-number,
+.points-label,
+.info-label,
+.info-value,
+.exchange-info {
+    color: #333;
+}
+
+.points-info {
+    background: #fff;
+    border: 1px solid #ecdcd5;
+}
+
+.card-header {
+    background: #fff6f1;
+    border-bottom: 1px solid #f0ddd5;
+    color: #ff6b35;
+}
+
+.form-label {
+    color: #555;
+}
+
+.form-label i {
+    color: #ff6b35;
+}
+
+.form-input,
+.form-select {
+    background: #fff;
+    border: 1px solid #d9d9d9;
+    color: #333;
+}
+
+.form-input:focus,
+.form-select:focus {
+    border-color: #ff6b35;
+    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.15);
+    background: #fff;
+}
+
+.form-input::placeholder {
+    color: #999;
+}
+
+.form-select option {
+    background: #fff;
+    color: #333;
+}
+
+.form-actions {
+    border-top-color: #ececec;
+}
+
+.btn-primary {
+    background: linear-gradient(45deg, #ff6b35, #ff8a5f);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(255, 107, 53, 0.25);
+}
+
+.btn-primary:hover {
+    box-shadow: 0 8px 22px rgba(255, 107, 53, 0.35);
+    background: linear-gradient(45deg, #ff8a5f, #ff6b35);
 }
 
 /* Responsive Design */

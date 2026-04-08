@@ -74,7 +74,7 @@
             </div>
 
             <!-- Details Section -->
-            <div class="details-section bg-dark py-5">
+            <div class="details-section py-5">
                 <div class="container">
                     <div class="row">
                         <!-- Main Content -->
@@ -90,7 +90,14 @@
                                                 :src="getTrailerUrl(movie.trailerUrl)"
                                                 title="Trailer phim"
                                                 allowfullscreen=""
-                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                allow="
+                                                    accelerometer;
+                                                    autoplay;
+                                                    clipboard-write;
+                                                    encrypted-media;
+                                                    gyroscope;
+                                                    picture-in-picture;
+                                                "
                                                 class="trailer-iframe"
                                             ></iframe>
                                         </div>
@@ -139,13 +146,97 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <div class="mb-4 review-section">
+                                <h2 class="h3 fw-bold text-white mb-4">Đánh giá phim</h2>
+
+                                <div class="review-summary mb-4">
+                                    <div class="summary-score">
+                                        <span class="score-number">{{ reviewSummary.averageRating.toFixed(1) }}</span>
+                                        <span class="score-max">/5</span>
+                                    </div>
+                                    <div>
+                                        <div class="summary-stars">
+                                            {{ renderStars(Math.round(reviewSummary.averageRating || 0)) }}
+                                        </div>
+                                        <div class="summary-count">{{ reviewSummary.reviewCount }} lượt đánh giá</div>
+                                    </div>
+                                </div>
+
+                                <div class="review-form mb-4" v-if="auth.isAuthenticated && !hasCurrentUserReviewed()">
+                                    <h3 class="h5 text-white mb-3">Viết đánh giá của bạn</h3>
+                                    <div class="star-picker mb-3">
+                                        <button
+                                            v-for="star in 5"
+                                            :key="star"
+                                            type="button"
+                                            class="star-btn"
+                                            :class="{ active: star <= reviewForm.rating }"
+                                            @click="reviewForm.rating = star"
+                                        >
+                                            ★
+                                        </button>
+                                        <span class="ms-2 text-light">{{ reviewForm.rating }}/5</span>
+                                    </div>
+                                    <textarea
+                                        v-model="reviewForm.comment"
+                                        class="form-control review-input"
+                                        rows="4"
+                                        maxlength="1000"
+                                        placeholder="Chia sẻ cảm nhận của bạn về bộ phim này..."
+                                    ></textarea>
+                                    <div class="d-flex justify-content-between align-items-center mt-2">
+                                        <small class="text-secondary">{{ reviewForm.comment.length }}/1000 ký tự</small>
+                                        <button
+                                            class="btn btn-warning fw-bold"
+                                            :disabled="submittingReview"
+                                            @click="submitReview"
+                                        >
+                                            {{ submittingReview ? "Đang gửi..." : "Gửi đánh giá" }}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div
+                                    class="review-login-note mb-4"
+                                    v-else-if="auth.isAuthenticated && hasCurrentUserReviewed()"
+                                >
+                                    <p class="mb-0">
+                                        Bạn đã gửi đánh giá cho phim này. Mỗi tài khoản chỉ được đánh giá 1 lần.
+                                    </p>
+                                </div>
+
+                                <div class="review-login-note mb-4" v-else>
+                                    <p class="mb-0">
+                                        Bạn cần đăng nhập để gửi đánh giá.
+                                        <router-link to="/login" class="login-link">Đăng nhập ngay</router-link>
+                                    </p>
+                                </div>
+
+                                <div v-if="reviews.length === 0" class="empty-reviews">
+                                    Chưa có đánh giá nào cho phim này.
+                                </div>
+
+                                <div v-else class="review-list">
+                                    <div v-for="r in reviews" :key="r.reviewId" class="review-item">
+                                        <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+                                            <div>
+                                                <p class="review-author mb-1">{{ r.fullName || r.username }}</p>
+                                                <div class="review-stars">{{ renderStars(r.rating) }}</div>
+                                            </div>
+                                            <small class="review-time">{{ formatReviewTime(r.createdAt) }}</small>
+                                        </div>
+                                        <p class="review-comment mb-0">{{ r.comment || "(Không có bình luận)" }}</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Sidebar - Movie Poster -->
                         <div class="col-lg-4">
                             <div class="poster-sticky">
                                 <!-- Updated card styling to match trailer section aesthetic -->
-                                <div class="card bg-dark border-0 rounded-2 overflow-hidden mb-4">
+                                <div class="card bg-white border-0 rounded-2 overflow-hidden mb-4">
                                     <div class="poster-card-wrapper">
                                         <img
                                             :src="movie.posterUrl || '/placeholder.svg?height=600&width=400'"
@@ -164,19 +255,50 @@
                 </div>
             </div>
         </div>
+        <AppFooter />
     </div>
 </template>
 
 <script setup>
 import AppHeader from "@/components/AppHeader.vue";
+import AppFooter from "@/components/AppFooter.vue";
 import { ref, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import api from "@/api";
+import { useAuthStore } from "@/stores/auth.store";
+import Swal from "sweetalert2";
 
 const route = useRoute();
 const router = useRouter();
+const auth = useAuthStore();
 const movie = ref(null);
 const showtimes = ref([]);
+const reviews = ref([]);
+const reviewSummary = ref({ averageRating: 0, reviewCount: 0 });
+const submittingReview = ref(false);
+const reviewForm = ref({ rating: 5, comment: "" });
+
+const showAlert = ({ icon = "info", title = "Thông báo", text = "", toast = false }) => {
+    return Swal.fire({
+        icon,
+        title,
+        text,
+        toast,
+        position: toast ? "top-end" : "center",
+        timer: toast ? 1800 : undefined,
+        showConfirmButton: !toast,
+        timerProgressBar: toast,
+        background: "#ffffff",
+        color: "#333333",
+        confirmButtonColor: "#ff6b35",
+        customClass: {
+            popup: "movie-alert-popup",
+            confirmButton: "movie-alert-btn",
+            title: "movie-alert-title",
+            htmlContainer: "movie-alert-text",
+        },
+    });
+};
 
 // Ensure all hooks are called at the top level
 onMounted(async () => {
@@ -191,18 +313,94 @@ onMounted(async () => {
 
         movie.value = movieRes.data;
         showtimes.value = showtimesRes.data;
+        await fetchReviews(movieId);
     } catch (err) {
         console.error("Lỗi khi tải phim:", err);
         router.push("/");
     }
 });
 
+const fetchReviews = async (movieId) => {
+    try {
+        const { data } = await api.get(`/movies/${movieId}/reviews`);
+        reviews.value = data.reviews || [];
+        reviewSummary.value = data.summary || { averageRating: 0, reviewCount: 0 };
+    } catch (err) {
+        console.error("Lỗi tải review:", err);
+        reviews.value = [];
+        reviewSummary.value = { averageRating: 0, reviewCount: 0 };
+    }
+};
+
+const submitReview = async () => {
+    const movieId = route.params.id;
+
+    if (hasCurrentUserReviewed()) {
+        await showAlert({
+            icon: "info",
+            title: "Đã đánh giá",
+            text: "Mỗi tài khoản chỉ được đánh giá phim 1 lần.",
+        });
+        return;
+    }
+
+    if (!auth.isAuthenticated) {
+        await showAlert({
+            icon: "warning",
+            title: "Cần đăng nhập",
+            text: "Bạn cần đăng nhập để gửi đánh giá.",
+        });
+        router.push("/login");
+        return;
+    }
+
+    try {
+        submittingReview.value = true;
+        await api.post(`/movies/${movieId}/reviews`, {
+            rating: reviewForm.value.rating,
+            comment: reviewForm.value.comment,
+        });
+        reviewForm.value.comment = "";
+        await fetchReviews(movieId);
+        await showAlert({
+            icon: "success",
+            title: "Đã gửi đánh giá",
+            text: "Cảm ơn bạn đã chia sẻ cảm nhận về bộ phim!",
+            toast: true,
+        });
+    } catch (err) {
+        console.error("Lỗi gửi review:", err);
+        const errorMessage = err.response?.data?.error || "Không thể gửi đánh giá.";
+
+        // Kiểm tra loại lỗi để hiển thị icon phù hợp
+        const isValidationError =
+            errorMessage.includes("sau khi suất chiếu") || errorMessage.includes("mua và thanh toán vé");
+
+        await showAlert({
+            icon: isValidationError ? "info" : "error",
+            title: isValidationError ? "Chưa đủ điều kiện" : "Gửi đánh giá thất bại",
+            text: errorMessage,
+        });
+    } finally {
+        submittingReview.value = false;
+    }
+};
+
+const hasCurrentUserReviewed = () => {
+    if (!auth.isAuthenticated || !auth.username) return false;
+    return reviews.value.some((r) => r.username === auth.username);
+};
+
 const goBooking = () => {
     const id = movie.value?.movieId || movie.value?.id;
     if (id) {
         router.push(`/booking/${id}`);
     } else {
-        alert("Không tìm thấy phim để đặt vé.");
+        showAlert({
+            icon: "error",
+            title: "Không thể đặt vé",
+            text: "Không tìm thấy thông tin phim để đặt vé.",
+        });
     }
 };
 
@@ -269,13 +467,29 @@ const getFirstShowDate = () => {
         year: "numeric",
     });
 };
+
+const renderStars = (rating) => {
+    const safe = Math.max(0, Math.min(5, Number(rating) || 0));
+    return "★".repeat(safe) + "☆".repeat(5 - safe);
+};
+
+const formatReviewTime = (value) => {
+    if (!value) return "";
+    return new Date(value).toLocaleString("vi-VN", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+};
 </script>
 
 <style scoped>
 /* --- Loading --- */
 .loading-container {
     min-height: 100vh;
-    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+    background: #f5f5f5;
 }
 
 .spinner-border {
@@ -286,7 +500,7 @@ const getFirstShowDate = () => {
 /* --- Hero Banner --- */
 .hero-banner-wrapper {
     max-width: 1200px;
-    margin: 0 auto;
+    margin: 1rem auto 0;
     width: 100%;
 }
 
@@ -296,6 +510,8 @@ const getFirstShowDate = () => {
     width: 100%;
     overflow: hidden;
     background-color: #1a1a1a;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
 
 .hero-image {
@@ -326,7 +542,7 @@ const getFirstShowDate = () => {
 }
 
 .quick-info i {
-    color: #ffc107;
+    color: #ff8a5f;
 }
 
 .description-text {
@@ -340,9 +556,19 @@ const getFirstShowDate = () => {
 
 /* --- Unified Section Background --- */
 .details-section {
-    background: linear-gradient(180deg, #111 0%, #1a1a1a 100%);
-    border-top: none;
-    color: #f8f9fa;
+    background: #f5f5f5;
+    border-top: 1px solid #e8e8e8;
+    color: #333;
+    margin-top: 1.5rem;
+}
+
+.details-section :deep(.text-white),
+.details-section :deep(.text-light) {
+    color: #333 !important;
+}
+
+.details-section :deep(.text-secondary) {
+    color: #666 !important;
 }
 
 /* --- Trailer + Poster unified look --- */
@@ -350,16 +576,18 @@ const getFirstShowDate = () => {
 .poster-card-wrapper {
     border-radius: 10px;
     overflow: hidden;
-    background: #000;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    background: #fff;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    border: 1px solid #e5e5e5;
+    transition:
+        transform 0.3s ease,
+        box-shadow 0.3s ease;
 }
 
 .trailer-container:hover,
 .poster-card-wrapper:hover {
     transform: translateY(-3px);
-    box-shadow: 0 6px 24px rgba(255, 193, 7, 0.2);
+    box-shadow: 0 8px 22px rgba(255, 107, 53, 0.2);
 }
 
 .trailer-iframe {
@@ -380,7 +608,8 @@ const getFirstShowDate = () => {
 
 /* --- Info Table --- */
 .info-table {
-    background: rgba(255, 255, 255, 0.05);
+    background: #fff;
+    border: 1px solid #e4e4e4;
     border-radius: 8px;
 }
 
@@ -388,7 +617,7 @@ const getFirstShowDate = () => {
     display: flex;
     justify-content: space-between;
     padding: 15px 20px;
-    border-bottom: 1px solid #444;
+    border-bottom: 1px solid #ececec;
 }
 
 .info-row:last-child {
@@ -396,28 +625,183 @@ const getFirstShowDate = () => {
 }
 
 .info-label {
-    color: #999;
+    color: #666;
     font-weight: 500;
 }
 
 .info-value {
-    color: #e9ecef;
+    color: #333;
     font-weight: 600;
 }
 
 /* --- Button --- */
 .btn-warning {
-    background-color: #ffc107;
-    border-color: #ffc107;
-    color: #000;
+    background-color: #ff6b35;
+    border-color: #ff6b35;
+    color: #fff;
     border-radius: 10px;
     transition: all 0.3s ease;
 }
 
 .btn-warning:hover {
-    background-color: #ffb300;
+    background-color: #ff5722;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.25);
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.25);
+}
+
+.review-section {
+    margin-top: 48px;
+}
+
+.review-summary {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: #fff;
+    border: 1px solid #e6e6e6;
+    border-radius: 10px;
+    padding: 16px 20px;
+}
+
+.summary-score {
+    color: #ff6b35;
+    font-weight: 800;
+    min-width: 92px;
+}
+
+.score-number {
+    font-size: 34px;
+    line-height: 1;
+}
+
+.score-max {
+    font-size: 16px;
+    color: #888;
+}
+
+.summary-stars {
+    color: #ff6b35;
+    letter-spacing: 1px;
+}
+
+.summary-count {
+    color: #666;
+    font-size: 14px;
+}
+
+.review-form {
+    background: #fff;
+    border: 1px solid #e5e5e5;
+    border-radius: 10px;
+    padding: 16px;
+}
+
+.star-picker {
+    display: flex;
+    align-items: center;
+}
+
+.star-btn {
+    border: none;
+    background: transparent;
+    color: #b7b7b7;
+    font-size: 26px;
+    line-height: 1;
+    padding: 0 4px;
+}
+
+.star-btn.active {
+    color: #ff6b35;
+}
+
+.review-input {
+    background: #fff;
+    border: 1px solid #d7d7d7;
+    color: #333;
+}
+
+.review-input:focus {
+    background: #fff;
+    border-color: #ff6b35;
+    color: #333;
+    box-shadow: 0 0 0 0.2rem rgba(255, 107, 53, 0.15);
+}
+
+.review-input::placeholder {
+    color: #9ba3af;
+    opacity: 1;
+}
+
+.review-login-note,
+.empty-reviews {
+    background: #fff;
+    border: 1px dashed #d8d8d8;
+    border-radius: 10px;
+    color: #666;
+    padding: 14px 16px;
+}
+
+.login-link {
+    color: #ff6b35;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.review-list {
+    display: grid;
+    gap: 12px;
+}
+
+.review-item {
+    background: #fff;
+    border: 1px solid #e5e5e5;
+    border-radius: 10px;
+    padding: 14px 16px;
+}
+
+.review-author {
+    color: #333;
+    font-weight: 700;
+}
+
+.review-stars {
+    color: #ff6b35;
+    letter-spacing: 1px;
+}
+
+.review-time {
+    color: #888;
+}
+
+.review-comment {
+    color: #4f4f4f;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+:deep(.movie-alert-popup) {
+    border: 1px solid #e6e6e6;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.16);
+}
+
+:deep(.movie-alert-title) {
+    color: #333333;
+    font-weight: 700;
+}
+
+:deep(.movie-alert-text) {
+    color: #555555;
+}
+
+:deep(.movie-alert-btn) {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+:deep(.swal2-timer-progress-bar) {
+    background: #ff6b35 !important;
 }
 
 .btn-warning:active {
@@ -454,8 +838,8 @@ const getFirstShowDate = () => {
 
 .movie-detail {
     animation: fadeIn 0.6s ease-out;
-    background-color: #0d0d0d;
-    color: #fff;
+    background-color: #f5f5f5;
+    color: #333;
     min-height: 100vh;
     width: 100vw;
     margin: 0;

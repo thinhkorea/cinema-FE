@@ -287,9 +287,11 @@ async function handleVnPay() {
             role: "staff",
         });
 
-        // Redirect trực tiếp tới VNPay
-        if (paymentRes.data.paymentUrl) {
-            window.location.href = paymentRes.data.paymentUrl;
+        // Redirect trực tiếp tới VNPay, giữ nguyên URL đã ký từ backend
+        const paymentUrl = paymentRes?.data?.paymentUrl;
+        if (paymentUrl) {
+            console.log("VNPay redirect URL:", paymentUrl);
+            window.location.assign(paymentUrl);
         } else {
             throw new Error("Không nhận được payment URL từ server");
         }

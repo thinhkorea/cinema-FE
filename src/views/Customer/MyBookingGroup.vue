@@ -102,13 +102,32 @@
                                     <span class="label">Giá vé trung bình:</span>
                                     <span class="value">{{ formatCurrency(avgPrice) }}</span>
                                 </div>
+                                <div v-if="snacks.length" class="detail-row">
+                                    <span class="label">Món bắp nước:</span>
+                                    <span class="value">{{ snacks.length }} món</span>
+                                </div>
                                 <div class="detail-row">
                                     <span class="label">Phương thức:</span>
                                     <span class="value payment-method">{{ bookings[0].paymentMethod || "VNPAY" }}</span>
                                 </div>
+                                <div v-if="snacks.length" class="detail-row">
+                                    <span class="label">Tiền bắp nước:</span>
+                                    <span class="value">{{ formatCurrency(snacksTotal) }}</span>
+                                </div>
                                 <div class="detail-row total-row">
                                     <span class="label">Tổng thanh toán:</span>
-                                    <span class="value total-amount">{{ formatCurrency(totalAmount) }}</span>
+                                    <span class="value total-amount">{{ formatCurrency(grandTotal) }}</span>
+                                </div>
+                            </div>
+
+                            <div v-if="snacks.length" class="snacks-list">
+                                <h6 class="snacks-title">
+                                    <i class="bi bi-cup-straw"></i>
+                                    Bắp nước đã mua
+                                </h6>
+                                <div v-for="snack in snacks" :key="snack.id || snack.snackId" class="snack-line">
+                                    <span>{{ snack.snackName }} x{{ snack.quantity }}</span>
+                                    <strong>{{ formatCurrency(snack.subtotal || 0) }}</strong>
                                 </div>
                             </div>
                         </div>
@@ -147,12 +166,18 @@ const router = useRouter();
 const auth = useAuthStore();
 const txnRef = route.params.txnRef;
 const bookings = ref([]);
+const snacks = ref([]);
 
 onMounted(async () => {
     try {
-        const res = await api.get(`/bookings/txn/${txnRef}`);
-        console.log("Vé theo giao dịch:", res.data);
-        bookings.value = res.data;
+        const [ticketRes, snackRes] = await Promise.all([
+            api.get(`/bookings/txn/${txnRef}`),
+            api.get(`/snacks/txn/${txnRef}`).catch(() => ({ data: [] })),
+        ]);
+
+        console.log("Vé theo giao dịch:", ticketRes.data);
+        bookings.value = ticketRes.data;
+        snacks.value = snackRes.data || [];
     } catch (err) {
         console.error("Lỗi tải vé:", err);
     }
@@ -175,6 +200,8 @@ const startTime = computed(() => bookings.value[0]?.startTime || null);
 const seatList = computed(() => bookings.value.map((b) => b.seatNumber).join(", "));
 
 const totalAmount = computed(() => bookings.value.reduce((sum, b) => sum + (b.total || 0), 0));
+const snacksTotal = computed(() => snacks.value.reduce((sum, item) => sum + (item.subtotal || 0), 0));
+const grandTotal = computed(() => totalAmount.value + snacksTotal.value);
 
 const avgPrice = computed(() => (bookings.value.length ? totalAmount.value / bookings.value.length : 0));
 
@@ -508,6 +535,34 @@ const formatCurrency = (temp) => (temp || 0).toLocaleString("vi-VN", { style: "c
     gap: 0.8rem;
 }
 
+.snacks-list {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px dashed rgba(255, 215, 0, 0.3);
+}
+
+.snacks-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 0.65rem;
+    color: #ffd700;
+    font-weight: 600;
+}
+
+.snack-line {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    color: #ddd;
+    font-size: 0.9rem;
+    margin-bottom: 0.4rem;
+}
+
+.snack-line strong {
+    color: #ffd700;
+}
+
 .detail-row {
     display: flex;
     justify-content: space-between;
@@ -661,5 +716,137 @@ const formatCurrency = (temp) => (temp || 0).toLocaleString("vi-VN", { style: "c
     .page-header {
         color: black !important;
     }
+}
+
+/* Redesign Theme: Light + Orange */
+.booking-page {
+    background: #f5f5f5;
+    color: #333;
+}
+
+.btn-back {
+    background: #fff;
+    border: 1px solid #e1e1e1;
+    color: #444;
+    backdrop-filter: none;
+}
+
+.btn-back:hover {
+    background: #fff3ed;
+    border-color: #ffc4b1;
+    color: #ff6b35;
+}
+
+.page-title {
+    color: #2f2f2f;
+    text-shadow: none;
+}
+
+.page-subtitle,
+.loading-text {
+    color: #666;
+}
+
+.loading-spinner {
+    border-color: rgba(255, 107, 53, 0.2);
+    border-top-color: #ff6b35;
+}
+
+.movie-info-card,
+.digital-ticket {
+    background: #fff;
+    border: 1px solid #e6e6e6;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.poster-overlay {
+    background: linear-gradient(45deg, rgba(255, 107, 53, 0.12), transparent);
+}
+
+.movie-title,
+.cinema-row .cinema-name,
+.seats-list,
+.transaction-id .value,
+.total-amount {
+    color: #ff6b35 !important;
+    text-shadow: none;
+}
+
+.meta-item,
+.seats-label,
+.qr-instruction,
+.detail-row .label,
+.notice,
+.cinema-row .label-text,
+.transaction-id .label,
+.page-subtitle {
+    color: #666;
+}
+
+.meta-item i,
+.seats-info i,
+.cinema-row i {
+    color: #ff6b35;
+}
+
+.cinema-info,
+.seats-info,
+.transaction-id {
+    background: #fff8f4;
+    border-color: #f0ddd4;
+}
+
+.ticket-header {
+    background: linear-gradient(135deg, #ff6b35, #ff8a5f);
+    color: #fff;
+}
+
+.detail-row .value {
+    color: #333;
+}
+
+.snacks-list {
+    border-top-color: #f1e0d8;
+}
+
+.snacks-title {
+    color: #ff6b35;
+}
+
+.snack-line {
+    color: #555;
+}
+
+.snack-line strong {
+    color: #ff6b35;
+}
+
+.payment-method {
+    background: #fff5f1;
+    color: #ff6b35 !important;
+    border: 1px solid #ffc8b6;
+}
+
+.total-row {
+    border-top-color: #f1e0d8;
+}
+
+.ticket-footer {
+    background: #fff;
+    border-top: 1px solid #ececec;
+}
+
+.notice i {
+    color: #ff6b35;
+}
+
+.btn-print {
+    background: linear-gradient(135deg, #ff6b35, #ff8a5f);
+    color: #fff;
+}
+
+.btn-print:hover {
+    background: linear-gradient(135deg, #ff8a5f, #ff6b35);
+    box-shadow: 0 8px 20px rgba(255, 107, 53, 0.3);
 }
 </style>

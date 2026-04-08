@@ -7,13 +7,22 @@ const routes = [
     { path: "/about", component: () => import("@/views/AboutView.vue"), meta: { public: true } },
     { path: "/login", component: () => import("@/views/Auth/LoginView.vue"), meta: { public: true } },
     { path: "/register", component: () => import("@/views/Auth/RegisterView.vue"), meta: { public: true } },
-    { path: "/login-success", component: () => import("@/views/Auth/LoginSuccess.vue"), meta: { public: true } },
 
     { path: "/movie/:id", component: () => import("@/views/MovieDetail.vue"), meta: { public: true } },
     { path: "/booking/:movieId", component: () => import("@/views/BookingView.vue"), meta: { public: true } },
     {
         path: "/booking/:movieId/seats/:showtimeId",
         component: () => import("@/views/SeatMapView.vue"),
+        meta: { requiresAuth: true },
+    },
+    {
+        path: "/booking/:movieId/seats/:showtimeId/snacks",
+        component: () => import("@/views/SnackSelectionView.vue"),
+        meta: { requiresAuth: true },
+    },
+    {
+        path: "/booking/:movieId/seats/:showtimeId/payment",
+        component: () => import("@/views/PaymentView.vue"),
         meta: { requiresAuth: true },
     },
 
@@ -27,7 +36,11 @@ const routes = [
         component: () => import("@/views/Customer/MyBookingGroup.vue"),
         meta: { requiresAuth: true, requiresCustomer: true },
     },
-    { path: "/profile", component: () => import("@/views/Customer/ProfileView.vue"), meta: { requiresAuth: true, requiresCustomer: true } },
+    {
+        path: "/profile",
+        component: () => import("@/views/Customer/ProfileView.vue"),
+        meta: { requiresAuth: true, requiresCustomer: true },
+    },
     {
         path: "/my-bookings",
         component: () => import("@/views/Customer/MyBookingView.vue"),

@@ -621,6 +621,125 @@ const sendMessage = async () => {
     }
 }
 
+/* Redesign Theme: Light + Orange */
+.about-page {
+    background: #f5f5f5;
+    color: #333;
+}
+
+.hero-section,
+.about-section,
+.services-section,
+.contact-section {
+    background: #fff;
+    border: 1px solid #e9e2de;
+    border-radius: 18px;
+    padding: 2rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.hero-title,
+.section-title {
+    color: #2f2f2f;
+    text-shadow: none;
+}
+
+.hero-subtitle,
+.about-text,
+.service-card p,
+.feature-card p {
+    color: #666;
+}
+
+.hero-stats .stat-number,
+.feature-icon,
+.service-icon,
+.contact-icon,
+.social-links h4,
+.contact-item strong,
+.contact-form h3 {
+    color: #ff6b35;
+}
+
+.stat-label {
+    color: #777;
+}
+
+.cinema-illustration,
+.service-icon {
+    background: rgba(255, 107, 53, 0.12);
+    border-color: rgba(255, 107, 53, 0.28);
+}
+
+.section-title::after,
+.service-card::before {
+    background: linear-gradient(45deg, #ff6b35, #ff8a5f);
+}
+
+.feature-card,
+.service-card,
+.contact-form {
+    background: #fff;
+    border: 1px solid #e6e6e6;
+}
+
+.feature-card h4,
+.service-card h3 {
+    color: #333;
+}
+
+.feature-card:hover,
+.service-card:hover {
+    border-color: #ffc2ad;
+    box-shadow: 0 10px 26px rgba(255, 107, 53, 0.14);
+}
+
+.contact-section {
+    background: #fff8f4;
+    border-color: #f0ddd5;
+}
+
+.contact-item div {
+    color: #555;
+}
+
+.social-icon {
+    background: #fff5f1;
+    border-color: #ffd3c3;
+    color: #ff6b35;
+}
+
+.social-icon:hover {
+    background: #ff6b35;
+    color: #fff;
+    box-shadow: 0 5px 15px rgba(255, 107, 53, 0.35);
+}
+
+.form-control {
+    background: #fff;
+    border: 1px solid #dcdcdc;
+    color: #333;
+}
+
+.form-control::placeholder {
+    color: #888;
+}
+
+.form-control:focus {
+    border-color: #ff6b35;
+    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.14);
+    background: #fff;
+}
+
+.btn-submit {
+    background: linear-gradient(45deg, #ff6b35, #ff8a5f);
+    color: #fff;
+}
+
+.btn-submit:hover:not(:disabled) {
+    box-shadow: 0 5px 15px rgba(255, 107, 53, 0.35);
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .hero-section {

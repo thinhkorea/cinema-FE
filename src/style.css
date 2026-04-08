@@ -1,79 +1,190 @@
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+    --bg-page: #f5f5f5;
+    --bg-surface: #ffffff;
+    --bg-soft: #fff5f2;
+    --text-primary: #333333;
+    --text-secondary: #666666;
+    --text-muted: #999999;
+    --brand: #ff6b35;
+    --brand-strong: #ff5722;
+    --brand-soft: rgba(255, 107, 53, 0.12);
+    --border: #e0e0e0;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 6px 18px rgba(255, 107, 53, 0.2);
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.5;
+    font-weight: 400;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
+* {
+    box-sizing: border-box;
 }
-a:hover {
-  color: #535bf2;
+
+html,
+body,
+#app {
+    width: 100%;
+    min-height: 100%;
 }
 
 body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
+    margin: 0;
+    min-width: 320px;
+    background: var(--bg-page);
+    color: var(--text-primary);
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    color: #2f2f2f;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+p,
+small,
+label,
+li,
+td,
+th,
+span {
+    color: inherit;
 }
 
-.card {
-  padding: 2em;
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+button,
+input,
+select,
+textarea {
+    font: inherit;
 }
 
 #app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    text-align: left;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+.card,
+.table,
+.modal-content,
+.dropdown-menu,
+.form-control,
+.form-select {
+    border-radius: 8px;
+}
+
+.btn-primary {
+    background: var(--brand);
+    border-color: var(--brand);
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+    background: var(--brand-strong);
+    border-color: var(--brand-strong);
+}
+
+.btn-outline-primary {
+    color: var(--brand);
+    border-color: var(--brand);
+}
+
+.btn-outline-primary:hover {
+    background: var(--brand);
+    border-color: var(--brand);
+}
+
+.page-item.active .page-link {
+    background: var(--brand);
+    border-color: var(--brand);
+}
+
+.page-link {
+    color: var(--brand);
+}
+
+.table thead th {
+    background: #fff8f4;
+    color: var(--text-primary);
+    border-color: #f3dfd8;
+}
+
+.table tbody tr:hover {
+    background: #fffaf8;
+}
+
+.home-page,
+.about-page,
+.movies-page,
+.movie-detail-page,
+.booking-page,
+.booking-container,
+.seat-map-page,
+.profile-page,
+.sold-tickets-page,
+.login-container,
+.register-container {
+    background: var(--bg-page) !important;
+    color: var(--text-primary) !important;
+}
+
+.home-page p,
+.about-page p,
+.movies-page p,
+.movie-detail-page p,
+.booking-page p,
+.profile-page p,
+.sold-tickets-page p,
+.home-page li,
+.about-page li,
+.movies-page li,
+.movie-detail-page li,
+.booking-page li,
+.profile-page li,
+.sold-tickets-page li {
+    color: var(--text-secondary) !important;
+}
+
+.booking-page .page-title,
+.booking-page .page-subtitle,
+.profile-page .page-title,
+.profile-page .page-subtitle,
+.movies-page .page-main-title {
+    color: var(--text-primary) !important;
+}
+
+.container .card,
+.table-responsive,
+.movie-card,
+.news-card,
+.offer-card,
+.video-card,
+.ticket-card,
+.ticket-container {
+    background: var(--bg-surface) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border) !important;
+    box-shadow: var(--shadow-sm) !important;
+}
+
+.hero-section,
+.section-dark,
+.cinema-experience,
+.news-section,
+.offers-section,
+.videos-section {
+    background: transparent !important;
 }

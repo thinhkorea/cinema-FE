@@ -53,21 +53,20 @@
 
 <style scoped>
 .footer {
-    background: #000000;
-    color: rgba(255, 255, 255, 0.8);
+    background: linear-gradient(180deg, #ffffff 0%, #fff7f3 100%);
+    color: #555;
     padding: 3rem 0 2rem 0;
     margin-top: 4rem;
+    border-top: 1px solid #e6e6e6;
 }
 
-/* Footer Titles */
 .footer-title {
-    color: #ffd700;
+    color: #2f2f2f;
     font-weight: 600;
     font-size: 1.1rem;
     margin-bottom: 1.25rem;
 }
 
-/* Footer Links */
 .footer-links {
     list-style: none;
     padding: 0;
@@ -79,32 +78,30 @@
 }
 
 .footer-links a {
-    color: rgba(255, 255, 255, 0.7);
+    color: #4f4f4f;
     text-decoration: none;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     transition: color 0.3s ease;
 }
 
 .footer-links a:hover {
-    color: #ffd700;
+    color: #ff6b35;
 }
 
-/* Contact Info */
 .contact-info p {
-    color: rgba(255, 255, 255, 0.7);
+    color: #4f4f4f;
     margin-bottom: 0.5rem;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
 }
 
 .contact-info i {
-    color: #ffd700;
+    color: #ff6b35;
     width: 16px;
 }
 
-/* Social Links */
 .social-links {
     display: flex;
     gap: 0.75rem;
@@ -116,34 +113,32 @@
     justify-content: center;
     width: 40px;
     height: 40px;
-    background: rgba(255, 255, 255, 0.1);
+    background: #fff5f2;
     border-radius: 8px;
-    color: rgba(255, 255, 255, 0.7);
+    color: #ff6b35;
     font-size: 1.2rem;
     text-decoration: none;
     transition: all 0.3s ease;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid #ffd5c7;
 }
 
 .social-link:hover {
-    background: #ffd700;
-    color: #1a1a2e;
+    background: #ff6b35;
+    color: #fff;
     transform: translateY(-2px);
 }
 
-/* Footer Bottom */
 .footer-bottom {
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid #ececec;
     margin-top: 2rem;
 }
 
 .copyright {
-    color: rgba(255, 255, 255, 0.5);
+    color: #7f7f7f;
     margin: 0;
     font-size: 0.85rem;
 }
 
-/* Responsive Design */
 @media (max-width: 768px) {
     .footer {
         padding: 3rem 0 1.5rem 0;
