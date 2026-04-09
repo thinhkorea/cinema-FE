@@ -19,8 +19,8 @@
                 </div>
 
                 <div class="register-card">
-                    <form @submit.prevent="register">
-                        <div class="form-group mb-3">
+                    <form @submit.prevent="handleSubmit">
+                        <div class="form-group mb-3" v-if="step === 'form'">
                             <label class="form-label fw-600">Họ và tên</label>
                             <div class="input-wrapper">
                                 <span class="input-icon">
@@ -47,7 +47,7 @@
                             </div>
                         </div>
 
-                        <div class="form-group mb-3">
+                        <div class="form-group mb-3" v-if="step === 'form'">
                             <label class="form-label fw-600">Email</label>
                             <div class="input-wrapper">
                                 <span class="input-icon">
@@ -75,7 +75,7 @@
                             </div>
                         </div>
 
-                        <div class="form-group mb-3">
+                        <div class="form-group mb-3" v-if="step === 'form'">
                             <label class="form-label fw-600">Mật khẩu</label>
                             <div class="input-wrapper">
                                 <span class="input-icon">
@@ -136,7 +136,7 @@
                             </div>
                         </div>
 
-                        <div class="form-group mb-3">
+                        <div class="form-group mb-3" v-if="step === 'form'">
                             <label class="form-label fw-600">Số điện thoại</label>
                             <div class="input-wrapper">
                                 <span class="input-icon">
@@ -163,7 +163,7 @@
                             </div>
                         </div>
 
-                        <div class="form-group mb-3">
+                        <div class="form-group mb-3" v-if="step === 'form'">
                             <label class="form-label fw-600">Địa chỉ</label>
                             <div class="input-wrapper">
                                 <span class="input-icon">
@@ -189,7 +189,7 @@
                             </div>
                         </div>
 
-                        <div class="form-group mb-3">
+                        <div class="form-group mb-3" v-if="step === 'form'">
                             <label class="form-label fw-600">Giới tính</label>
                             <select v-model="form.gender" class="form-select form-select-lg">
                                 <option value="MALE">Nam</option>
@@ -197,9 +197,50 @@
                             </select>
                         </div>
 
-                        <!-- Updated button color from orange gradient to blue gradient -->
+                        <div v-if="step === 'otp'" class="otp-step mb-3">
+                            <p class="otp-hint mb-3">
+                                Mã OTP đã được gửi đến email <strong>{{ form.email }}</strong>. Vui lòng nhập mã để hoàn tất đăng ký.
+                            </p>
+                            <div class="form-group mb-2">
+                                <label class="form-label fw-600">Mã OTP</label>
+                                <div class="input-wrapper">
+                                    <span class="input-icon">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M12 2L3 7V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21 11V7L12 2Z" fill="#0066ff"/>
+                                        </svg>
+                                    </span>
+                                    <input
+                                        v-model.trim="otpCode"
+                                        type="text"
+                                        maxlength="6"
+                                        class="form-control form-control-lg"
+                                        placeholder="Nhập 6 chữ số OTP"
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between mt-2">
+                                <button
+                                    type="button"
+                                    class="btn btn-link p-0 otp-link"
+                                    @click="resendOtp"
+                                    :disabled="loading || otpCooldown > 0"
+                                >
+                                    {{ otpCooldown > 0 ? `Gửi lại sau ${otpCooldown}s` : "Gửi lại OTP" }}
+                                </button>
+                                <button
+                                    type="button"
+                                    class="btn btn-link p-0 otp-link"
+                                    @click="backToForm"
+                                    :disabled="loading"
+                                >
+                                    Quay lại chỉnh thông tin
+                                </button>
+                            </div>
+                        </div>
+
                         <button type="submit" class="btn btn-register w-100 fw-600 py-2 mb-3" :disabled="loading">
-                            <span v-if="!loading">Đăng ký</span>
+                            <span v-if="!loading">{{ step === "form" ? "Gửi mã OTP" : "Xác thực OTP và đăng ký" }}</span>
                             <span v-else class="d-flex align-items-center justify-content-center">
                                 <span class="spinner-border spinner-border-sm me-2"></span>
                                 Đang xử lý...
@@ -220,7 +261,7 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { onUnmounted, ref } from "vue";
 import Swal from "sweetalert2";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth.store";
@@ -229,6 +270,11 @@ const router = useRouter();
 const auth = useAuthStore();
 const loading = ref(false);
 const showPassword = ref(false);
+const step = ref("form");
+const otpCode = ref("");
+const otpCooldown = ref(0);
+let otpTimer = null;
+
 const form = ref({
     fullName: "",
     email: "",
@@ -238,7 +284,15 @@ const form = ref({
     gender: "",
 });
 
-const register = async () => {
+const handleSubmit = async () => {
+    if (step.value === "form") {
+        await sendOtp();
+        return;
+    }
+    await verifyOtpAndRegister();
+};
+
+const sendOtp = async () => {
     if (!form.value.password || !form.value.email || !form.value.phone) {
         Swal.fire("Thiếu thông tin", "Vui lòng nhập đầy đủ thông tin!", "warning");
         return;
@@ -246,31 +300,73 @@ const register = async () => {
 
     try {
         loading.value = true;
-        await auth.register(form.value);
-        
-        Swal.fire("Thành công", "Đăng ký tài khoản thành công!", "success");
-        
-        // Chuyển hướng theo role
-        setTimeout(() => {
-            const role = auth.role;
-            if (role === "ADMIN") {
-                router.push("/admin/dashboard");
-            } else if (role === "STAFF") {
-                router.push("/staff/seat-map");
-            } else if (role === "CUSTOMER") {
-                router.push("/");
-            } else {
-                router.push("/");
-            }
-        }, 1000);
+        await auth.sendRegisterOtp(form.value);
+        step.value = "otp";
+        startOtpCooldown(30);
+        Swal.fire("OTP đã gửi", "Vui lòng kiểm tra email để lấy mã OTP.", "success");
     } catch (err) {
-        console.error("Register error:", err);
+        console.error("Send OTP error:", err);
         const msg = err.response?.data?.message || err.response?.data?.error || err.response?.data || err.message || "Đăng ký thất bại, vui lòng thử lại!";
         Swal.fire("Lỗi", msg, "error");
     } finally {
         loading.value = false;
     }
 };
+
+const verifyOtpAndRegister = async () => {
+    if (!otpCode.value || otpCode.value.length !== 6) {
+        Swal.fire("Thiếu OTP", "Vui lòng nhập đúng 6 chữ số OTP.", "warning");
+        return;
+    }
+
+    try {
+        loading.value = true;
+        await auth.verifyRegisterOtp(form.value.email, otpCode.value);
+        await auth.login({
+            identifier: form.value.email,
+            password: form.value.password,
+        });
+
+        await Swal.fire("Thành công", "Đăng ký tài khoản thành công!", "success");
+        router.push("/");
+    } catch (err) {
+        console.error("Verify OTP error:", err);
+        const msg = err.response?.data?.message || err.response?.data?.error || err.response?.data || err.message || "Xác thực OTP thất bại!";
+        Swal.fire("Lỗi", msg, "error");
+    } finally {
+        loading.value = false;
+    }
+};
+
+const resendOtp = async () => {
+    if (otpCooldown.value > 0) return;
+    await sendOtp();
+};
+
+const backToForm = () => {
+    step.value = "form";
+    otpCode.value = "";
+};
+
+const startOtpCooldown = (seconds) => {
+    otpCooldown.value = seconds;
+    if (otpTimer) {
+        clearInterval(otpTimer);
+    }
+    otpTimer = setInterval(() => {
+        otpCooldown.value -= 1;
+        if (otpCooldown.value <= 0) {
+            clearInterval(otpTimer);
+            otpTimer = null;
+        }
+    }, 1000);
+};
+
+onUnmounted(() => {
+    if (otpTimer) {
+        clearInterval(otpTimer);
+    }
+});
 
 function togglePassword() {
     showPassword.value = !showPassword.value;
@@ -547,6 +643,29 @@ function togglePassword() {
 .login-link:hover {
     color: #0052cc;
     text-decoration: underline;
+}
+
+.otp-step {
+    background: #f4f8ff;
+    border: 1px solid #d9e7ff;
+    border-radius: 10px;
+    padding: 14px;
+}
+
+.otp-hint {
+    font-size: 14px;
+    color: #2f3f59;
+    margin: 0;
+}
+
+.otp-link {
+    font-size: 14px;
+    color: #0066ff;
+    text-decoration: none;
+}
+
+.otp-link:disabled {
+    color: #8aa7df;
 }
 
 @media (max-width: 576px) {

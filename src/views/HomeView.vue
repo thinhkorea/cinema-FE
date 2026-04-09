@@ -25,42 +25,34 @@
                     <button class="nav-button prev" @click="prevMovie">←</button>
 
                     <div class="carousel-container">
-                        <div class="movie-card movie-card-side" v-if="displayedMovies.length > 0">
+                        <div class="movie-card movie-card-side" v-if="prevMovieItem" :key="`prev-${prevMovieItem.movieId}-${currentMovieIndex}`">
                             <div class="movie-card-content">
                                 <img
-                                    :src="
-                                        displayedMovies[
-                                            (currentMovieIndex - 1 + displayedMovies.length) % displayedMovies.length
-                                        ].posterUrl
-                                    "
-                                    :alt="
-                                        displayedMovies[
-                                            (currentMovieIndex - 1 + displayedMovies.length) % displayedMovies.length
-                                        ].title
-                                    "
+                                    :src="prevMovieItem.posterUrl"
+                                    :alt="prevMovieItem.title"
                                 />
                             </div>
                         </div>
 
-                        <div class="movie-card movie-card-main" v-if="displayedMovies.length > 0">
+                        <div class="movie-card movie-card-main" v-if="currentMovie" :key="`main-${currentMovie.movieId}-${currentMovieIndex}`">
                             <div
                                 class="movie-card-wrapper"
-                                @click="goDetail(displayedMovies[currentMovieIndex].movieId)"
+                                @click="goDetail(currentMovie.movieId)"
                             >
                                 <img
-                                    :src="displayedMovies[currentMovieIndex].posterUrl"
-                                    :alt="displayedMovies[currentMovieIndex].title"
+                                    :src="currentMovie.posterUrl"
+                                    :alt="currentMovie.title"
                                 />
                                 <div class="movie-overlay"></div>
                                 <div class="movie-info">
-                                    <h2>{{ displayedMovies[currentMovieIndex].title }}</h2>
+                                    <h2>{{ currentMovie.title }}</h2>
                                     <p class="movie-details">
-                                        {{ displayedMovies[currentMovieIndex].duration }} phút •
-                                        {{ displayedMovies[currentMovieIndex].genre }}
+                                        {{ currentMovie.duration }} phút •
+                                        {{ currentMovie.genre }}
                                     </p>
                                     <button
-                                        class="btn btn-warning mt-3"
-                                        @click.stop="goDetail(displayedMovies[currentMovieIndex].movieId)"
+                                        class="btn book-now-btn mt-3"
+                                        @click.stop="goDetail(currentMovie.movieId)"
                                     >
                                         Đặt vé ngay
                                     </button>
@@ -68,17 +60,17 @@
                             </div>
                         </div>
 
-                        <div class="movie-card movie-card-side" v-if="displayedMovies.length > 0">
+                        <div class="movie-card movie-card-side" v-if="nextMovieItem" :key="`next-${nextMovieItem.movieId}-${currentMovieIndex}`">
                             <div class="movie-card-content">
                                 <img
-                                    :src="displayedMovies[(currentMovieIndex + 1) % displayedMovies.length].posterUrl"
-                                    :alt="displayedMovies[(currentMovieIndex + 1) % displayedMovies.length].title"
+                                    :src="nextMovieItem.posterUrl"
+                                    :alt="nextMovieItem.title"
                                 />
                             </div>
                         </div>
                     </div>
 
-                    <button class="nav-button next" @click="nextMovie">→</button>
+                    <button class="nav-button next" @click="nextMovie()">→</button>
                 </div>
 
                 <div v-if="loadingMovies" class="loading">
@@ -226,17 +218,23 @@ const activeTab = ref("now_showing");
 const movies = ref([]);
 const loadingMovies = ref(false);
 const currentMovieIndex = ref(0);
-let autoPlayInterval = null;
+const AUTO_PLAY_DELAY = 5000;
+const MANUAL_NAVIGATION_COOLDOWN = 1200;
+let autoPlayTimeout = null;
+let lastManualNavigationAt = 0;
 
 const fetchMovies = async (status) => {
     loadingMovies.value = true;
     try {
         const response = await api.get(`/movies/status/${status}`);
-        movies.value = response.data;
+        // Loại bản ghi trùng movieId để tránh lệch nội dung khi carousel auto-play.
+        movies.value = Array.from(new Map((response.data || []).map((movie) => [movie.movieId, movie])).values());
         currentMovieIndex.value = 0;
+        startAutoPlay();
     } catch (error) {
         console.error(`Lỗi khi tải phim ${status}:`, error);
         movies.value = [];
+        stopAutoPlay();
     } finally {
         loadingMovies.value = false;
     }
@@ -246,30 +244,61 @@ const prevMovie = () => {
     if (displayedMovies.value.length > 0) {
         currentMovieIndex.value =
             (currentMovieIndex.value - 1 + displayedMovies.value.length) % displayedMovies.value.length;
+        lastManualNavigationAt = Date.now();
+        resetAutoPlay();
     }
 };
 
-const nextMovie = () => {
+const nextMovie = (trigger = "manual") => {
     if (displayedMovies.value.length > 0) {
+        if (trigger === "auto" && Date.now() - lastManualNavigationAt < MANUAL_NAVIGATION_COOLDOWN) {
+            scheduleNextAutoPlay();
+            return;
+        }
         currentMovieIndex.value = (currentMovieIndex.value + 1) % displayedMovies.value.length;
+
+        if (trigger === "manual") {
+            lastManualNavigationAt = Date.now();
+            resetAutoPlay();
+        } else {
+            scheduleNextAutoPlay();
+        }
     }
 };
 
 const startAutoPlay = () => {
-    if (autoPlayInterval) clearInterval(autoPlayInterval);
-    autoPlayInterval = setInterval(() => {
-        nextMovie();
-    }, 5000);
+    stopAutoPlay();
+    scheduleNextAutoPlay();
+};
+
+const scheduleNextAutoPlay = () => {
+    autoPlayTimeout = setTimeout(() => {
+        nextMovie("auto");
+    }, AUTO_PLAY_DELAY);
+};
+
+const resetAutoPlay = () => {
+    if (!displayedMovies.value.length) return;
+    startAutoPlay();
 };
 
 const stopAutoPlay = () => {
-    if (autoPlayInterval) {
-        clearInterval(autoPlayInterval);
-        autoPlayInterval = null;
+    if (autoPlayTimeout) {
+        clearTimeout(autoPlayTimeout);
+        autoPlayTimeout = null;
     }
 };
 
 const displayedMovies = computed(() => movies.value);
+const currentMovie = computed(() => displayedMovies.value[currentMovieIndex.value] || null);
+const prevMovieItem = computed(() => {
+    if (!displayedMovies.value.length) return null;
+    return displayedMovies.value[(currentMovieIndex.value - 1 + displayedMovies.value.length) % displayedMovies.value.length];
+});
+const nextMovieItem = computed(() => {
+    if (!displayedMovies.value.length) return null;
+    return displayedMovies.value[(currentMovieIndex.value + 1) % displayedMovies.value.length];
+});
 const goDetail = (id) => router.push(`/movie/${id}`);
 
 watch(
@@ -282,7 +311,6 @@ watch(
 
 onMounted(() => {
     auth.restoreSession();
-    startAutoPlay();
 });
 
 onUnmounted(() => {
@@ -511,7 +539,7 @@ const offers = [
 .movie-overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.95), rgba(0, 0, 0, 0.3));
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.72) 8%, rgba(0, 0, 0, 0.14) 58%, rgba(0, 0, 0, 0.04) 100%);
     z-index: 2;
 }
 
@@ -542,6 +570,19 @@ const offers = [
     font-size: 0.875rem;
     color: rgba(255, 255, 255, 0.92);
     margin: 0;
+}
+
+.book-now-btn {
+    background: var(--brand);
+    border: 1px solid var(--brand);
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.book-now-btn:hover {
+    background: var(--brand-strong);
+    border-color: var(--brand-strong);
+    color: #ffffff;
 }
 
 .nav-button {

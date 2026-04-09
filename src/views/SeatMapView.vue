@@ -11,93 +11,89 @@
 
             <!-- Nội dung chính -->
             <div v-else-if="movie && showtime">
-                <!-- Thông tin phim -->
-                <div class="movie-info-card">
-                    <h2 class="movie-title">{{ movie.title }}</h2>
-                    <div class="movie-details">
-                        <div class="detail-item">
-                            <span class="detail-icon">📅</span>
-                            <span>{{ formatDate(showtime.startTime) }}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-icon">🕐</span>
-                            <span>{{ formatTime(showtime.startTime) }}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-icon">🏠</span>
-                            <span>{{ showtime.room?.roomName }}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Màn hình -->
-                <div class="screen">MÀN HÌNH</div>
-
-                <!-- Sơ đồ ghế -->
-                <div class="seat-grid mb-4">
-                    <div
-                        v-for="(row, rowIndex) in seatLayout"
-                        :key="rowIndex"
-                        class="seat-row d-flex justify-content-center mb-2"
-                    >
-                        <div
-                            v-for="seat in row"
-                            :key="seat.seatId"
-                            class="seat text-center"
-                            :class="{
-                                'seat-selected': selectedSeats.includes(seat.seatId),
-                                'seat-booked': seat.booked,
-                                'seat-vip': seat.seatType === 'VIP' || seat.type === 'VIP',
-                                'seat-sweetbox': seat.seatType === 'SWEETBOX' || seat.type === 'SWEETBOX',
-                                'seat-sweetbox-row': isInSweetboxRow(seat),
-                            }"
-                            @click="toggleSeat(seat)"
-                        >
-                            {{ seat.seatNumber }}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Ghi chú -->
-                <div class="seat-legend">
-                    <div class="legend-item">
-                        <span class="legend-dot seat-regular"></span>
-                        <span>Thường</span>
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-dot seat-vip"></span>
-                        <span>VIP</span>
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-dot seat-sweetbox"></span>
-                        <span>Sweetbox</span>
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-dot seat-selected"></span>
-                        <span>Đang chọn</span>
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-dot seat-booked"></span>
-                        <span>Đã đặt</span>
-                    </div>
-                </div>
-
-                <!-- Tổng tiền -->
-                <div class="booking-summary">
-                    <div class="price-info">
-                        <p class="total-price">
-                            Tổng: <span class="price">{{ totalPrice.toLocaleString() }}</span
-                            >đ
+                <div class="auditorium-panel" :style="seatAreaStyle">
+                    <div class="seat-map-header">
+                        <h2 class="seat-map-title">CHỌN GHẾ - {{ roomDisplayName }}</h2>
+                        <p class="seat-map-subtitle">
+                            {{ movie.title }} • {{ formatDate(showtime.startTime) }} •
+                            {{ formatTime(showtime.startTime) }}
                         </p>
                     </div>
-                    <button
-                        class="btn-confirm"
-                        :class="{ disabled: selectedSeats.length === 0 }"
-                        :disabled="selectedSeats.length === 0"
-                        @click="openPhoneModal"
-                    >
-                        Xác nhận đặt vé
-                    </button>
+
+                    <div class="screen-curve-wrap">
+                        <div class="screen-curve"></div>
+                        <p class="screen-label">Màn hình</p>
+                    </div>
+
+                    <div class="seat-grid mb-4">
+                        <div
+                            v-for="row in seatLayout"
+                            :key="row.rowLabel"
+                            class="seat-row"
+                            :class="{ 'seat-row-sweetbox': row.hasSweetbox }"
+                        >
+                            <div class="row-label">{{ row.rowLabel }}</div>
+                            <div class="row-seats" :class="{ 'row-seats-sweetbox': row.hasSweetbox }">
+                                <div
+                                    v-for="seat in row.seatsDisplay"
+                                    :key="seat.seatId || seat.placeholderId"
+                                    class="seat text-center"
+                                    :class="{
+                                        'seat-placeholder': seat.isPlaceholder,
+                                        'seat-selected': selectedSeats.includes(seat.seatId),
+                                        'seat-booked': seat.booked,
+                                        'seat-vip': seat.seatType === 'VIP' || seat.type === 'VIP',
+                                        'seat-sweetbox': seat.seatType === 'SWEETBOX' || seat.type === 'SWEETBOX',
+                                    }"
+                                    @click="!seat.isPlaceholder && toggleSeat(seat)"
+                                >
+                                    {{ seat.seatNumber }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="seat-legend">
+                        <div class="legend-item">
+                            <span class="legend-dot seat-regular"></span>
+                            <span>Ghế thường</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-dot seat-vip"></span>
+                            <span>Ghế VIP</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-dot seat-sweetbox"></span>
+                            <span>Ghế đôi (2 người)</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-dot seat-selected"></span>
+                            <span>Ghế chọn</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-dot seat-booked"></span>
+                            <span>Ghế đã đặt</span>
+                        </div>
+                    </div>
+
+                    <div class="booking-summary">
+                        <div class="price-info">
+                            <p class="total-price">
+                                Tổng thanh toán: <span class="price">{{ totalPrice.toLocaleString() }}đ</span>
+                            </p>
+                        </div>
+                        <div class="selected-count">
+                            Đang chọn: <strong>{{ selectedSeats.length }}</strong> ghế
+                        </div>
+                        <button
+                            class="btn-confirm"
+                            :class="{ disabled: selectedSeats.length === 0 }"
+                            :disabled="selectedSeats.length === 0"
+                            @click="openPhoneModal"
+                        >
+                            Tiếp tục
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -238,6 +234,8 @@ const movie = ref(null);
 const showtime = ref(null);
 const seats = ref([]);
 const selectedSeats = ref([]);
+const roomDisplayName = computed(() => String(showtime.value?.room?.roomName || "Rạp").toUpperCase());
+const TARGET_SEATS_PER_ROW = 16;
 
 // Tải dữ liệu phim, suất chiếu, ghế
 onMounted(async () => {
@@ -294,8 +292,63 @@ const seatLayout = computed(() => {
         if (!grouped[row]) grouped[row] = [];
         grouped[row].push(s);
     });
-    return Object.values(grouped);
+    return Object.keys(grouped)
+        .sort((a, b) => a.localeCompare(b))
+        .map((rowLabel) => {
+            const rowSeats = grouped[rowLabel].sort((a, b) => extractSeatOrder(a) - extractSeatOrder(b));
+            const hasSweetbox = rowSeats.some((seat) => seat.seatType === "SWEETBOX" || seat.type === "SWEETBOX");
+
+            // Chuẩn hóa UI thành 16 vị trí/hàng cho rạp thường.
+            let seatsDisplay = rowSeats;
+            if (!hasSweetbox) {
+                const seatMapByOrder = new Map();
+                rowSeats.forEach((seat) => seatMapByOrder.set(extractSeatOrder(seat), seat));
+
+                seatsDisplay = Array.from({ length: TARGET_SEATS_PER_ROW }, (_, idx) => {
+                    const order = idx + 1;
+                    return (
+                        seatMapByOrder.get(order) || {
+                            isPlaceholder: true,
+                            placeholderId: `${rowLabel}-placeholder-${order}`,
+                            seatNumber: `${rowLabel}${order}`,
+                        }
+                    );
+                });
+            }
+
+            return {
+                rowLabel,
+                seats: rowSeats,
+                seatsDisplay,
+                hasSweetbox,
+            };
+        });
 });
+
+const seatAreaStyle = computed(() => {
+    const maxRowWidth = seatLayout.value.reduce((maxWidth, row) => {
+        const seatsWidth = row.seatsDisplay.reduce((sum, seat) => {
+            if (seat.isPlaceholder) {
+                return sum + 42;
+            }
+            const isSweetbox = seat.seatType === "SWEETBOX" || seat.type === "SWEETBOX";
+            return sum + (isSweetbox ? 92 : 42);
+        }, 0);
+        const gapsWidth = Math.max(row.seatsDisplay.length - 1, 0) * 9;
+        const rowWidth = 24 + seatsWidth + gapsWidth + 10;
+        return Math.max(maxWidth, rowWidth);
+    }, 620);
+
+    const clampedWidth = Math.min(Math.max(maxRowWidth, 620), 1120);
+    return {
+        "--seat-area-width": `${clampedWidth}px`,
+    };
+});
+
+const extractSeatOrder = (seat) => {
+    const match = String(seat.seatNumber || "").match(/\d+/);
+    return match ? parseInt(match[0], 10) : 0;
+};
 
 // Tổng tiền
 const totalPrice = computed(() => {
@@ -303,16 +356,16 @@ const totalPrice = computed(() => {
     if (basePrice === 0) return 0;
 
     // Định nghĩa các mức phụ thu
-    const VIP_SURCHARGE = 20000; // Phụ thu cho ghế VIP
+    const VIP_SURCHARGE = 10000; // Phụ thu cho ghế VIP
 
     return selectedSeats.value
         .map((id) => seats.value.find((s) => s.seatId === id))
         .filter(Boolean)
         .reduce((sum, seat) => {
             let seatPrice = basePrice;
-            if (seat.type === "VIP") {
+            if (seat.type === "VIP" || seat.seatType === "VIP") {
                 seatPrice += VIP_SURCHARGE;
-            } else if (seat.type === "SWEETBOX") {
+            } else if (seat.type === "SWEETBOX" || seat.seatType === "SWEETBOX") {
                 // Ghế đôi thường có giá gấp đôi
                 seatPrice = basePrice * 2;
             }
@@ -388,12 +441,6 @@ const formatDate = (d) =>
 
 const formatTime = (time) => (time ? time.split("T")[1].substring(0, 5) : "");
 
-// Check if seat is in sweetbox row (usually row M)
-const isInSweetboxRow = (seat) => {
-    const rowLetter = seat.seatNumber.charAt(0);
-    return rowLetter === "M" || seat.seatType === "SWEETBOX" || seat.type === "SWEETBOX";
-};
-
 // Xác nhận đặt vé + thanh toán VNPay
 const confirmBooking = async () => {
     if (selectedSeats.value.length === 0) {
@@ -467,15 +514,15 @@ const confirmBooking = async () => {
 <style scoped>
 /* Global styling */
 .seat-map-page {
-    background: #f5f5f5;
-    color: #333;
     min-height: 100vh;
+    background: var(--bg-page);
+    color: var(--text-primary);
 }
 
 .container {
-    max-width: 1200px;
+    max-width: 1280px;
     margin: 0 auto;
-    padding: 0 2rem;
+    padding: 0 1.2rem;
 }
 
 /* Loading */
@@ -495,61 +542,60 @@ const confirmBooking = async () => {
 }
 
 .loading-text {
-    color: #666;
+    color: var(--text-secondary);
     font-size: 1rem;
 }
 
-/* Movie info card */
-.movie-info-card {
-    background: #fff;
-    border: 1px solid #e6e6e6;
-    border-radius: 16px;
-    padding: 2rem;
-    margin-bottom: 2rem;
+/* Auditorium panel */
+.auditorium-panel {
+    background: #fff7f3;
+    border: 1px solid #f1ddd5;
+    border-radius: 20px;
+    padding: 2rem 1rem 1.5rem;
+    box-shadow: 0 16px 36px rgba(17, 22, 45, 0.12);
+}
+
+.seat-map-header {
     text-align: center;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    margin-bottom: 1.2rem;
 }
 
-.movie-title {
-    font-size: 2rem;
-    font-weight: 700;
+.seat-map-title {
+    font-size: clamp(1.5rem, 2.3vw, 2.25rem);
+    margin: 0;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
     color: #2f2f2f;
-    margin-bottom: 1.5rem;
+    font-weight: 900;
 }
 
-.movie-details {
-    display: flex;
-    justify-content: center;
-    gap: 2rem;
-    flex-wrap: wrap;
-}
-
-.detail-item {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: #666;
-    font-size: 1rem;
-}
-
-.detail-icon {
-    font-size: 1.2rem;
+.seat-map-subtitle {
+    margin-top: 0.65rem;
+    color: #6f6f6f;
+    font-size: 0.95rem;
 }
 
 /* Screen */
-.screen {
-    background: linear-gradient(135deg, #ff6b35, #ff8a5f);
-    color: #fff;
+.screen-curve-wrap {
+    margin: 0 auto 1.2rem;
+    width: min(var(--seat-area-width), 100%);
     text-align: center;
-    padding: 1rem;
-    margin: 2rem auto;
-    border-radius: 12px;
-    font-size: 1.2rem;
-    font-weight: 700;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.25);
-    max-width: 400px;
+}
+
+.screen-curve {
+    height: 52px;
+    border-top: 7px solid #e7eaef;
+    border-radius: 50% / 100% 100% 0 0;
+    opacity: 0.96;
+    box-shadow: 0 -6px 18px rgba(101, 115, 139, 0.22);
+}
+
+.screen-label {
+    margin-top: -18px;
+    font-size: 1.7rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: #2f2f2f;
 }
 
 /* Seat grid */
@@ -557,185 +603,201 @@ const confirmBooking = async () => {
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-bottom: 2rem;
+    margin: 0 auto 1rem;
+    width: min(var(--seat-area-width), 100%);
 }
 
 .seat-row {
     display: flex;
-    gap: 4px;
-    margin-bottom: 8px;
+    align-items: center;
     justify-content: center;
-    max-width: 600px;
+    gap: 0.75rem;
+    width: 100%;
+    margin-bottom: 0.55rem;
 }
 
-/* Sweetbox row - wider and closer spacing */
-.seat-row:has(.seat-sweetbox-row) {
-    gap: 2px;
-    max-width: 700px;
+.row-label {
+    width: 24px;
+    text-align: center;
+    color: #333333;
+    font-weight: 800;
+    font-size: 1.05rem;
+    flex-shrink: 0;
+}
+
+.row-seats {
+    display: grid;
+    grid-template-columns: repeat(16, 52px);
+    gap: 0.55rem;
+    justify-content: center;
+}
+
+.row-seats.row-seats-sweetbox {
+    grid-template-columns: repeat(8, 110px);
 }
 
 .seat {
-    width: 40px;
-    height: 40px;
-    line-height: 40px;
+    width: 52px;
+    min-width: 52px;
+    height: 30px;
+    padding: 0;
+    line-height: 30px;
     text-align: center;
-    border-radius: 8px;
-    font-size: 12px;
-    font-weight: 600;
+    border-radius: 7px;
+    font-size: 0.9rem;
+    font-weight: 800;
     cursor: pointer;
-    transition: all 0.3s ease;
-    background: #fff;
-    color: #444;
-    border: 1px solid #d7d7d7;
+    transition: all 0.22s ease;
+    background: #ffffff;
+    color: #30405f;
+    border: 1.5px solid #cfd8ea;
+    letter-spacing: 0.01em;
+}
+
+.seat-placeholder {
+    background: #f4f6fb;
+    border: 1px dashed #cfd6e4;
+    color: #9aa8bf;
+    box-shadow: none;
+    cursor: default;
+    pointer-events: none;
+    opacity: 0.85;
 }
 
 .seat:hover:not(.seat-booked) {
-    transform: scale(1.1);
-    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.25);
+    transform: translateY(-2px);
+    box-shadow: 0 7px 14px rgba(255, 107, 53, 0.24);
 }
 
 .seat-vip {
-    background: linear-gradient(135deg, #9c27b0, #e91e63);
-    border-color: #9c27b0;
+    background: linear-gradient(135deg, #f5edff 0%, #ece0ff 100%);
+    border: 2px solid #8e66ff;
+    color: #4b2acb;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.55);
 }
 
 .seat-sweetbox {
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    border-color: #667eea;
-    box-shadow: 0 0 8px rgba(102, 126, 234, 0.3);
-}
-
-/* Sweetbox row styling - make them look connected like CGV */
-.seat-sweetbox-row {
-    border-radius: 6px;
-    margin: 0 1px;
-    position: relative;
-    overflow: hidden;
-}
-
-.seat-sweetbox-row::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent);
-    pointer-events: none;
-}
-
-/* First seat in sweetbox row */
-.seat-sweetbox-row:first-of-type {
-    border-radius: 8px 6px 6px 8px;
-    margin-left: 0;
-}
-
-/* Last seat in sweetbox row */
-.seat-sweetbox-row:last-of-type {
-    border-radius: 6px 8px 8px 6px;
-    margin-right: 0;
+    width: 110px;
+    min-width: 110px;
+    background: linear-gradient(135deg, #ffe8f2 0%, #ffd7e8 100%);
+    border: 2px solid #ff5f98;
+    border-radius: 12px;
+    color: #972857;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
 }
 
 .seat-selected {
-    background: linear-gradient(135deg, #ff6b35, #ff8a5f);
-    color: #fff;
-    border-color: #ff6b35;
-    box-shadow: 0 0 16px rgba(255, 107, 53, 0.35);
+    background: #f0e721;
+    color: #2f2f2f;
+    border-color: #f0e721;
+    box-shadow: 0 0 0 2px rgba(240, 231, 33, 0.18);
 }
 
 .seat-booked {
-    background: #666;
-    color: #d0d0d0;
+    background: #8fa2bf;
+    border-color: #8fa2bf;
+    color: #eaf0ff;
     cursor: not-allowed;
-    opacity: 0.5;
+    opacity: 0.82;
 }
 
 /* Legend */
 .seat-legend {
     display: flex;
-    justify-content: center;
-    gap: 2rem;
-    margin-bottom: 2rem;
-    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin: 1.4rem auto 0.9rem;
+    width: min(var(--seat-area-width), 100%);
+    flex-wrap: nowrap;
 }
 
 .legend-item {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    color: #555;
-    font-size: 0.9rem;
+    gap: 0.6rem;
+    color: #3c3c3c;
+    font-size: 1.05rem;
+    font-weight: 700;
+    white-space: nowrap;
 }
 
 .legend-dot {
-    width: 16px;
-    height: 16px;
-    border-radius: 4px;
+    width: 28px;
+    height: 20px;
+    border-radius: 6px;
     display: inline-block;
 }
 
 .legend-dot.seat-regular {
-    background: #fff;
-    border: 1px solid #d7d7d7;
+    background: #ffffff;
+    border: 1.5px solid #cfd8ea;
 }
 .legend-dot.seat-vip {
-    background: linear-gradient(135deg, #9c27b0, #e91e63);
+    background: linear-gradient(135deg, #f5edff 0%, #ece0ff 100%);
+    border: 2px solid #8e66ff;
 }
 .legend-dot.seat-sweetbox {
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: linear-gradient(135deg, #ffe8f2 0%, #ffd7e8 100%);
+    border: 2px solid #ff5f98;
 }
 .legend-dot.seat-selected {
-    background: linear-gradient(135deg, #ff6b35, #ff8a5f);
+    background: #f0e721;
 }
 .legend-dot.seat-booked {
-    background: #666;
+    background: #8fa2bf;
 }
 
 /* Booking summary */
 .booking-summary {
-    background: #fff;
-    border: 1px solid #e6e6e6;
-    border-radius: 16px;
-    padding: 2rem;
-    text-align: center;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    width: min(calc(var(--seat-area-width) + 120px), 100%);
+    margin: 0.4rem auto 0;
+    background: #1b2448;
+    border: 1px solid #303b6b;
+    border-radius: 14px;
+    padding: 1.15rem 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
 }
 
 .price-info {
-    margin-bottom: 1.5rem;
+    margin-bottom: 0;
 }
 
 .total-price {
-    font-size: 1.5rem;
+    font-size: 1.12rem;
     font-weight: 700;
-    margin-bottom: 0.5rem;
+    margin: 0;
+    color: #e9eeff;
 }
 
 .price {
-    color: #ff6b35;
+    color: #f0e721;
 }
 
-.loyalty-info {
-    color: #666;
-    font-size: 0.9rem;
+.selected-count {
+    color: #eef2ff;
+    font-size: 0.95rem;
+    margin-left: auto;
 }
 
 .btn-confirm {
-    background: linear-gradient(135deg, #ff6b35, #ff8a5f);
-    color: #fff;
+    background: #ff6b35;
+    color: #ffffff;
     border: none;
-    padding: 1rem 2rem;
-    border-radius: 12px;
-    font-size: 1.1rem;
+    padding: 0.78rem 1.4rem;
+    border-radius: 10px;
+    font-size: 1rem;
     font-weight: 700;
     cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.25);
+    transition: all 0.2s ease;
 }
 
 .btn-confirm:hover:not(.disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(255, 107, 53, 0.35);
+    transform: translateY(-1px);
+    background: #ff5722;
 }
 
 .btn-confirm.disabled {
@@ -746,7 +808,7 @@ const confirmBooking = async () => {
 /* Error state */
 .error-state {
     text-align: center;
-    color: #ff6b6b;
+    color: #ffb8b8;
     font-size: 1.2rem;
     padding: 3rem;
 }
@@ -924,21 +986,74 @@ const confirmBooking = async () => {
 /* Responsive */
 @media (max-width: 768px) {
     .container {
-        padding: 0 1rem;
+        padding: 0 0.6rem;
     }
 
-    .movie-details {
-        gap: 1rem;
+    .auditorium-panel {
+        padding: 1.15rem 0.75rem 1rem;
+        border-radius: 14px;
     }
 
-    .seat-legend {
-        gap: 1rem;
+    .seat-map-title {
+        font-size: 1.35rem;
+    }
+
+    .screen-curve {
+        height: 42px;
+        border-top-width: 5px;
+    }
+
+    .screen-label {
+        font-size: 1.3rem;
+        margin-top: -14px;
     }
 
     .seat {
-        width: 35px;
-        height: 35px;
-        line-height: 35px;
+        width: 34px;
+        min-width: 34px;
+        height: 28px;
+        line-height: 28px;
+        font-size: 0.78rem;
+        padding: 0;
+    }
+
+    .seat-sweetbox {
+        width: 76px;
+        min-width: 76px;
+    }
+
+    .row-seats {
+        grid-template-columns: repeat(8, 34px);
+        gap: 0.32rem;
+    }
+
+    .row-seats.row-seats-sweetbox {
+        grid-template-columns: repeat(4, 76px);
+    }
+
+    .seat-legend {
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .legend-item {
+        font-size: 0.86rem;
+    }
+
+    .legend-dot {
+        width: 22px;
+        height: 16px;
+    }
+
+    .booking-summary {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+
+    .selected-count {
+        margin-left: 0;
     }
 }
 </style>

@@ -76,43 +76,24 @@ export const useAuthStore = defineStore("auth", {
             }
         },
 
-        async register(userData) {
+        async sendRegisterOtp(userData) {
             try {
-                console.log("Đang register với:", userData.email);
-
-                // Bước 1: Đăng ký tài khoản
-                const registerResponse = await api.post("/auth/register", userData);
-                console.log("Register response từ server:", registerResponse.data);
-
-                const { message } = registerResponse.data;
-
-                // Kiểm tra đăng ký thành công
-                const successMessages = ["OK", "Đăng ký thành công!"];
-                if (!successMessages.includes(message)) {
-                    throw new Error(message || "Đăng ký thất bại");
-                }
-
-                console.log("Đăng ký thành công, đang tự động đăng nhập...");
-
-                // Bước 2: Tự động đăng nhập để lấy token
-                await this.login({
-                    identifier: userData.email,
-                    password: userData.password,
-                });
-
-                console.log("Đăng ký và đăng nhập thành công!");
+                console.log("Gửi OTP đăng ký cho:", userData.email);
+                const response = await api.post("/auth/register/send-otp", userData);
+                return response.data;
             } catch (error) {
-                console.error("Register thất bại:", error);
+                console.error("Gửi OTP thất bại:", error);
+                throw error;
+            }
+        },
 
-                // Reset state khi lỗi
-                this.token = null;
-                this.role = null;
-                this.username = null;
-                this.fullName = null;
-                this.userId = null;
-
-                // Throw error để RegisterView.vue xử lý
-                localStorage.clear();
+        async verifyRegisterOtp(email, otp) {
+            try {
+                console.log("Xác thực OTP cho:", email);
+                const response = await api.post("/auth/register/verify-otp", { email, otp });
+                return response.data;
+            } catch (error) {
+                console.error("Xác thực OTP thất bại:", error);
                 throw error;
             }
         },

@@ -13,10 +13,7 @@
 
             <!-- Page Header -->
             <div class="page-header text-center mb-5">
-                <h1 class="page-title">
-                    <i class="bi bi-ticket-perforated-fill me-3"></i>
-                    Chi tiết vé xem phim
-                </h1>
+                <h1 class="page-title">Chi tiết vé xem phim</h1>
                 <p class="page-subtitle">Thông tin chi tiết về vé đã đặt</p>
             </div>
 

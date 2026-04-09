@@ -29,6 +29,18 @@ api.interceptors.response.use(
     (err) => {
         if (err.response?.status === 401) {
             const errorData = err.response?.data;
+            const requestUrl = err.config?.url || '';
+            const token = localStorage.getItem('token');
+            const isPublicAuthRequest =
+                requestUrl.includes('/auth/login') ||
+                requestUrl.includes('/auth/register') ||
+                requestUrl.includes('/auth/register/send-otp') ||
+                requestUrl.includes('/auth/register/verify-otp');
+
+            // 401 ở endpoint public (chưa đăng nhập) thì trả lỗi về cho UI tự xử lý
+            if (!token || isPublicAuthRequest) {
+                return Promise.reject(err);
+            }
             
             // Kiểm tra nếu là lỗi concurrent login
             if (errorData?.code === 'CONCURRENT_LOGIN') {
