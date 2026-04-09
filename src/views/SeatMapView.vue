@@ -2,6 +2,13 @@
     <div class="seat-map-page">
         <AppHeader />
 
+        <div class="progress-tabs">
+            <div class="tab active">Chọn ghế</div>
+            <div class="tab">Chọn thức ăn</div>
+            <div class="tab">Thanh toán</div>
+            <div class="tab">Xác nhận</div>
+        </div>
+
         <div class="container py-5">
             <!-- Loading -->
             <div v-if="loading" class="text-center mt-5 py-5">
@@ -161,6 +168,7 @@ const router = useRouter();
 const auth = useAuthStore();
 const movieId = route.params.movieId;
 const showtimeId = route.params.showtimeId;
+const DEBUG_HOLD_DURATION_MS = 60 * 1000; // 1 minute for local debugging
 
 // State cho modal SĐT
 const showPhoneModal = ref(false);
@@ -203,7 +211,7 @@ const openPhoneModal = async () => {
             totalPrice: totalPrice.value,
             showtimeId: showtimeId,
             movieId: movieId,
-            expiryTime: new Date().getTime() + 10 * 60 * 1000, // Backend giữ ghế 10 phút (600 seconds)
+            expiryTime: new Date().getTime() + DEBUG_HOLD_DURATION_MS,
         };
         sessionStorage.setItem("tempBookingData", JSON.stringify(bookingData));
 
@@ -517,6 +525,71 @@ const confirmBooking = async () => {
     min-height: 100vh;
     background: var(--bg-page);
     color: var(--text-primary);
+}
+
+.progress-tabs {
+    background: #fff;
+    display: flex;
+    justify-content: space-between;
+    padding: 1rem 0;
+    border-bottom: 1px solid #e0e0e0;
+    position: relative;
+}
+
+.progress-tabs::before {
+    content: "";
+    position: absolute;
+    left: 2rem;
+    right: 2rem;
+    bottom: 0;
+    height: 3px;
+    background: #d8e4f1;
+    border-radius: 2px;
+}
+
+.tab {
+    flex: 1;
+    text-align: center;
+    padding: 0.75rem 1.5rem;
+    color: #999;
+    font-weight: 500;
+    position: relative;
+}
+
+.tab::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -1rem;
+    width: 100%;
+    height: 3px;
+    background: transparent;
+    border-radius: 2px;
+    transition: background-color 0.2s ease;
+    z-index: 1;
+}
+
+.tab:first-child::after {
+    left: 1rem;
+    width: calc(100% - 1rem);
+}
+
+.tab.completed {
+    color: #1f4f8a;
+    font-weight: 600;
+}
+
+.tab.completed::after {
+    background: #7aa9dd;
+}
+
+.tab.active {
+    color: #0056b3;
+    font-weight: 700;
+}
+
+.tab.active::after {
+    background: #0056b3;
 }
 
 .container {
@@ -985,6 +1058,19 @@ const confirmBooking = async () => {
 
 /* Responsive */
 @media (max-width: 768px) {
+    .progress-tabs {
+        font-size: 0.85rem;
+        gap: 0;
+        overflow-x: auto;
+        justify-content: flex-start;
+        padding: 1rem;
+    }
+
+    .tab {
+        padding: 0.5rem 0.75rem;
+        white-space: nowrap;
+    }
+
     .container {
         padding: 0 0.6rem;
     }

@@ -1,8 +1,9 @@
 <template>
     <div class="snack-selection-page">
+        <AppHeader />
+
         <!-- Progress Tabs -->
         <div class="progress-tabs">
-            <div class="tab completed">Chọn phim / Rạp / Suất</div>
             <div class="tab completed">Chọn ghế</div>
             <div class="tab active">Chọn thức ăn</div>
             <div class="tab">Thanh toán</div>
@@ -102,8 +103,10 @@
 </template>
 
 <script setup>
+import AppHeader from "@/components/AppHeader.vue";
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
+import Swal from "sweetalert2";
 import api from "../api.js";
 
 const router = useRouter();
@@ -111,6 +114,7 @@ const route = useRoute();
 
 const movieId = route.params.movieId;
 const showtimeId = route.params.showtimeId;
+const DEBUG_HOLD_DURATION_MS = 60 * 1000; // 1 minute for local debugging
 
 const movie = ref(null);
 const showtime = ref(null);
@@ -166,7 +170,7 @@ onMounted(async () => {
         loading.value = false;
 
         // Calculate remaining time based on expiryTime from backend
-        const expiryTime = bookingData.expiryTime || new Date().getTime() + 10 * 60 * 1000; // Default 10 minutes
+        const expiryTime = bookingData.expiryTime || new Date().getTime() + DEBUG_HOLD_DURATION_MS;
         const remainingSeconds = Math.max(0, Math.floor((expiryTime - new Date().getTime()) / 1000));
 
         startTimer(remainingSeconds);
@@ -268,15 +272,30 @@ const proceedToPayment = () => {
     router.push(`/booking/${movieId}/seats/${showtimeId}/payment`);
 };
 
+const showSeatHoldExpiredAlert = async () => {
+    await Swal.fire({
+        icon: "warning",
+        title: "Hết thời gian giữ ghế",
+        text: "Thời gian giữ ghế đã kết thúc. Vui lòng đặt vé lại.",
+        confirmButtonText: "Quay về trang chủ",
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        customClass: {
+            confirmButton: "btn btn-warning px-4",
+        },
+        buttonsStyling: false,
+    });
+};
+
 const startTimer = (seconds) => {
     let remaining = seconds;
     updateTimerDisplay(remaining);
 
-    timerInterval = setInterval(() => {
+    timerInterval = setInterval(async () => {
         remaining--;
         if (remaining <= 0) {
             clearInterval(timerInterval);
-            alert("Hết thời gian giữ ghế!");
+            await showSeatHoldExpiredAlert();
             router.push("/");
         } else {
             updateTimerDisplay(remaining);
@@ -332,27 +351,66 @@ const formatShortDate = (dateTime) => {
 .progress-tabs {
     background: white;
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
     padding: 1rem 0;
     border-bottom: 1px solid #e0e0e0;
-    gap: 2rem;
+    position: relative;
+}
+
+.progress-tabs::before {
+    content: "";
+    position: absolute;
+    left: 2rem;
+    right: 2rem;
+    bottom: 0;
+    height: 3px;
+    background: #d8e4f1;
+    border-radius: 2px;
 }
 
 .tab {
+    flex: 1;
+    text-align: center;
     padding: 0.75rem 1.5rem;
     color: #999;
     font-weight: 500;
     position: relative;
 }
 
+.tab::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -1rem;
+    width: 100%;
+    height: 3px;
+    background: transparent;
+    border-radius: 2px;
+    transition: background-color 0.2s ease;
+    z-index: 1;
+}
+
+.tab:first-child::after {
+    left: 1rem;
+    width: calc(100% - 1rem);
+}
+
 .tab.completed {
-    color: #666;
+    color: #1f4f8a;
+    font-weight: 600;
+}
+
+.tab.completed::after {
+    background: #7aa9dd;
 }
 
 .tab.active {
     color: #0056b3;
-    border-bottom: 3px solid #0056b3;
-    font-weight: 600;
+    font-weight: 700;
+}
+
+.tab.active::after {
+    background: #0056b3;
 }
 
 /* Main Content */
@@ -648,7 +706,7 @@ const formatShortDate = (dateTime) => {
 @media (max-width: 768px) {
     .progress-tabs {
         font-size: 0.85rem;
-        gap: 0.5rem;
+        gap: 0;
     }
 
     .tab {
