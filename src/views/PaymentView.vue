@@ -49,7 +49,7 @@
                                 <button @click="useMaxPoints" class="btn-max">Dùng tối đa</button>
                             </div>
                             <p v-if="pointsToUse > 0" class="discount-preview">
-                                💰 Giảm giá: <strong>{{ formatCurrency(pointsToUse * 1000) }}</strong>
+                                Giảm giá: <strong>{{ formatCurrency(pointsToUse * 1000) }}</strong>
                             </p>
                         </div>
                     </div>
@@ -61,11 +61,7 @@
                             Phương thức thanh toán
                         </h3>
                         <div class="payment-method-box">
-                            <img
-                                src="https://upload.wikimedia.org/wikipedia/vi/f/fe/MoMo_Logo.png"
-                                alt="VNPay"
-                                class="payment-logo"
-                            />
+                            <img :src="vnpayLogo" alt="VNPay" class="payment-logo" />
                             <div class="payment-info">
                                 <h4>VNPay</h4>
                                 <p>Thanh toán qua cổng VNPay</p>
@@ -147,6 +143,7 @@ import { useRouter, useRoute } from "vue-router";
 import { useAuthStore } from "@/stores/auth.store";
 import Swal from "sweetalert2";
 import api from "../api.js";
+import vnpayLogo from "@/assets/vnpay-logo.png";
 
 const router = useRouter();
 const route = useRoute();
@@ -154,7 +151,7 @@ const auth = useAuthStore();
 
 const movieId = route.params.movieId;
 const showtimeId = route.params.showtimeId;
-const DEBUG_HOLD_DURATION_MS = 60 * 1000; // 1 minute for local debugging
+const DEBUG_HOLD_DURATION_MS = 10 * 60 * 1000; // Default 10 minutes
 
 const loading = ref(true);
 const processing = ref(false);
@@ -175,6 +172,7 @@ onMounted(async () => {
     try {
         // Get booking data from sessionStorage
         const bookingData = JSON.parse(sessionStorage.getItem("tempBookingData") || "{}");
+        const bookingFlowKey = bookingData.bookingFlowKey || `${movieId}_${showtimeId}_${bookingData.expiryTime || ""}`;
 
         if (!bookingData.selectedSeats || bookingData.selectedSeats.length === 0) {
             alert("Không tìm thấy thông tin đặt vé.");
@@ -187,9 +185,15 @@ onMounted(async () => {
 
         // Get snacks if any
         const snacksData = sessionStorage.getItem("selectedSnacks");
-        if (snacksData) {
+        const savedSnacksFlowKey = sessionStorage.getItem("selectedSnacksFlowKey");
+        if (snacksData && savedSnacksFlowKey === bookingFlowKey) {
             selectedSnacks.value = JSON.parse(snacksData);
             snackTotal.value = selectedSnacks.value.reduce((total, snack) => total + snack.price * snack.quantity, 0);
+        } else {
+            selectedSnacks.value = [];
+            snackTotal.value = 0;
+            sessionStorage.removeItem("selectedSnacks");
+            sessionStorage.removeItem("selectedSnacksFlowKey");
         }
 
         // Load movie and showtime info
@@ -607,13 +611,13 @@ const formatShortDate = (dateTime) => {
 }
 
 .payment-logo {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
+    width: 88px;
+    height: 32px;
+    border-radius: 8px;
     object-fit: contain;
     background: #fff;
     border: 1px solid #ececec;
-    padding: 0.3rem;
+    padding: 0.15rem 0.35rem;
 }
 
 .payment-info h4 {

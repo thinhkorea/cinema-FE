@@ -161,6 +161,7 @@ import { ref, onMounted, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import api from "@/api";
 import { useAuthStore } from "@/stores/auth.store";
+import Swal from "sweetalert2";
 
 const route = useRoute();
 const router = useRouter();
@@ -168,7 +169,23 @@ const router = useRouter();
 const auth = useAuthStore();
 const movieId = route.params.movieId;
 const showtimeId = route.params.showtimeId;
-const DEBUG_HOLD_DURATION_MS = 60 * 1000; // 1 minute for local debugging
+const DEBUG_HOLD_DURATION_MS = 10 * 60 * 1000; // Default 10 minutes
+
+const showCinemaAlert = ({ icon = "info", title, text, confirmButtonText = "Đã hiểu" }) => {
+    return Swal.fire({
+        icon,
+        title,
+        text,
+        confirmButtonText,
+        customClass: {
+            popup: "cinema-alert-popup",
+            title: "cinema-alert-title",
+            htmlContainer: "cinema-alert-text",
+            confirmButton: "cinema-alert-confirm",
+        },
+        buttonsStyling: false,
+    });
+};
 
 // State cho modal SĐT
 const showPhoneModal = ref(false);
@@ -179,7 +196,11 @@ const pointsRedeemed = ref(0);
 
 const openPhoneModal = async () => {
     if (selectedSeats.value.length === 0) {
-        alert("Vui lòng chọn ghế!");
+        await showCinemaAlert({
+            icon: "warning",
+            title: "Bạn chưa chọn ghế",
+            text: "Vui lòng chọn ít nhất 1 ghế trước khi tiếp tục.",
+        });
         return;
     }
 
@@ -202,16 +223,27 @@ const openPhoneModal = async () => {
             .filter(Boolean); // Remove any null entries
 
         if (selectedSeatDetails.length === 0) {
-            alert("Lỗi: Không thể lấy thông tin ghế. Vui lòng thử lại!");
+            await showCinemaAlert({
+                icon: "error",
+                title: "Không đọc được thông tin ghế",
+                text: "Vui lòng tải lại trang và thử chọn ghế lại.",
+            });
             return;
         }
+
+        const expiryTime = new Date().getTime() + DEBUG_HOLD_DURATION_MS;
+        const bookingFlowKey = `${movieId}_${showtimeId}_${selectedSeatDetails
+            .map((seat) => seat.seatId)
+            .sort()
+            .join("-")}_${expiryTime}`;
 
         const bookingData = {
             selectedSeats: selectedSeatDetails,
             totalPrice: totalPrice.value,
             showtimeId: showtimeId,
             movieId: movieId,
-            expiryTime: new Date().getTime() + DEBUG_HOLD_DURATION_MS,
+            expiryTime,
+            bookingFlowKey,
         };
         sessionStorage.setItem("tempBookingData", JSON.stringify(bookingData));
 
@@ -219,7 +251,11 @@ const openPhoneModal = async () => {
         router.push(`/booking/${movieId}/seats/${showtimeId}/snacks`);
     } catch (error) {
         console.error("Lỗi khi xác nhận đặt vé:", error);
-        alert("Có lỗi xảy ra. Vui lòng thử lại!");
+        await showCinemaAlert({
+            icon: "error",
+            title: "Đã xảy ra lỗi",
+            text: "Không thể chuyển sang bước tiếp theo. Vui lòng thử lại.",
+        });
     }
 };
 const closePhoneModal = () => {
@@ -358,6 +394,60 @@ const extractSeatOrder = (seat) => {
     return match ? parseInt(match[0], 10) : 0;
 };
 
+const extractSeatRow = (seat) => {
+    const match = String(seat.seatNumber || "").match(/^([A-Za-z]+)/);
+    return match ? match[1].toUpperCase() : "";
+};
+
+const getSelectionValidationError = (nextSelectedIds) => {
+    if (nextSelectedIds.length > 5) {
+        return "Mỗi lần đặt chỉ tối đa 5 ghế. Vui lòng bỏ bớt ghế để tiếp tục.";
+    }
+
+    const selectedSeatObjects = nextSelectedIds.map((id) => seats.value.find((s) => s.seatId === id)).filter(Boolean);
+    if (selectedSeatObjects.length === 0) {
+        return "";
+    }
+
+    const rows = [...new Set(selectedSeatObjects.map(extractSeatRow))];
+    if (rows.length !== 1) {
+        return "Bạn chỉ có thể chọn ghế trong cùng một hàng (ví dụ chỉ hàng D).";
+    }
+
+    const orders = selectedSeatObjects
+        .map(extractSeatOrder)
+        .filter((n) => n > 0)
+        .sort((a, b) => a - b);
+
+    for (let i = 1; i < orders.length; i++) {
+        if (orders[i] - orders[i - 1] !== 1) {
+            return "Ghế cần liền kề nhau. Ví dụ hợp lệ: D1-D2 hoặc D2-D3.";
+        }
+    }
+
+    const selectedOrderSet = new Set(orders);
+    const rowLabel = rows[0];
+    const bookedOrders = new Set(
+        seats.value
+            .filter((s) => s.booked && extractSeatRow(s) === rowLabel)
+            .map(extractSeatOrder)
+            .filter((n) => n > 0),
+    );
+
+    for (const bookedOrder of bookedOrders) {
+        for (const selectedOrder of selectedOrderSet) {
+            if (Math.abs(bookedOrder - selectedOrder) === 2) {
+                const middle = (bookedOrder + selectedOrder) / 2;
+                if (!bookedOrders.has(middle) && !selectedOrderSet.has(middle)) {
+                    return "Không thể để trống 1 ghế lẻ giữa ghế đã đặt và ghế bạn chọn.";
+                }
+            }
+        }
+    }
+
+    return "";
+};
+
 // Tổng tiền
 const totalPrice = computed(() => {
     const basePrice = showtime.value?.price || 0;
@@ -399,13 +489,15 @@ const getSeatPrice = (seat) => {
 const toggleSeat = (seat) => {
     if (seat.booked) return;
 
+    const nextSelectedIds = [...selectedSeats.value];
+
     // Logic đặc biệt cho ghế Sweetbox
     if (seat.type === "SWEETBOX" || seat.seatType === "SWEETBOX") {
-        const index = selectedSeats.value.indexOf(seat.seatId);
+        const index = nextSelectedIds.indexOf(seat.seatId);
 
         if (index !== -1) {
             // Bỏ chọn ghế Sweetbox - bỏ chọn cả cặp
-            selectedSeats.value.splice(index, 1);
+            nextSelectedIds.splice(index, 1);
 
             // Tìm ghế cặp (cùng originalSweetboxId) và bỏ chọn luôn
             const pairSeat = seats.value.find(
@@ -413,34 +505,47 @@ const toggleSeat = (seat) => {
             );
 
             if (pairSeat) {
-                const pairIndex = selectedSeats.value.indexOf(pairSeat.seatId);
+                const pairIndex = nextSelectedIds.indexOf(pairSeat.seatId);
                 if (pairIndex !== -1) {
-                    selectedSeats.value.splice(pairIndex, 1);
+                    nextSelectedIds.splice(pairIndex, 1);
                 }
             }
 
             console.log(`Bỏ chọn ghế Sweetbox: ${seat.seatNumber} và ghế cặp`);
         } else {
             // Chọn ghế Sweetbox - chọn cả cặp
-            selectedSeats.value.push(seat.seatId);
+            nextSelectedIds.push(seat.seatId);
 
             // Tìm ghế cặp (cùng originalSweetboxId) và chọn luôn
             const pairSeat = seats.value.find(
                 (s) => s.originalSweetboxId === seat.originalSweetboxId && s.seatId !== seat.seatId && !s.booked,
             );
 
-            if (pairSeat && !selectedSeats.value.includes(pairSeat.seatId)) {
-                selectedSeats.value.push(pairSeat.seatId);
+            if (pairSeat && !nextSelectedIds.includes(pairSeat.seatId)) {
+                nextSelectedIds.push(pairSeat.seatId);
             }
 
             console.log(`Chọn ghế Sweetbox: ${seat.seatNumber} và ghế cặp`);
         }
     } else {
         // Logic thường cho ghế Regular và VIP
-        const index = selectedSeats.value.indexOf(seat.seatId);
-        if (index !== -1) selectedSeats.value.splice(index, 1);
-        else selectedSeats.value.push(seat.seatId);
+        const index = nextSelectedIds.indexOf(seat.seatId);
+        if (index !== -1) nextSelectedIds.splice(index, 1);
+        else nextSelectedIds.push(seat.seatId);
     }
+
+    const validationError = getSelectionValidationError(nextSelectedIds);
+    if (validationError) {
+        showCinemaAlert({
+            icon: "warning",
+            title: "Không thể chọn ghế này",
+            text: validationError,
+            confirmButtonText: "Chọn lại",
+        });
+        return;
+    }
+
+    selectedSeats.value = nextSelectedIds;
 };
 
 // Format ngày & giờ
@@ -452,13 +557,22 @@ const formatTime = (time) => (time ? time.split("T")[1].substring(0, 5) : "");
 // Xác nhận đặt vé + thanh toán VNPay
 const confirmBooking = async () => {
     if (selectedSeats.value.length === 0) {
-        alert("Vui lòng chọn ghế!");
+        await showCinemaAlert({
+            icon: "warning",
+            title: "Bạn chưa chọn ghế",
+            text: "Vui lòng chọn ghế trước khi thanh toán.",
+        });
         return;
     }
 
     // Kiểm tra xem người dùng đã đăng nhập chưa
     if (!auth.isAuthenticated) {
-        alert("Bạn cần đăng nhập để có thể đặt vé!");
+        await showCinemaAlert({
+            icon: "info",
+            title: "Cần đăng nhập",
+            text: "Bạn cần đăng nhập để tiếp tục đặt vé.",
+            confirmButtonText: "Đến trang đăng nhập",
+        });
         router.push("/login"); // Chuyển hướng đến trang đăng nhập
         return;
     }
@@ -514,7 +628,11 @@ const confirmBooking = async () => {
         window.location.href = paymentUrl;
     } catch (err) {
         console.error("Lỗi thanh toán:", err);
-        alert("Không thể khởi tạo thanh toán!");
+        await showCinemaAlert({
+            icon: "error",
+            title: "Không thể khởi tạo thanh toán",
+            text: "Vui lòng thử lại sau ít phút.",
+        });
     }
 };
 </script>
@@ -1054,6 +1172,38 @@ const confirmBooking = async () => {
 .btn-primary:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+}
+
+:deep(.cinema-alert-popup) {
+    border-radius: 16px;
+    border: 1px solid #ffd8ca;
+    box-shadow: 0 14px 30px rgba(255, 107, 53, 0.2);
+}
+
+:deep(.cinema-alert-title) {
+    color: #2f2f2f;
+    font-weight: 800;
+}
+
+:deep(.cinema-alert-text) {
+    color: #666666;
+    font-size: 0.98rem;
+}
+
+:deep(.cinema-alert-confirm) {
+    background: linear-gradient(135deg, #ff6b35, #ff8a5f);
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+    font-weight: 700;
+    padding: 0.62rem 1.2rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+:deep(.cinema-alert-confirm:hover) {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px rgba(255, 107, 53, 0.3);
 }
 
 /* Responsive */

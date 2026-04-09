@@ -8,7 +8,7 @@
                 <div class="text-center mb-5">
                     <div class="logo-icon mb-3">
                         <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <rect width="48" height="48" rx="12" fill="#0066ff" />
+                            <rect width="48" height="48" rx="12" fill="#ff6b35" />
                             <path d="M24 10L34 24L24 38L14 24L24 10Z" fill="white" />
                         </svg>
                     </div>
@@ -31,7 +31,7 @@
                                     >
                                         <path
                                             d="M10 10C12.21 10 14 8.21 14 6C14 3.79 12.21 2 10 2C7.79 2 6 3.79 6 6C6 8.21 7.79 10 10 10ZM10 12C7.67 12 3 13.17 3 15.5V17C3 17.55 3.45 18 4 18H16C16.55 18 17 17.55 17 17V15.5C17 13.17 12.33 12 10 12Z"
-                                            fill="#0066ff"
+                                            fill="#ff6b35"
                                         />
                                     </svg>
                                 </span>
@@ -59,7 +59,7 @@
                                     >
                                         <path
                                             d="M10 0C4.48 0 0 4.48 0 10C0 15.52 4.48 20 10 20C15.52 20 20 15.52 20 10C20 4.48 15.52 0 10 0ZM10 3C11.66 3 13 4.34 13 6C13 7.66 11.66 9 10 9C8.34 9 7 7.66 7 6C7 4.34 8.34 3 10 3ZM10 17.2C7.5 17.2 5.29 15.92 4 13.98C4.02 11.99 8 11 10 11C11.99 11 15.97 11.99 16 13.98C14.71 15.92 12.5 17.2 10 17.2Z"
-                                            fill="#0066ff"
+                                            fill="#ff6b35"
                                         />
                                     </svg>
                                 </span>
@@ -198,7 +198,6 @@ async function handleLogin() {
         loading.value = false;
     }
 }
-
 </script>
 
 <style scoped>
@@ -208,7 +207,7 @@ async function handleLogin() {
 
 .login-container {
     min-height: 100vh;
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    background: linear-gradient(135deg, #fff7f2 0%, #ffe7dc 100%);
     position: relative;
     overflow: hidden;
     display: flex;
@@ -226,7 +225,7 @@ async function handleLogin() {
 .bg-decoration-1 {
     width: 400px;
     height: 400px;
-    background: #0066ff;
+    background: #ff6b35;
     top: -100px;
     right: -100px;
     animation: float 6s ease-in-out infinite;
@@ -235,7 +234,7 @@ async function handleLogin() {
 .bg-decoration-2 {
     width: 300px;
     height: 300px;
-    background: #00d4ff;
+    background: #ffb38f;
     bottom: -50px;
     left: -50px;
     animation: float 8s ease-in-out infinite reverse;
@@ -335,7 +334,7 @@ async function handleLogin() {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #0066ff;
+    color: #ff6b35;
     pointer-events: none;
 }
 
@@ -350,8 +349,8 @@ async function handleLogin() {
 }
 
 .form-control-lg:focus {
-    border-color: #0066ff;
-    box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.1);
+    border-color: #ff6b35;
+    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.12);
     outline: none;
 }
 
@@ -373,7 +372,7 @@ async function handleLogin() {
 }
 
 .toggle-password:hover {
-    color: #0066ff;
+    color: #ff6b35;
 }
 
 .form-check-input {
@@ -384,12 +383,12 @@ async function handleLogin() {
 }
 
 .form-check-input:checked {
-    background-color: #0066ff;
-    border-color: #0066ff;
+    background-color: #ff6b35;
+    border-color: #ff6b35;
 }
 
 .form-check-input:focus {
-    box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.1);
+    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.12);
 }
 
 .form-check-label {
@@ -402,19 +401,19 @@ async function handleLogin() {
 
 .forgot-link {
     font-size: 14px;
-    color: #0066ff;
+    color: #ff6b35;
     text-decoration: none;
     transition: all 0.2s;
     font-weight: 500;
 }
 
 .forgot-link:hover {
-    color: #0052cc;
+    color: #ff5722;
     text-decoration: underline;
 }
 
 .btn-login {
-    background: linear-gradient(135deg, #0066ff 0%, #0052cc 100%);
+    background: linear-gradient(135deg, #ff6b35 0%, #ff5722 100%);
     border: none;
     color: white;
     border-radius: 10px;
@@ -425,7 +424,7 @@ async function handleLogin() {
 
 .btn-login:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 12px 24px rgba(0, 102, 255, 0.3);
+    box-shadow: 0 12px 24px rgba(255, 107, 53, 0.3);
 }
 
 .btn-login:active:not(:disabled) {
@@ -476,35 +475,51 @@ async function handleLogin() {
 
 .btn-social:hover {
     background: #fff;
-    border-color: #0066ff;
-    color: #0066ff;
+    border-color: #ff6b35;
+    color: #ff6b35;
 }
 
 .signup-link {
-    color: #0066ff;
+    color: #ff6b35;
     text-decoration: none;
     transition: all 0.2s;
 }
 
 .signup-link:hover {
-    color: #0052cc;
+    color: #ff5722;
     text-decoration: underline;
 }
 
 .alert {
-    border-radius: 10px;
-    border: none;
+    border-radius: 12px;
+    border: 1px solid transparent;
     font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
 }
 
 .alert-danger {
-    background: #fff5f5;
-    color: #c53030;
+    background: #fff5f2;
+    border-color: #ffd4c3;
+    color: #b6461b;
 }
 
 .alert-success {
-    background: #f0fdf4;
-    color: #166534;
+    background: #f4fff6;
+    border-color: #cbeed5;
+    color: #1f7a3f;
+}
+
+.alert .btn-close {
+    opacity: 0.65;
+    transition: opacity 0.2s ease;
+}
+
+.alert .btn-close:hover {
+    opacity: 1;
 }
 
 @media (max-width: 576px) {

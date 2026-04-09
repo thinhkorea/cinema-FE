@@ -114,7 +114,7 @@ const route = useRoute();
 
 const movieId = route.params.movieId;
 const showtimeId = route.params.showtimeId;
-const DEBUG_HOLD_DURATION_MS = 60 * 1000; // 1 minute for local debugging
+const DEBUG_HOLD_DURATION_MS = 10 * 60 * 1000; // Default 10 minutes
 
 const movie = ref(null);
 const showtime = ref(null);
@@ -131,6 +131,7 @@ let timerInterval = null;
 onMounted(async () => {
     try {
         const bookingData = JSON.parse(sessionStorage.getItem("tempBookingData") || "{}");
+        const bookingFlowKey = bookingData.bookingFlowKey || `${movieId}_${showtimeId}_${bookingData.expiryTime || ""}`;
 
         if (!bookingData.selectedSeats || bookingData.selectedSeats.length === 0) {
             alert("Không tìm thấy thông tin đặt vé. Vui lòng chọn ghế lại.");
@@ -159,12 +160,17 @@ onMounted(async () => {
         }));
 
         const savedSnacks = sessionStorage.getItem("selectedSnacks");
-        if (savedSnacks) {
+        const savedSnacksFlowKey = sessionStorage.getItem("selectedSnacksFlowKey");
+        if (savedSnacks && savedSnacksFlowKey === bookingFlowKey) {
             const snacksArray = JSON.parse(savedSnacks);
             selectedSnacks.value = snacksArray.reduce((acc, snack) => {
                 acc[snack.id] = snack.quantity;
                 return acc;
             }, {});
+        } else {
+            selectedSnacks.value = {};
+            sessionStorage.removeItem("selectedSnacks");
+            sessionStorage.removeItem("selectedSnacksFlowKey");
         }
 
         loading.value = false;
@@ -265,6 +271,8 @@ const proceedToPayment = () => {
     sessionStorage.setItem("selectedSnacks", JSON.stringify(snacksForBooking));
 
     const bookingData = JSON.parse(sessionStorage.getItem("tempBookingData") || "{}");
+    const bookingFlowKey = bookingData.bookingFlowKey || `${movieId}_${showtimeId}_${bookingData.expiryTime || ""}`;
+    sessionStorage.setItem("selectedSnacksFlowKey", bookingFlowKey);
     bookingData.snackTotal = snackTotal.value;
     bookingData.grandTotal = grandTotal.value;
     sessionStorage.setItem("tempBookingData", JSON.stringify(bookingData));

@@ -10,7 +10,7 @@
                     <div class="logo-icon mb-3">
                         <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <!-- Updated logo color from orange to blue -->
-                            <rect width="48" height="48" rx="12" fill="#0066ff" />
+                            <rect width="48" height="48" rx="12" fill="#ff6b35" />
                             <path d="M24 10L34 24L24 38L14 24L24 10Z" fill="white" />
                         </svg>
                     </div>
@@ -33,7 +33,7 @@
                                     >
                                         <path
                                             d="M10 10C12.21 10 14 8.21 14 6C14 3.79 12.21 2 10 2C7.79 2 6 3.79 6 6C6 8.21 7.79 10 10 10ZM10 12C7.67 12 3 13.17 3 15.5V17C3 17.55 3.45 18 4 18H16C16.55 18 17 17.55 17 17V15.5C17 13.17 12.33 12 10 12Z"
-                                            fill="#0066ff"
+                                            fill="#ff6b35"
                                         />
                                     </svg>
                                 </span>
@@ -60,9 +60,9 @@
                                     >
                                         <path
                                             d="M2 4H18C19.1 4 20 4.9 20 6V14C20 15.1 19.1 16 18 16H2C0.9 16 0 15.1 0 14V6C0 4.9 0.9 4 2 4Z"
-                                            fill="#0066ff"
+                                            fill="#ff6b35"
                                         />
-                                        <path d="M18 4L10 9.5L2 4" stroke="#0066ff" stroke-width="1.5" fill="none" />
+                                        <path d="M18 4L10 9.5L2 4" stroke="#ff6b35" stroke-width="1.5" fill="none" />
                                     </svg>
                                 </span>
                                 <input
@@ -88,7 +88,7 @@
                                     >
                                         <path
                                             d="M16 8H15V6C15 3.24 12.76 1 10 1C7.24 1 5 3.24 5 6V8H4C2.89 8 2 8.9 2 10V18C2 19.1 2.89 20 4 20H16C17.1 20 18 19.1 18 18V10C18 8.9 17.1 8 16 8ZM7 6C7 4.34 8.34 3 10 3C11.66 3 13 4.34 13 6V8H7V6ZM16 18H4V10H16V18Z"
-                                            fill="#0066ff"
+                                            fill="#ff6b35"
                                         />
                                     </svg>
                                 </span>
@@ -149,7 +149,7 @@
                                     >
                                         <path
                                             d="M17.45 21H16.09C7.78 20.13 2 14.36 1.13 6.05C1 5.35 1.5 4.75 2.2 4.75H6.01C6.54 4.75 7 5.15 7.1 5.68L8.65 13.34C8.76 13.88 8.52 14.42 8.03 14.7L6.47 15.6C7.89 17.75 9.85 19.41 12.36 20.54L13.46 18.87C13.76 18.39 14.31 18.14 14.86 18.25L20.5 19.8C21 19.9 21.4 20.35 21.4 20.9V24.72C21.4 25.41 20.9 26 20.2 26H20.84C9.7 24.96 2 17.27 1 6.15V4.79C1 4.09 1.5 3.5 2.2 3.5H4.01C4.54 3.5 5 3.9 5.1 4.43L6.65 12.09C6.76 12.63 6.52 13.17 6.03 13.45L4.47 14.35C5.89 16.5 7.85 18.16 10.36 19.29L11.46 17.62C11.76 17.14 12.31 16.89 12.86 17L20.5 18.55C21 18.65 21.4 19.1 21.4 19.65V23.47C21.4 24.16 20.9 24.75 20.2 24.75Z"
-                                            fill="#0066ff"
+                                            fill="#ff6b35"
                                         />
                                     </svg>
                                 </span>
@@ -176,7 +176,7 @@
                                     >
                                         <path
                                             d="M10 1C6.13 1 3 4.13 3 8C3 13.25 10 19 10 19S17 13.25 17 8C17 4.13 13.87 1 10 1ZM10 11C8.34 11 7 9.66 7 8C7 6.34 8.34 5 10 5C11.66 5 13 6.34 13 8C13 9.66 11.66 11 10 11Z"
-                                            fill="#0066ff"
+                                            fill="#ff6b35"
                                         />
                                     </svg>
                                 </span>
@@ -199,14 +199,24 @@
 
                         <div v-if="step === 'otp'" class="otp-step mb-3">
                             <p class="otp-hint mb-3">
-                                Mã OTP đã được gửi đến email <strong>{{ form.email }}</strong>. Vui lòng nhập mã để hoàn tất đăng ký.
+                                Mã OTP đã được gửi đến email <strong>{{ form.email }}</strong
+                                >. Vui lòng nhập mã để hoàn tất đăng ký.
                             </p>
                             <div class="form-group mb-2">
                                 <label class="form-label fw-600">Mã OTP</label>
                                 <div class="input-wrapper">
                                     <span class="input-icon">
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M12 2L3 7V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21 11V7L12 2Z" fill="#0066ff"/>
+                                        <svg
+                                            width="20"
+                                            height="20"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            xmlns="http://www.w3.org/2000/svg"
+                                        >
+                                            <path
+                                                d="M12 2L3 7V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21 11V7L12 2Z"
+                                                fill="#ff6b35"
+                                            />
                                         </svg>
                                     </span>
                                     <input
@@ -240,7 +250,9 @@
                         </div>
 
                         <button type="submit" class="btn btn-register w-100 fw-600 py-2 mb-3" :disabled="loading">
-                            <span v-if="!loading">{{ step === "form" ? "Gửi mã OTP" : "Xác thực OTP và đăng ký" }}</span>
+                            <span v-if="!loading">{{
+                                step === "form" ? "Gửi mã OTP" : "Xác thực OTP và đăng ký"
+                            }}</span>
                             <span v-else class="d-flex align-items-center justify-content-center">
                                 <span class="spinner-border spinner-border-sm me-2"></span>
                                 Đang xử lý...
@@ -284,6 +296,22 @@ const form = ref({
     gender: "",
 });
 
+const showAuthAlert = (title, text, icon = "info") => {
+    return Swal.fire({
+        icon,
+        title,
+        text,
+        confirmButtonText: "Đã hiểu",
+        customClass: {
+            popup: "auth-alert-popup",
+            title: "auth-alert-title",
+            htmlContainer: "auth-alert-text",
+            confirmButton: "auth-alert-confirm",
+        },
+        buttonsStyling: false,
+    });
+};
+
 const handleSubmit = async () => {
     if (step.value === "form") {
         await sendOtp();
@@ -294,7 +322,7 @@ const handleSubmit = async () => {
 
 const sendOtp = async () => {
     if (!form.value.password || !form.value.email || !form.value.phone) {
-        Swal.fire("Thiếu thông tin", "Vui lòng nhập đầy đủ thông tin!", "warning");
+        await showAuthAlert("Thiếu thông tin", "Vui lòng nhập đầy đủ thông tin!", "warning");
         return;
     }
 
@@ -303,11 +331,16 @@ const sendOtp = async () => {
         await auth.sendRegisterOtp(form.value);
         step.value = "otp";
         startOtpCooldown(30);
-        Swal.fire("OTP đã gửi", "Vui lòng kiểm tra email để lấy mã OTP.", "success");
+        await showAuthAlert("OTP đã gửi", "Vui lòng kiểm tra email để lấy mã OTP.", "success");
     } catch (err) {
         console.error("Send OTP error:", err);
-        const msg = err.response?.data?.message || err.response?.data?.error || err.response?.data || err.message || "Đăng ký thất bại, vui lòng thử lại!";
-        Swal.fire("Lỗi", msg, "error");
+        const msg =
+            err.response?.data?.message ||
+            err.response?.data?.error ||
+            err.response?.data ||
+            err.message ||
+            "Đăng ký thất bại, vui lòng thử lại!";
+        await showAuthAlert("Lỗi", msg, "error");
     } finally {
         loading.value = false;
     }
@@ -315,7 +348,7 @@ const sendOtp = async () => {
 
 const verifyOtpAndRegister = async () => {
     if (!otpCode.value || otpCode.value.length !== 6) {
-        Swal.fire("Thiếu OTP", "Vui lòng nhập đúng 6 chữ số OTP.", "warning");
+        await showAuthAlert("Thiếu OTP", "Vui lòng nhập đúng 6 chữ số OTP.", "warning");
         return;
     }
 
@@ -327,12 +360,17 @@ const verifyOtpAndRegister = async () => {
             password: form.value.password,
         });
 
-        await Swal.fire("Thành công", "Đăng ký tài khoản thành công!", "success");
+        await showAuthAlert("Thành công", "Đăng ký tài khoản thành công!", "success");
         router.push("/");
     } catch (err) {
         console.error("Verify OTP error:", err);
-        const msg = err.response?.data?.message || err.response?.data?.error || err.response?.data || err.message || "Xác thực OTP thất bại!";
-        Swal.fire("Lỗi", msg, "error");
+        const msg =
+            err.response?.data?.message ||
+            err.response?.data?.error ||
+            err.response?.data ||
+            err.message ||
+            "Xác thực OTP thất bại!";
+        await showAuthAlert("Lỗi", msg, "error");
     } finally {
         loading.value = false;
     }
@@ -371,7 +409,6 @@ onUnmounted(() => {
 function togglePassword() {
     showPassword.value = !showPassword.value;
 }
-
 </script>
 
 <style scoped>
@@ -382,7 +419,7 @@ function togglePassword() {
 /* Updated container background to light gradient matching Login v1 */
 .register-container {
     min-height: 100vh;
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    background: linear-gradient(135deg, #fff7f2 0%, #ffe7dc 100%);
     position: relative;
     overflow: hidden;
     display: flex;
@@ -401,7 +438,7 @@ function togglePassword() {
 .bg-decoration-1 {
     width: 400px;
     height: 400px;
-    background: #0066ff;
+    background: #ff6b35;
     top: -100px;
     right: -100px;
     animation: float 6s ease-in-out infinite;
@@ -410,7 +447,7 @@ function togglePassword() {
 .bg-decoration-2 {
     width: 300px;
     height: 300px;
-    background: #00d4ff;
+    background: #ffb38f;
     bottom: -50px;
     left: -50px;
     animation: float 8s ease-in-out infinite reverse;
@@ -511,7 +548,7 @@ function togglePassword() {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #0066ff;
+    color: #ff6b35;
     pointer-events: none;
 }
 
@@ -531,8 +568,8 @@ function togglePassword() {
 
 .form-control-lg:focus,
 .form-select-lg:focus {
-    border-color: #0066ff;
-    box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.1);
+    border-color: #ff6b35;
+    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.12);
     outline: none;
 }
 
@@ -563,12 +600,12 @@ function togglePassword() {
 }
 
 .toggle-password:hover {
-    color: #0066ff;
+    color: #ff6b35;
 }
 
 /* Updated button gradient to blue from orange */
 .btn-register {
-    background: linear-gradient(135deg, #0066ff 0%, #0052cc 100%);
+    background: linear-gradient(135deg, #ff6b35 0%, #ff5722 100%);
     border: none;
     color: white;
     border-radius: 10px;
@@ -579,7 +616,7 @@ function togglePassword() {
 
 .btn-register:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 12px 24px rgba(0, 102, 255, 0.3);
+    box-shadow: 0 12px 24px rgba(255, 107, 53, 0.3);
 }
 
 .btn-register:active:not(:disabled) {
@@ -630,42 +667,71 @@ function togglePassword() {
 
 .btn-social:hover {
     background: #fff;
-    border-color: #0066ff;
-    color: #0066ff;
+    border-color: #ff6b35;
+    color: #ff6b35;
 }
 
 .login-link {
-    color: #0066ff;
+    color: #ff6b35;
     text-decoration: none;
     transition: all 0.2s;
 }
 
 .login-link:hover {
-    color: #0052cc;
+    color: #ff5722;
     text-decoration: underline;
 }
 
 .otp-step {
-    background: #f4f8ff;
-    border: 1px solid #d9e7ff;
+    background: #fff7f2;
+    border: 1px solid #ffd9cc;
     border-radius: 10px;
     padding: 14px;
 }
 
 .otp-hint {
     font-size: 14px;
-    color: #2f3f59;
+    color: #6c4e3b;
     margin: 0;
 }
 
 .otp-link {
     font-size: 14px;
-    color: #0066ff;
+    color: #ff6b35;
     text-decoration: none;
 }
 
 .otp-link:disabled {
-    color: #8aa7df;
+    color: #d6a38f;
+}
+
+:deep(.auth-alert-popup) {
+    border-radius: 14px;
+    border: 1px solid #ffd8ca;
+    box-shadow: 0 14px 32px rgba(255, 107, 53, 0.2);
+}
+
+:deep(.auth-alert-title) {
+    color: #2f2f2f;
+    font-weight: 800;
+}
+
+:deep(.auth-alert-text) {
+    color: #6a6a6a;
+}
+
+:deep(.auth-alert-confirm) {
+    background: linear-gradient(135deg, #ff6b35, #ff5722);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-weight: 700;
+    padding: 0.62rem 1.2rem;
+    cursor: pointer;
+}
+
+:deep(.auth-alert-confirm:hover) {
+    box-shadow: 0 8px 18px rgba(255, 107, 53, 0.28);
 }
 
 @media (max-width: 576px) {

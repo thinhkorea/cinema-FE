@@ -51,6 +51,35 @@
                 </tbody>
             </table>
 
+            <div class="mt-4">
+                <h6 class="mb-2">Bắp nước đi kèm</h6>
+                <div v-if="snacks.length > 0" class="table-responsive">
+                    <table class="table table-sm table-bordered align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>#</th>
+                                <th>Sản phẩm</th>
+                                <th>Số lượng</th>
+                                <th>Tạm tính</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(snack, index) in snacks" :key="`${snack.snackName}-${index}`">
+                                <td>{{ index + 1 }}</td>
+                                <td>{{ snack.snackName }}</td>
+                                <td>{{ snack.quantity }}</td>
+                                <td>{{ formatCurrency(snack.subtotal) }}</td>
+                            </tr>
+                            <tr class="fw-bold table-warning">
+                                <td colspan="3" class="text-end">Tổng bắp nước</td>
+                                <td>{{ formatCurrency(snackTotal) }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div v-else class="alert alert-light border mb-0">Không có bắp nước cho mã giao dịch này.</div>
+            </div>
+
             <!-- Hành động in -->
             <div class="text-center mt-4">
                 <button
@@ -77,16 +106,18 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import api from "@/api";
 
 const txnRef = ref("");
 const tickets = ref([]);
+const snacks = ref([]);
 const loading = ref(false);
 const printing = ref(false);
 const printedTxn = ref([]); // danh sách txnRef đã in
 const error = ref("");
 const searched = ref(false);
+const snackTotal = computed(() => snacks.value.reduce((sum, item) => sum + item.subtotal, 0));
 
 // === Tra cứu vé ===
 async function searchTicket() {
@@ -101,6 +132,15 @@ async function searchTicket() {
     try {
         const res = await api.get(`/bookings/txn/${txnRef.value.trim()}`);
         tickets.value = res.data || [];
+
+        try {
+            const snackRes = await api.get(`/snacks/txn/${txnRef.value.trim()}`);
+            snacks.value = mergeSnackItems(snackRes.data || []);
+        } catch (snackErr) {
+            console.warn("Không thể tải thông tin bắp nước:", snackErr);
+            snacks.value = [];
+        }
+
         searched.value = true;
 
         // Nếu tất cả vé đều printed = true → chặn nút in
@@ -113,9 +153,28 @@ async function searchTicket() {
     } catch (err) {
         console.error("Lỗi tra cứu vé:", err);
         error.value = "Không thể tra cứu vé. Kiểm tra kết nối hoặc mã giao dịch.";
+        snacks.value = [];
     } finally {
         loading.value = false;
     }
+}
+
+function mergeSnackItems(items) {
+    const grouped = new Map();
+    for (const item of items) {
+        const key = String(item.snackId ?? item.snackName ?? "unknown");
+        if (!grouped.has(key)) {
+            grouped.set(key, {
+                snackName: item.snackName,
+                quantity: 0,
+                subtotal: 0,
+            });
+        }
+        const entry = grouped.get(key);
+        entry.quantity += Number(item.quantity || 0);
+        entry.subtotal += Number(item.subtotal || 0);
+    }
+    return Array.from(grouped.values());
 }
 
 // === In tất cả vé trong nhóm ===
@@ -154,6 +213,13 @@ function formatDateTime(t) {
         month: "2-digit",
         year: "numeric",
     });
+}
+
+function formatCurrency(value) {
+    return new Intl.NumberFormat("vi-VN", {
+        style: "currency",
+        currency: "VND",
+    }).format(value || 0);
 }
 </script>
 
