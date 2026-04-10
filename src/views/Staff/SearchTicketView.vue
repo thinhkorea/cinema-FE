@@ -1,7 +1,5 @@
 <template>
     <div class="container py-4">
-        <h4 class="mb-4 d-flex align-items-center"><i class="bi bi-search me-2"></i> Tra cứu vé bằng mã giao dịch</h4>
-
         <!-- Ô nhập mã giao dịch -->
         <div class="input-group mb-4">
             <input v-model="txnRef" type="text" class="form-control" placeholder="Nhập mã giao dịch (txnRef)..." />
@@ -233,7 +231,7 @@ input.form-control {
 }
 
 .text-success i {
-    color: #28a745;
+    color: #ff6b35;
 }
 
 .bi-printer {

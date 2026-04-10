@@ -1,9 +1,5 @@
 <template>
   <div class="container py-4">
-    <h4 class="mb-4 d-flex align-items-center">
-      <i class="bi bi-clock me-2"></i> Danh sách suất chiếu
-    </h4>
-
     <table class="table table-hover align-middle">
       <thead class="table-light">
         <tr>

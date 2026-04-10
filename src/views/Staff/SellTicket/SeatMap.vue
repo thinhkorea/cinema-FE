@@ -79,7 +79,7 @@
                         <div class="col-6">
                             <small class="text-muted d-block mb-1">Tổng tiền</small>
                             <h6 class="mb-0 fw-bold text-success">
-                                {{ (showtime.price * getTotalTickets()).toLocaleString("vi-VN") }}₫
+                                {{ getTotalAmount().toLocaleString("vi-VN") }}₫
                             </h6>
                         </div>
                     </div>
@@ -176,6 +176,8 @@ const selectedSeats = ref([]);
 const submitting = ref(false);
 const showPaymentModal = ref(false);
 const selectedPaymentMethod = ref("");
+const VIP_SURCHARGE = 10000;
+const SWEETBOX_SURCHARGE = 15000;
 
 onMounted(async () => {
     const res = await api.get(`/seats/showtime/${props.showtime.showtimeId}`);
@@ -218,6 +220,20 @@ function getTotalTickets() {
     return totalTickets;
 }
 
+function getTotalAmount() {
+    const basePrice = props.showtime?.price || 0;
+    if (basePrice === 0) return 0;
+    return selectedSeats.value
+        .map((seatId) => seats.value.find((s) => s.seatId === seatId))
+        .filter(Boolean)
+        .reduce((sum, seat) => {
+            const seatType = (seat.seatType || seat.type || "").toUpperCase();
+            if (seatType === "SWEETBOX") return sum + basePrice * 2 + SWEETBOX_SURCHARGE;
+            if (seatType === "VIP") return sum + basePrice + VIP_SURCHARGE;
+            return sum + basePrice;
+        }, 0);
+}
+
 function openPaymentModal() {
     if (selectedSeats.value.length === 0) return;
     showPaymentModal.value = true;
@@ -240,7 +256,7 @@ async function processPayment() {
 async function handleCashPayment() {
     try {
         submitting.value = true;
-        const totalAmount = props.showtime.price * getTotalTickets();
+        const totalAmount = getTotalAmount();
 
         const res = await api.post("/bookings/staff/create-multi", {
             showtimeId: props.showtime.showtimeId,
@@ -268,7 +284,7 @@ async function handleCashPayment() {
 async function handleVnPay() {
     try {
         submitting.value = true;
-        const totalAmount = props.showtime.price * getTotalTickets();
+        const totalAmount = getTotalAmount();
 
         const bookingRes = await api.post("/bookings/staff/create-multi", {
             showtimeId: props.showtime.showtimeId,
@@ -351,7 +367,7 @@ function formatTime(t) {
 }
 
 .seat.selected {
-    background: #22c55e;
+    background: #ff6b35;
     color: #fff;
 }
 
@@ -421,18 +437,18 @@ function formatTime(t) {
 
 /* Payment Summary Card */
 .payment-summary {
-    background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%);
-    border: 1px solid #b8d4ff;
+    background: linear-gradient(135deg, #fff6f1 0%, #ffe8dd 100%);
+    border: 1px solid #ffd1bd;
     backdrop-filter: blur(10px);
 }
 
 .payment-summary h6 {
-    color: #0d47a1;
+    color: #c9491b;
     font-size: 1.2rem;
 }
 
 .payment-summary .text-success {
-    color: #22c55e !important;
+    color: #ff6b35 !important;
 }
 
 /* Payment Method Cards */
@@ -467,9 +483,9 @@ function formatTime(t) {
 }
 
 .payment-card-active {
-    border-color: #22c55e;
-    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-    box-shadow: 0 12px 32px rgba(34, 197, 94, 0.2);
+    border-color: #ff6b35;
+    background: linear-gradient(135deg, #fff6f1 0%, #ffe5d8 100%);
+    box-shadow: 0 12px 32px rgba(255, 107, 53, 0.24);
 }
 
 .payment-card-active .payment-icon {
@@ -498,8 +514,8 @@ function formatTime(t) {
 
 /* VNPay QR Section */
 .vnpay-section {
-    background: linear-gradient(135deg, #f0fdf4 0%, #e6ffed 100%);
-    border: 2px dashed #22c55e;
+    background: linear-gradient(135deg, #fff7f2 0%, #ffe9de 100%);
+    border: 2px dashed #ff8a5c;
 }
 
 .qr-container {
@@ -527,22 +543,22 @@ function formatTime(t) {
 }
 
 .form-check-input:checked {
-    background-color: #22c55e;
-    border-color: #22c55e;
-    box-shadow: 0 0 0 0.25rem rgba(34, 197, 94, 0.25);
+    background-color: #ff6b35;
+    border-color: #ff6b35;
+    box-shadow: 0 0 0 0.25rem rgba(255, 107, 53, 0.25);
 }
 
 /* Button Enhancements */
 .btn-success {
-    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    background: linear-gradient(135deg, #ff6b35 0%, #ff8a5c 100%);
     border: none;
     transition: all 0.3s ease;
-    box-shadow: 0 8px 16px rgba(34, 197, 94, 0.3);
+    box-shadow: 0 8px 16px rgba(255, 107, 53, 0.3);
 }
 
 .btn-success:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 12px 24px rgba(34, 197, 94, 0.4);
+    box-shadow: 0 12px 24px rgba(255, 107, 53, 0.4);
 }
 
 .btn-success:disabled {

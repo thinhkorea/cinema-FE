@@ -1,7 +1,5 @@
 <template>
     <div class="container py-4">
-        <h4 class="mb-3 d-flex align-items-center"><i class="bi bi-ticket-detailed me-2"></i> Bookings Management</h4>
-
         <div v-if="loading" class="text-center py-5">
             <div class="spinner-border text-primary"></div>
         </div>

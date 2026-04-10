@@ -1,6 +1,5 @@
 <template>
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5>🎞️ Showtimes Management</h5>
+    <div class="d-flex justify-content-end align-items-center mb-3">
         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#showtimeModal" @click="openCreate">
             + Add Showtime
         </button>
@@ -64,10 +63,11 @@
                         <label class="form-label">Movie</label>
                         <select v-model="form.movieId" class="form-select" required @change="autoCalculateEndTime">
                             <option disabled value="">Select movie</option>
-                            <option v-for="m in movies" :key="m.movieId" :value="m.movieId">
+                            <option v-for="m in availableMovies" :key="m.movieId" :value="m.movieId">
                                 {{ m.title }} ({{ m.duration }} min)
                             </option>
                         </select>
+                        <small class="text-muted">Chỉ hiển thị phim Đang chiếu hoặc Suất đặc biệt</small>
                     </div>
 
                     <div class="mb-3">
@@ -85,7 +85,7 @@
                             v-model="form.startTime"
                             class="form-control"
                             required
-                            @change="autoCalculateEndTime"
+                            @change="onStartTimeChange"
                         />
                     </div>
 
@@ -96,15 +96,7 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Price (VNĐ)</label>
-                        <input
-                            type="number"
-                            min="0"
-                            step="1000"
-                            v-model.number="form.price"
-                            class="form-control"
-                            required
-                        />
+                        <small class="text-muted">Giá vé sẽ tự set theo ngày chiếu: Thứ 2-5 = 65.000đ, Thứ 6-CN = 80.000đ</small>
                     </div>
                 </div>
 
@@ -120,7 +112,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, onMounted, computed } from "vue";
 import api from "../../api";
 import { Modal } from "bootstrap";
 
@@ -132,6 +124,9 @@ const modalEl = ref(null);
 let modal;
 
 const BUFFER_MINUTES = 30; // thêm 30 phút nghỉ giữa các suất
+const WEEKDAY_PRICE = 65000;
+const WEEKEND_PRICE = 80000;
+const ALLOWED_MOVIE_STATUSES = ["NOW_SHOWING", "SPECIAL_RELEASE"];
 
 const form = reactive({
     showtimeId: null,
@@ -151,6 +146,13 @@ const fetchMovies = async () => {
     const { data } = await api.get("/movies");
     movies.value = data;
 };
+
+const availableMovies = computed(() => {
+    return movies.value.filter((movie) => {
+        if (movie.movieId === form.movieId) return true;
+        return ALLOWED_MOVIE_STATUSES.includes(movie.status);
+    });
+});
 const fetchRooms = async () => {
     const { data } = await api.get("/rooms");
     rooms.value = data;
@@ -164,6 +166,20 @@ const autoCalculateEndTime = () => {
     const start = new Date(form.startTime);
     const end = new Date(start.getTime() + (movie.duration + BUFFER_MINUTES) * 60000);
     form.endTime = new Date(end.getTime() - end.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+};
+
+const autoSetPrice = () => {
+    if (!form.startTime) {
+        form.price = 0;
+        return;
+    }
+    const day = new Date(form.startTime).getDay();
+    form.price = day >= 1 && day <= 4 ? WEEKDAY_PRICE : WEEKEND_PRICE;
+};
+
+const onStartTimeChange = () => {
+    autoCalculateEndTime();
+    autoSetPrice();
 };
 
 // ==================== MODAL LOGIC ====================

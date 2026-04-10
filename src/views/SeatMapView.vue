@@ -37,10 +37,9 @@
                             v-for="row in seatLayout"
                             :key="row.rowLabel"
                             class="seat-row"
-                            :class="{ 'seat-row-sweetbox': row.hasSweetbox }"
                         >
                             <div class="row-label">{{ row.rowLabel }}</div>
-                            <div class="row-seats" :class="{ 'row-seats-sweetbox': row.hasSweetbox }">
+                            <div class="row-seats">
                                 <div
                                     v-for="seat in row.seatsDisplay"
                                     :key="seat.seatId || seat.placeholderId"
@@ -51,6 +50,8 @@
                                         'seat-booked': seat.booked,
                                         'seat-vip': seat.seatType === 'VIP' || seat.type === 'VIP',
                                         'seat-sweetbox': seat.seatType === 'SWEETBOX' || seat.type === 'SWEETBOX',
+                                        'seat-sweetbox-start': isSweetboxPairStart(seat),
+                                        'seat-sweetbox-end': isSweetboxPairEnd(seat),
                                     }"
                                     @click="!seat.isPlaceholder && toggleSeat(seat)"
                                 >
@@ -70,7 +71,10 @@
                             <span>Ghế VIP</span>
                         </div>
                         <div class="legend-item">
-                            <span class="legend-dot seat-sweetbox"></span>
+                            <span class="legend-sweetbox-pair">
+                                <span class="legend-dot seat-sweetbox"></span>
+                                <span class="legend-dot seat-sweetbox"></span>
+                            </span>
                             <span>Ghế đôi (2 người)</span>
                         </div>
                         <div class="legend-item">
@@ -280,6 +284,8 @@ const seats = ref([]);
 const selectedSeats = ref([]);
 const roomDisplayName = computed(() => String(showtime.value?.room?.roomName || "Rạp").toUpperCase());
 const TARGET_SEATS_PER_ROW = 16;
+const VIP_SURCHARGE = 10000;
+const SWEETBOX_SURCHARGE = 15000;
 
 // Tải dữ liệu phim, suất chiếu, ghế
 onMounted(async () => {
@@ -340,31 +346,24 @@ const seatLayout = computed(() => {
         .sort((a, b) => a.localeCompare(b))
         .map((rowLabel) => {
             const rowSeats = grouped[rowLabel].sort((a, b) => extractSeatOrder(a) - extractSeatOrder(b));
-            const hasSweetbox = rowSeats.some((seat) => seat.seatType === "SWEETBOX" || seat.type === "SWEETBOX");
+            const seatMapByOrder = new Map();
+            rowSeats.forEach((seat) => seatMapByOrder.set(extractSeatOrder(seat), seat));
 
-            // Chuẩn hóa UI thành 16 vị trí/hàng cho rạp thường.
-            let seatsDisplay = rowSeats;
-            if (!hasSweetbox) {
-                const seatMapByOrder = new Map();
-                rowSeats.forEach((seat) => seatMapByOrder.set(extractSeatOrder(seat), seat));
-
-                seatsDisplay = Array.from({ length: TARGET_SEATS_PER_ROW }, (_, idx) => {
-                    const order = idx + 1;
-                    return (
-                        seatMapByOrder.get(order) || {
-                            isPlaceholder: true,
-                            placeholderId: `${rowLabel}-placeholder-${order}`,
-                            seatNumber: `${rowLabel}${order}`,
-                        }
-                    );
-                });
-            }
+            const seatsDisplay = Array.from({ length: TARGET_SEATS_PER_ROW }, (_, idx) => {
+                const order = idx + 1;
+                return (
+                    seatMapByOrder.get(order) || {
+                        isPlaceholder: true,
+                        placeholderId: `${rowLabel}-placeholder-${order}`,
+                        seatNumber: `${rowLabel}${order}`,
+                    }
+                );
+            });
 
             return {
                 rowLabel,
                 seats: rowSeats,
                 seatsDisplay,
-                hasSweetbox,
             };
         });
 });
@@ -375,8 +374,7 @@ const seatAreaStyle = computed(() => {
             if (seat.isPlaceholder) {
                 return sum + 42;
             }
-            const isSweetbox = seat.seatType === "SWEETBOX" || seat.type === "SWEETBOX";
-            return sum + (isSweetbox ? 92 : 42);
+            return sum + 42;
         }, 0);
         const gapsWidth = Math.max(row.seatsDisplay.length - 1, 0) * 9;
         const rowWidth = 24 + seatsWidth + gapsWidth + 10;
@@ -397,6 +395,20 @@ const extractSeatOrder = (seat) => {
 const extractSeatRow = (seat) => {
     const match = String(seat.seatNumber || "").match(/^([A-Za-z]+)/);
     return match ? match[1].toUpperCase() : "";
+};
+
+const isSweetboxSeat = (seat) => seat && (seat.type === "SWEETBOX" || seat.seatType === "SWEETBOX");
+
+const isSweetboxPairStart = (seat) => {
+    if (!isSweetboxSeat(seat) || !seat.originalSweetboxId) return false;
+    const order = extractSeatOrder(seat);
+    return order > 0 && order % 2 === 1;
+};
+
+const isSweetboxPairEnd = (seat) => {
+    if (!isSweetboxSeat(seat) || !seat.originalSweetboxId) return false;
+    const order = extractSeatOrder(seat);
+    return order > 0 && order % 2 === 0;
 };
 
 const getSelectionValidationError = (nextSelectedIds) => {
@@ -452,20 +464,27 @@ const getSelectionValidationError = (nextSelectedIds) => {
 const totalPrice = computed(() => {
     const basePrice = showtime.value?.price || 0;
     if (basePrice === 0) return 0;
-
-    // Định nghĩa các mức phụ thu
-    const VIP_SURCHARGE = 10000; // Phụ thu cho ghế VIP
+    const billedSweetbox = new Set();
 
     return selectedSeats.value
         .map((id) => seats.value.find((s) => s.seatId === id))
         .filter(Boolean)
         .reduce((sum, seat) => {
             let seatPrice = basePrice;
-            if (seat.type === "VIP" || seat.seatType === "VIP") {
+            const isVip = seat.type === "VIP" || seat.seatType === "VIP";
+            const isSweetbox = seat.type === "SWEETBOX" || seat.seatType === "SWEETBOX";
+
+            if (isVip) {
                 seatPrice += VIP_SURCHARGE;
-            } else if (seat.type === "SWEETBOX" || seat.seatType === "SWEETBOX") {
-                // Ghế đôi thường có giá gấp đôi
-                seatPrice = basePrice * 2;
+            } else if (isSweetbox) {
+                // Nếu sweetbox đang tách 2 ghế hiển thị, chỉ tính tiền 1 lần cho ID gốc.
+                if (seat.originalSweetboxId) {
+                    if (billedSweetbox.has(seat.originalSweetboxId)) {
+                        return sum;
+                    }
+                    billedSweetbox.add(seat.originalSweetboxId);
+                }
+                seatPrice = basePrice * 2 + SWEETBOX_SURCHARGE;
             }
             return sum + seatPrice;
         }, 0);
@@ -474,13 +493,14 @@ const totalPrice = computed(() => {
 // Helper function to calculate individual seat price
 const getSeatPrice = (seat) => {
     const basePrice = showtime.value?.price || 0;
-    const VIP_SURCHARGE = 20000;
 
     let seatPrice = basePrice;
     if (seat.type === "VIP" || seat.seatType === "VIP") {
         seatPrice += VIP_SURCHARGE;
     } else if (seat.type === "SWEETBOX" || seat.seatType === "SWEETBOX") {
-        seatPrice = basePrice * 2;
+        // Ghế sweetbox đã tách 2 ghế cho UI thì mỗi ghế hiển thị mang nửa giá.
+        const sweetboxPrice = basePrice * 2 + SWEETBOX_SURCHARGE;
+        seatPrice = seat.originalSweetboxId ? sweetboxPrice / 2 : sweetboxPrice;
     }
     return seatPrice;
 };
@@ -823,10 +843,6 @@ const confirmBooking = async () => {
     justify-content: center;
 }
 
-.row-seats.row-seats-sweetbox {
-    grid-template-columns: repeat(8, 110px);
-}
-
 .seat {
     width: 52px;
     min-width: 52px;
@@ -868,13 +884,24 @@ const confirmBooking = async () => {
 }
 
 .seat-sweetbox {
-    width: 110px;
-    min-width: 110px;
+    width: 52px;
+    min-width: 52px;
     background: linear-gradient(135deg, #ffe8f2 0%, #ffd7e8 100%);
     border: 2px solid #ff5f98;
-    border-radius: 12px;
+    border-radius: 7px;
     color: #972857;
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+}
+
+.seat-sweetbox-start {
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+    margin-right: -0.2rem;
+}
+
+.seat-sweetbox-end {
+    border-top-left-radius: 4px;
+    border-bottom-left-radius: 4px;
 }
 
 .seat-selected {
@@ -908,16 +935,32 @@ const confirmBooking = async () => {
     align-items: center;
     gap: 0.6rem;
     color: #3c3c3c;
-    font-size: 1.05rem;
+    font-size: 1rem;
     font-weight: 700;
     white-space: nowrap;
 }
 
 .legend-dot {
-    width: 28px;
-    height: 20px;
-    border-radius: 6px;
+    width: 38px;
+    height: 24px;
+    border-radius: 7px;
     display: inline-block;
+}
+
+.legend-sweetbox-pair {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.18rem;
+}
+
+.legend-sweetbox-pair .legend-dot:first-child {
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+}
+
+.legend-sweetbox-pair .legend-dot:last-child {
+    border-top-left-radius: 4px;
+    border-bottom-left-radius: 4px;
 }
 
 .legend-dot.seat-regular {

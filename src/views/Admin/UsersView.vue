@@ -1,8 +1,5 @@
 <template>
     <div class="container py-4">
-        <!-- Header -->
-        <h4 class="mb-4 d-flex align-items-center"><i class="bi bi-people me-2"></i> Quản lý tài khoản người dùng</h4>
-
         <!-- Tabs: Customers & Staffs -->
         <div class="mb-4">
             <ul class="nav nav-tabs" role="tablist">
@@ -441,8 +438,8 @@ onMounted(async () => {
 }
 
 .nav-tabs .nav-link.active {
-    color: #0d6efd;
-    border-bottom-color: #0d6efd;
+    color: #ff6b35;
+    border-bottom-color: #ff6b35;
     background: none;
 }
 

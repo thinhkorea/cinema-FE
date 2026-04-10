@@ -1,9 +1,5 @@
 <template>
   <div class="container py-4">
-    <h4 class="mb-4 d-flex align-items-center">
-      <i class="bi bi-graph-up me-2"></i> Thống kê doanh thu 12 tháng gần nhất
-    </h4>
-
     <div v-if="loading" class="text-center py-5">
       <div class="spinner-border text-primary"></div>
     </div>
@@ -39,8 +35,8 @@ const chartData = ref({
     {
       label: 'Doanh thu (VNĐ)',
       data: [],
-      borderColor: '#0d6efd',
-      backgroundColor: 'rgba(13, 110, 253, 0.2)',
+      borderColor: '#ff6b35',
+      backgroundColor: 'rgba(255, 107, 53, 0.2)',
       tension: 0.3,
       fill: true,
       pointRadius: 5

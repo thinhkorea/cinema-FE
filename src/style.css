@@ -188,3 +188,131 @@ textarea {
 .videos-section {
     background: transparent !important;
 }
+
+.admin-shell .container,
+.staff-shell .container,
+.admin-shell .sold-tickets-page,
+.staff-shell .sold-tickets-page {
+    padding-top: 1.25rem !important;
+    padding-bottom: 1.25rem !important;
+}
+
+.admin-shell .card,
+.staff-shell .card,
+.admin-shell .table-responsive,
+.staff-shell .table-responsive,
+.admin-shell .full-width-section,
+.staff-shell .full-width-section,
+.admin-shell .ticket-table-wrapper,
+.staff-shell .ticket-table-wrapper {
+    border: 1px solid #efe2db !important;
+    border-radius: 12px !important;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06) !important;
+    background: #fff !important;
+}
+
+.admin-shell .table,
+.staff-shell .table {
+    margin-bottom: 0;
+}
+
+.admin-shell .table thead th,
+.staff-shell .table thead th {
+    background: #fff8f4;
+    border-color: #f1ddd4;
+    color: #4a4644;
+    font-weight: 600;
+}
+
+.admin-shell .table tbody td,
+.staff-shell .table tbody td {
+    border-color: #f3e7e2;
+}
+
+.admin-shell .form-control,
+.staff-shell .form-control,
+.admin-shell .form-select,
+.staff-shell .form-select,
+.admin-shell .input-group-text,
+.staff-shell .input-group-text {
+    border-color: #ead8cf;
+}
+
+.admin-shell .form-control:focus,
+.staff-shell .form-control:focus,
+.admin-shell .form-select:focus,
+.staff-shell .form-select:focus {
+    border-color: #ffb79b;
+    box-shadow: 0 0 0 0.18rem rgba(255, 107, 53, 0.16);
+}
+
+.admin-shell .badge.bg-primary,
+.staff-shell .badge.bg-primary {
+    background-color: #ff6b35 !important;
+}
+
+.admin-shell .btn-primary,
+.staff-shell .btn-primary,
+.admin-shell .btn-info,
+.staff-shell .btn-info,
+.admin-shell .btn-success,
+.staff-shell .btn-success {
+    background: #ff6b35 !important;
+    border-color: #ff6b35 !important;
+    color: #fff !important;
+}
+
+.admin-shell .btn-primary:hover,
+.staff-shell .btn-primary:hover,
+.admin-shell .btn-info:hover,
+.staff-shell .btn-info:hover,
+.admin-shell .btn-success:hover,
+.staff-shell .btn-success:hover,
+.admin-shell .btn-primary:focus,
+.staff-shell .btn-primary:focus,
+.admin-shell .btn-info:focus,
+.staff-shell .btn-info:focus,
+.admin-shell .btn-success:focus,
+.staff-shell .btn-success:focus {
+    background: #ff5722 !important;
+    border-color: #ff5722 !important;
+}
+
+.admin-shell .btn-outline-primary,
+.staff-shell .btn-outline-primary {
+    color: #ff6b35 !important;
+    border-color: #ff6b35 !important;
+}
+
+.admin-shell .btn-outline-primary:hover,
+.staff-shell .btn-outline-primary:hover {
+    color: #fff !important;
+    background: #ff6b35 !important;
+    border-color: #ff6b35 !important;
+}
+
+.admin-shell .text-primary,
+.staff-shell .text-primary,
+.admin-shell .text-success,
+.staff-shell .text-success,
+.admin-shell .text-info,
+.staff-shell .text-info {
+    color: #ff6b35 !important;
+}
+
+.admin-shell .spinner-border.text-primary,
+.staff-shell .spinner-border.text-primary,
+.admin-shell .spinner-border.text-success,
+.staff-shell .spinner-border.text-success,
+.admin-shell .spinner-border.text-info,
+.staff-shell .spinner-border.text-info {
+    color: #ff6b35 !important;
+}
+
+.admin-shell .badge.bg-info,
+.staff-shell .badge.bg-info,
+.admin-shell .badge.bg-success,
+.staff-shell .badge.bg-success {
+    background-color: #ff8a5c !important;
+    color: #fff !important;
+}

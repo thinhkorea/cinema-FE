@@ -1,10 +1,5 @@
 <template>
   <div class="container py-4">
-    <!-- Thống kê tổng quan -->
-    <h4 class="mb-4 d-flex align-items-center">
-      <i class="bi bi-speedometer2 me-2"></i> Dashboard Tổng quan
-    </h4>
-
     <div class="row g-3 mb-5">
       <div class="col-md-3" v-for="item in stats" :key="item.title">
         <div class="card shadow-sm text-center border-0">
@@ -151,8 +146,8 @@ const chartData = ref({
     {
       label: 'Doanh thu (VNĐ)',
       data: [],
-      borderColor: '#0d6efd',
-      backgroundColor: 'rgba(13,110,253,0.2)',
+      borderColor: '#ff6b35',
+      backgroundColor: 'rgba(255, 107, 53, 0.2)',
       tension: 0.3,
       fill: true,
       pointRadius: 5

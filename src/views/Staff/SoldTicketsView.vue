@@ -1,36 +1,41 @@
 <template>
     <div class="sold-tickets-page">
-        <!-- Header -->
-        <div class="header-section mb-4">
-            <div class="d-flex justify-content-between align-items-center">
-                <h3 class="page-title mb-0"><i class="bi bi-ticket-perforated me-3"></i> Vé đã bán</h3>
-
-                <!-- Bộ lọc ngày -->
-                <div class="filter-section">
-                    <div class="input-group">
-                        <span class="input-group-text bg-light border-0">
-                            <i class="bi bi-calendar-event"></i>
-                        </span>
-                        <input
-                            type="date"
-                            v-model="selectedDate"
-                            class="form-control border-start-0"
-                            placeholder="Chọn ngày"
-                        />
-                        <button class="btn btn-outline-secondary" @click="resetFilter" title="Xóa bộ lọc">
-                            <i class="bi bi-x-circle"></i>
-                        </button>
+        <div class="summary-toolbar mb-4">
+            <div class="summary-metrics">
+                <div class="metric-item">
+                    <div class="metric-icon"><i class="bi bi-ticket-perforated"></i></div>
+                    <div>
+                        <p class="metric-label mb-1">Tổng vé</p>
+                        <h5 class="metric-value mb-0">{{ filteredTicketCount }}</h5>
                     </div>
                 </div>
+                <div class="metric-item">
+                    <div class="metric-icon"><i class="bi bi-receipt"></i></div>
+                    <div>
+                        <p class="metric-label mb-1">Giao dịch</p>
+                        <h5 class="metric-value mb-0">{{ filteredBookings.length }}</h5>
+                    </div>
+                </div>
+                <div v-if="selectedDate" class="filter-tag">
+                    <i class="bi bi-funnel-fill me-1"></i> {{ selectedDateText }}
+                </div>
             </div>
-        </div>
 
-        <!-- Stats -->
-        <div class="stats-bar mb-4">
-            <span class="stat-item">
-                <span class="stat-label">Tổng vé:</span>
-                <span class="stat-value">{{ filteredBookings.length }}</span>
-            </span>
+            <div class="filter-panel">
+                <div class="input-group filter-input-group">
+                    <span class="input-group-text bg-transparent border-0">
+                        <i class="bi bi-calendar-event"></i>
+                    </span>
+                    <input type="date" v-model="selectedDate" class="form-control border-start-0" />
+                </div>
+
+                <div class="filter-actions">
+                    <button class="btn btn-outline-primary btn-sm" @click="setTodayFilter">Hôm nay</button>
+                    <button class="btn btn-outline-secondary btn-sm" @click="resetFilter" :disabled="!selectedDate">
+                        Xóa lọc
+                    </button>
+                </div>
+            </div>
         </div>
 
         <!-- Pagination Info -->
@@ -115,7 +120,10 @@
 
         <!-- Empty State -->
         <div v-else class="empty-state">
-            <p class="empty-text">Không có vé nào được bán trong ngày này</p>
+            <div class="empty-icon"><i class="bi bi-ticket-perforated"></i></div>
+            <h5 class="empty-title mb-2">Chưa có vé nào được bán</h5>
+            <p class="empty-text mb-1">Nhân viên chưa tạo giao dịch nào trong thời gian lọc hiện tại.</p>
+            <p class="empty-subtext mb-0">Sau khi bán vé thành công, danh sách sẽ tự cập nhật tại đây.</p>
         </div>
 
         <!-- Phân trang -->
@@ -154,7 +162,7 @@
 </template>
 
 <script setup>
-import { ref, watchEffect, computed, onMounted } from "vue";
+import { ref, watchEffect, computed, onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth.store";
 import api from "@/api";
@@ -222,6 +230,7 @@ const groupedBookings = computed(() => {
         return {
             ...group,
             seatDisplay: sortedSeats.join(", "),
+            seatCount: sortedSeats.length,
         };
     });
 });
@@ -265,11 +274,33 @@ const pageNumbers = computed(() => {
     return pages;
 });
 
+const filteredTicketCount = computed(() => {
+    return filteredBookings.value.reduce((sum, group) => sum + (group.seatCount || 0), 0);
+});
+
+const selectedDateText = computed(() => {
+    if (!selectedDate.value) return "";
+    return new Date(selectedDate.value).toLocaleDateString("vi-VN", {
+        weekday: "short",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+    });
+});
+
 // === Xóa bộ lọc ===
 function resetFilter() {
     selectedDate.value = "";
     currentPage.value = 1;
 }
+
+function setTodayFilter() {
+    selectedDate.value = new Date().toISOString().slice(0, 10);
+}
+
+watch(selectedDate, () => {
+    currentPage.value = 1;
+});
 
 // === Formatters ===
 function formatTime(t) {
@@ -294,3 +325,141 @@ function printTicket(txnRef) {
     localStorage.setItem("downloadedRefs", JSON.stringify([...downloadedRefs.value]));
 }
 </script>
+
+<style scoped>
+.summary-toolbar {
+    border: 1px solid #efdcd3;
+    border-radius: 14px;
+    background: #fff;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+    box-shadow: 0 6px 16px rgba(255, 107, 53, 0.08);
+}
+
+.summary-metrics {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.metric-item {
+    background: #fff8f4;
+    border: 1px solid #f2d6ca;
+    border-radius: 12px;
+    padding: 10px 12px;
+    min-width: 160px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.metric-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #ff6b35;
+    background: rgba(255, 107, 53, 0.14);
+}
+
+.metric-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #9c7060;
+}
+
+.metric-value {
+    color: #3f3937;
+}
+
+.filter-tag {
+    color: #a65d43;
+    background: rgba(255, 107, 53, 0.1);
+    border: 1px solid #f2c0ae;
+    border-radius: 999px;
+    padding: 5px 10px;
+    font-size: 0.83rem;
+    font-weight: 500;
+}
+
+.filter-panel {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.filter-input-group {
+    width: 230px;
+    border: 1px solid #f1d8cc;
+    border-radius: 10px;
+    background: #fff8f4;
+    overflow: hidden;
+}
+
+.filter-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.empty-state {
+    border: 1px dashed #f1c8b6;
+    border-radius: 14px;
+    background: linear-gradient(140deg, #fff9f5 0%, #fff 70%);
+    text-align: center;
+    padding: 28px 18px;
+}
+
+.empty-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 107, 53, 0.12);
+    color: #ff6b35;
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+}
+
+.empty-title {
+    color: #3f3937;
+}
+
+.empty-text,
+.empty-subtext {
+    color: #746c68;
+}
+
+@media (max-width: 768px) {
+    .summary-toolbar {
+        align-items: stretch;
+    }
+
+    .summary-metrics {
+        width: 100%;
+    }
+
+    .metric-item {
+        flex: 1;
+        min-width: 135px;
+    }
+
+    .filter-panel {
+        width: 100%;
+    }
+
+    .filter-input-group {
+        width: 100%;
+    }
+}
+</style>

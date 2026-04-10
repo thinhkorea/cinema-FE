@@ -1,7 +1,6 @@
 <template>
   <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-      <h3 class="fw-bold text-primary">Quản lý nhân viên</h3>
       <button class="btn btn-success" @click="openAddModal">
         <i class="bi bi-plus-circle me-1"></i> Thêm nhân viên
       </button>
@@ -185,9 +184,5 @@ onMounted(loadStaffs);
 }
 .table th {
   font-weight: 600;
-}
-.btn-success {
-  background: linear-gradient(135deg, #28a745, #218838);
-  border: none;
 }
 </style>

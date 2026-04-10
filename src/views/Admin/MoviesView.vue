@@ -1,8 +1,7 @@
 <template>
     <div class="container py-4">
         <!-- Header -->
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h4 class="mb-0 d-flex align-items-center"><i class="bi bi-film me-2"></i> Quản lý phim</h4>
+        <div class="d-flex justify-content-end align-items-center mb-3">
             <button class="btn btn-primary" @click="openCreate" data-bs-toggle="modal" data-bs-target="#movieModal">
                 + Thêm phim
             </button>
