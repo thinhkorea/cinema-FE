@@ -1,41 +1,20 @@
 <template>
+    <div v-if="isSuccess" class="processing-redirect">
+        <div class="spinner-border text-warning" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
     <!-- Modal Overlay -->
-    <div class="payment-modal-overlay" @click="closeModal">
+    <div v-else class="payment-modal-overlay" @click="closeModal">
         <div class="payment-modal" @click.stop>
             <!-- Close Button -->
             <button class="close-btn" @click="closeModal">
                 <i class="bi bi-x-lg"></i>
             </button>
 
-            <!-- Success State -->
-            <div v-if="isSuccess" class="success-state">
-                <div class="status-icon success-icon">
-                    <i class="bi bi-check-circle-fill"></i>
-                </div>
-
-                <h1 class="status-title">Thanh toán thành công!</h1>
-                <p class="status-subtitle">Cảm ơn bạn đã đặt vé. Vé của bạn đã được xác nhận.</p>
-
-                <div class="booking-info">
-                    <div v-if="bookingCount > 1" class="info-item">
-                        <span class="info-label">Số lượng vé:</span>
-                        <span class="info-value">{{ bookingCount }} vé</span>
-                    </div>
-
-                    <div class="info-item">
-                        <span class="info-label">Mã giao dịch:</span>
-                        <span class="info-value transaction-code">{{ txnRef }}</span>
-                    </div>
-                </div>
-
-                <div class="countdown-info">
-                    <i class="bi bi-clock"></i>
-                    Tự động chuyển đến trang vé trong {{ countdown }} giây...
-                </div>
-            </div>
-
             <!-- Error State -->
-            <div v-else class="error-state">
+            <div class="error-state">
                 <div class="status-icon error-icon">
                     <i class="bi bi-x-circle-fill"></i>
                 </div>
@@ -55,11 +34,7 @@
 
             <!-- Action Buttons -->
             <div class="action-buttons">
-                <button v-if="isSuccess" class="btn btn-primary" @click="goToMyBookings">
-                    <i class="bi bi-ticket-detailed"></i>
-                    Xem vé của tôi
-                </button>
-                <button v-else class="btn btn-primary" @click="closeModal">
+                <button class="btn btn-primary" @click="closeModal">
                     <i class="bi bi-x-circle"></i>
                     Đóng
                 </button>
@@ -78,7 +53,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref, onBeforeUnmount } from "vue";
+import { onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import api from "@/api";
 
@@ -87,30 +62,10 @@ const router = useRouter();
 
 const isSuccess = route.query.vnp_ResponseCode === "00";
 const txnRef = route.query.vnp_TxnRef;
-const bookingCount = ref(0);
-const firstBookingId = ref(null);
-const countdown = ref(3);
-let countdownInterval = null;
 
 // Đóng modal
 const closeModal = () => {
     router.push("/");
-};
-
-// Đếm ngược
-const startCountdown = () => {
-    countdownInterval = setInterval(() => {
-        countdown.value--;
-        if (countdown.value <= 0) {
-            clearInterval(countdownInterval);
-            // Tự động chuyển hướng
-            if (isSuccess && txnRef) {
-                router.push(`/my-bookings/txn/${txnRef}`);
-            } else {
-                router.push("/");
-            }
-        }
-    }, 1000);
 };
 
 onMounted(async () => {
@@ -154,41 +109,34 @@ onMounted(async () => {
                 }
             }
 
-            // BƯỚC 2: CONFIRM PAYMENT (sau khi redeem)
-            const res = await api.post(`/bookings/confirm-payment/${txnRef}`);
+            // BƯỚC 2: XÁC NHẬN THANH TOÁN (endpoint gọn nhẹ, phản hồi nhanh hơn)
+            await api.post(`/bookings/pay-by-txn/${txnRef}`);
 
-            if (Array.isArray(res.data)) {
-                bookingCount.value = res.data.length;
-                firstBookingId.value = res.data[0]?.bookingId || null;
-            } else if (res.data && res.data.bookingId) {
-                bookingCount.value = 1;
-                firstBookingId.value = res.data.bookingId;
+            if (txnRef) {
+                router.replace(`/my-bookings/txn/${txnRef}`);
+                return;
             }
 
-            // Bắt đầu đếm ngược
-            startCountdown();
+            router.replace("/");
+            return;
+
         }
     } catch (error) {
         console.error("Thanh toán thất bại:", error);
         setTimeout(() => router.push("/"), 3000);
     }
 });
-
-// Cleanup khi component bị destroy
-onBeforeUnmount(() => {
-    if (countdownInterval) {
-        clearInterval(countdownInterval);
-    }
-});
-
-const goToMyBookings = () => {
-    if (countdownInterval) clearInterval(countdownInterval);
-    if (txnRef) router.push(`/my-bookings/txn/${txnRef}`);
-    else router.push("/");
-};
 </script>
 
 <style scoped>
+.processing-redirect {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f5f5f5;
+}
+
 /* Modal Overlay */
 .payment-modal-overlay {
     position: fixed;
@@ -343,24 +291,6 @@ const goToMyBookings = () => {
     letter-spacing: 1px;
 }
 
-.countdown-info {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    color: #cccccc;
-    font-size: 0.9rem;
-    margin-bottom: 1rem;
-    padding: 0.75rem 1rem;
-    background: rgba(255, 215, 0, 0.1);
-    border-radius: 12px;
-    border: 1px solid rgba(255, 215, 0, 0.2);
-}
-
-.countdown-info i {
-    color: #ffd700;
-}
-
 .action-buttons {
     display: flex;
     gap: 1rem;
@@ -494,11 +424,6 @@ const goToMyBookings = () => {
         gap: 0.25rem;
     }
 
-    .countdown-info {
-        font-size: 0.8rem;
-        padding: 0.5rem 0.75rem;
-    }
-
     .close-btn {
         width: 35px;
         height: 35px;
@@ -521,8 +446,7 @@ const goToMyBookings = () => {
     }
 
     .close-btn,
-    .action-buttons,
-    .countdown-info {
+    .action-buttons {
         display: none;
     }
 }
@@ -571,7 +495,6 @@ body:has(.payment-modal-overlay) {
 
 .status-subtitle,
 .info-label,
-.countdown-info,
 .cinema-branding {
     color: #666;
 }
@@ -593,12 +516,6 @@ body:has(.payment-modal-overlay) {
     background-clip: text;
 }
 
-.countdown-info {
-    background: #fff5f1;
-    border: 1px solid #f2ddd4;
-}
-
-.countdown-info i,
 .cinema-icon {
     color: #ff6b35;
 }

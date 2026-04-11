@@ -107,7 +107,7 @@ import AppHeader from "@/components/AppHeader.vue";
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import Swal from "sweetalert2";
-import api from "../api.js";
+import api from "@/api";
 
 const router = useRouter();
 const route = useRoute();

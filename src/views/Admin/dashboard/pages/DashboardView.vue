@@ -115,7 +115,7 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import api from '../../api'
+import api from '@/api'
 import { Line } from 'vue-chartjs'
 import {
   Chart as ChartJS,

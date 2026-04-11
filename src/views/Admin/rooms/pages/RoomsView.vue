@@ -83,7 +83,7 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import api from '../../api'
+import api from '@/api'
 import * as bootstrap from 'bootstrap'
 
 const rooms = ref([])

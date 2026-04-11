@@ -2,48 +2,64 @@ import { createRouter, createWebHistory } from "vue-router";
 import { useAuthStore } from "@/stores/auth.store";
 
 const routes = [
-    { path: "/", component: () => import("@/views/HomeView.vue"), meta: { public: true } },
-    { path: "/movies", component: () => import("@/views/MoviesView.vue"), meta: { public: true } },
-    { path: "/about", component: () => import("@/views/AboutView.vue"), meta: { public: true } },
-    { path: "/login", component: () => import("@/views/Auth/LoginView.vue"), meta: { public: true } },
-    { path: "/register", component: () => import("@/views/Auth/RegisterView.vue"), meta: { public: true } },
+    { path: "/", component: () => import("@/views/public/home/pages/HomeView.vue"), meta: { public: true } },
+    { path: "/movies", component: () => import("@/views/public/movies/pages/MoviesView.vue"), meta: { public: true } },
+    { path: "/about", component: () => import("@/views/public/about/pages/AboutView.vue"), meta: { public: true } },
+    {
+        path: "/login",
+        component: () => import("@/views/Auth/login/pages/LoginView.vue"),
+        meta: { public: true, requiresGuest: true },
+    },
+    {
+        path: "/register",
+        component: () => import("@/views/Auth/register/pages/RegisterView.vue"),
+        meta: { public: true, requiresGuest: true },
+    },
 
-    { path: "/movie/:id", component: () => import("@/views/MovieDetail.vue"), meta: { public: true } },
-    { path: "/booking/:movieId", component: () => import("@/views/BookingView.vue"), meta: { public: true } },
+    {
+        path: "/movie/:id",
+        component: () => import("@/views/public/movie-detail/pages/MovieDetail.vue"),
+        meta: { public: true },
+    },
+    {
+        path: "/booking/:movieId",
+        component: () => import("@/views/public/booking/pages/BookingView.vue"),
+        meta: { public: true },
+    },
     {
         path: "/booking/:movieId/seats/:showtimeId",
-        component: () => import("@/views/SeatMapView.vue"),
-        meta: { requiresAuth: true },
+        component: () => import("@/views/public/seat-map/pages/SeatMapView.vue"),
+        meta: { public: true },
     },
     {
         path: "/booking/:movieId/seats/:showtimeId/snacks",
-        component: () => import("@/views/SnackSelectionView.vue"),
-        meta: { requiresAuth: true },
+        component: () => import("@/views/public/snack-selection/pages/SnackSelectionView.vue"),
+        meta: { public: true },
     },
     {
         path: "/booking/:movieId/seats/:showtimeId/payment",
-        component: () => import("@/views/PaymentView.vue"),
-        meta: { requiresAuth: true },
+        component: () => import("@/views/public/payment/pages/PaymentView.vue"),
+        meta: { requiresAuth: true, requiresCustomer: true },
     },
 
     {
         path: "/payment-result",
-        component: () => import("@/views/Customer/PaymentResult.vue"),
+        component: () => import("@/views/Customer/payment/pages/PaymentResult.vue"),
         meta: { requiresAuth: true, requiresCustomer: true },
     },
     {
         path: "/my-bookings/txn/:txnRef",
-        component: () => import("@/views/Customer/MyBookingGroup.vue"),
+        component: () => import("@/views/Customer/bookings/pages/MyBookingGroup.vue"),
         meta: { requiresAuth: true, requiresCustomer: true },
     },
     {
         path: "/profile",
-        component: () => import("@/views/Customer/ProfileView.vue"),
+        component: () => import("@/views/Customer/profile/pages/ProfileView.vue"),
         meta: { requiresAuth: true, requiresCustomer: true },
     },
     {
         path: "/my-bookings",
-        component: () => import("@/views/Customer/MyBookingView.vue"),
+        component: () => import("@/views/Customer/bookings/pages/MyBookingView.vue"),
         meta: { requiresAuth: true, requiresCustomer: true },
     },
 
@@ -53,14 +69,14 @@ const routes = [
         component: () => import("@/layouts/AdminLayout.vue"),
         meta: { requiresAdmin: true },
         children: [
-            { path: "dashboard", component: () => import("@/views/Admin/DashboardView.vue") },
-            { path: "movies", component: () => import("@/views/Admin/MoviesView.vue") },
-            { path: "rooms", component: () => import("@/views/Admin/RoomsView.vue") },
-            { path: "showtimes", component: () => import("@/views/Admin/ShowtimesView.vue") },
-            { path: "bookings", component: () => import("@/views/Admin/BookingsView.vue") },
-            { path: "revenue", component: () => import("@/views/Admin/RevenueChart.vue") },
-            { path: "register-staff", component: () => import("@/views/Admin/RegisterStaffView.vue") },
-            { path: "users", component: () => import("@/views/Admin/UsersView.vue") },
+            { path: "dashboard", component: () => import("@/views/Admin/dashboard/pages/DashboardView.vue") },
+            { path: "movies", component: () => import("@/views/Admin/movies/pages/MoviesView.vue") },
+            { path: "rooms", component: () => import("@/views/Admin/rooms/pages/RoomsView.vue") },
+            { path: "showtimes", component: () => import("@/views/Admin/showtimes/pages/ShowtimesView.vue") },
+            { path: "bookings", component: () => import("@/views/Admin/bookings/pages/BookingsView.vue") },
+            { path: "revenue", component: () => import("@/views/Admin/revenue/pages/RevenueChart.vue") },
+            { path: "register-staff", component: () => import("@/views/Admin/staff/pages/RegisterStaffView.vue") },
+            { path: "users", component: () => import("@/views/Admin/users/pages/UsersView.vue") },
         ],
     },
 
@@ -70,12 +86,12 @@ const routes = [
         component: () => import("@/layouts/StaffLayout.vue"),
         meta: { requiresStaff: true },
         children: [
-            { path: "seat-map", component: () => import("@/views/Staff/SellTicket/SellTicketView.vue") },
-            { path: "showtimes", component: () => import("@/views/Staff/ShowtimesView.vue") },
-            { path: "sold-tickets", component: () => import("@/views/Staff/SoldTicketsView.vue") },
-            { path: "payment-result", component: () => import("@/views/Staff/PaymentResult.vue") },
-            { path: "search-ticket", component: () => import("@/views/Staff/SearchTicketView.vue") },
-            { path: "ticket/:txnRef", component: () => import("@/views/Staff/Ticket.vue") },
+            { path: "seat-map", component: () => import("@/views/Staff/sell-ticket/pages/SellTicketView.vue") },
+            { path: "showtimes", component: () => import("@/views/Staff/showtimes/pages/ShowtimesView.vue") },
+            { path: "sold-tickets", component: () => import("@/views/Staff/tickets/pages/SoldTicketsView.vue") },
+            { path: "payment-result", component: () => import("@/views/Staff/tickets/pages/PaymentResult.vue") },
+            { path: "search-ticket", component: () => import("@/views/Staff/tickets/pages/SearchTicketView.vue") },
+            { path: "ticket/:txnRef", component: () => import("@/views/Staff/tickets/pages/Ticket.vue") },
         ],
     },
 
@@ -92,6 +108,13 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
     const auth = useAuthStore();
     const role = auth.role || localStorage.getItem("role");
+
+    // Đã đăng nhập thì không vào lại trang guest-only
+    if (to.meta.requiresGuest && role) {
+        if (role === "ADMIN") return next("/admin/dashboard");
+        if (role === "STAFF") return next("/staff/seat-map");
+        return next("/");
+    }
 
     // Cho phép truy cập các route công khai
     if (to.meta.public) {

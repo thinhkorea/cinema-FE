@@ -8,9 +8,9 @@
 
 <script setup>
 import { ref } from 'vue'
-import MovieSelect from './MovieSelect.vue'
-import ShowtimesSelect from './ShowtimesSelect.vue'
-import SeatMap from './SeatMap.vue'
+import MovieSelect from '../components/MovieSelect.vue'
+import ShowtimesSelect from '../components/ShowtimesSelect.vue'
+import SeatMap from '../components/SeatMap.vue'
 
 const step = ref(1)
 const selectedMovie = ref(null)

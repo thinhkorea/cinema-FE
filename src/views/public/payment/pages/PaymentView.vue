@@ -142,7 +142,7 @@ import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useAuthStore } from "@/stores/auth.store";
 import Swal from "sweetalert2";
-import api from "../api.js";
+import api from "@/api";
 import vnpayLogo from "@/assets/vnpay-logo.png";
 
 const router = useRouter();
@@ -293,6 +293,18 @@ const goBack = () => {
     router.push(`/booking/${movieId}/seats/${showtimeId}/snacks`);
 };
 
+const normalizeSeatId = (seat) => {
+    const rawId = seat?.originalSweetboxId ?? seat?.seatId;
+    if (rawId === null || rawId === undefined) return null;
+
+    if (typeof rawId === "number") return rawId;
+
+    const matched = String(rawId).match(/^\d+/);
+    if (!matched) return null;
+
+    return Number(matched[0]);
+};
+
 const confirmPayment = async () => {
     if (processing.value) return;
 
@@ -300,7 +312,10 @@ const confirmPayment = async () => {
         processing.value = true;
 
         // Step 1: Create booking
-        const seatIds = selectedSeats.value.map((s) => s.seatId);
+        const seatIds = [...new Set(selectedSeats.value.map((s) => normalizeSeatId(s)).filter((id) => id !== null))];
+        if (seatIds.length === 0) {
+            throw new Error("Không xác định được ghế hợp lệ để đặt vé");
+        }
         const bookingRes = await api.post("/bookings", {
             showtimeId: parseInt(showtimeId),
             seatIds: seatIds,
@@ -363,7 +378,8 @@ const confirmPayment = async () => {
         window.location.href = paymentUrl;
     } catch (err) {
         console.error("Lỗi thanh toán:", err);
-        alert("Không thể khởi tạo thanh toán!");
+        const backendMessage = err?.response?.data?.error;
+        alert(backendMessage || "Không thể khởi tạo thanh toán!");
         processing.value = false;
     }
 };

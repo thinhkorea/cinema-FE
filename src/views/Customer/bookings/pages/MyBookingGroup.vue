@@ -79,7 +79,7 @@
                     <div class="ticket-content">
                         <div class="qr-section">
                             <div class="qr-wrapper">
-                                <qrcode-vue :value="`CINEMA-TXN-${txnRef}`" :size="160" level="M" />
+                                <qrcode-vue :value="txnRef" :size="160" level="M" />
                             </div>
                             <p class="qr-instruction">Quét mã QR này cho nhân viên khi vào rạp</p>
                         </div>
@@ -316,18 +316,19 @@ const formatCurrency = (temp) => (temp || 0).toLocaleString("vi-VN", { style: "c
 
 /* Ticket Container */
 .ticket-container {
-    max-width: 900px;
+    max-width: 960px;
     margin: 0 auto;
 }
 
 /* Movie Info Card */
 .movie-info-card {
     background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
-    border-radius: 20px;
-    padding: 2rem;
-    margin-bottom: 2rem;
+    border-radius: 18px;
+    padding: 1.5rem;
+    margin-bottom: 1.25rem;
     display: flex;
-    gap: 2rem;
+    align-items: center;
+    gap: 1.5rem;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
     border: 1px solid rgba(255, 215, 0, 0.1);
 }
@@ -335,13 +336,18 @@ const formatCurrency = (temp) => (temp || 0).toLocaleString("vi-VN", { style: "c
 .movie-poster-wrapper {
     position: relative;
     flex-shrink: 0;
+    width: 200px;
+    height: 280px;
+    border-radius: 12px;
+    overflow: hidden;
+    align-self: center;
 }
 
 .movie-poster {
-    width: 200px;
-    height: 280px;
+    width: 100%;
+    height: 100%;
+    display: block;
     object-fit: cover;
-    border-radius: 12px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
@@ -357,14 +363,15 @@ const formatCurrency = (temp) => (temp || 0).toLocaleString("vi-VN", { style: "c
     flex: 1;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: flex-start;
+    gap: 1rem;
 }
 
 .movie-title {
-    font-size: 2rem;
+    font-size: 1.75rem;
     font-weight: 700;
     color: #ffd700;
-    margin-bottom: 1.5rem;
+    margin-bottom: 0;
     line-height: 1.2;
 }
 
@@ -372,7 +379,7 @@ const formatCurrency = (temp) => (temp || 0).toLocaleString("vi-VN", { style: "c
     display: flex;
     flex-direction: column;
     gap: 0.8rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 0;
 }
 
 .meta-item {
@@ -418,18 +425,20 @@ const formatCurrency = (temp) => (temp || 0).toLocaleString("vi-VN", { style: "c
 /* Digital Ticket */
 .digital-ticket {
     background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
-    border-radius: 20px;
+    border-radius: 0 0 18px 18px;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
     border: 1px solid rgba(255, 215, 0, 0.1);
-    margin-bottom: 2rem;
 }
 
 .ticket-header {
     background: linear-gradient(135deg, #ffd700, #ffed4e);
     color: #000;
-    padding: 1.5rem 2rem;
+    padding: 1rem 1.5rem;
     text-align: center;
+    border-radius: 18px 18px 0 0;
 }
 
 .cinema-info {
@@ -466,21 +475,22 @@ const formatCurrency = (temp) => (temp || 0).toLocaleString("vi-VN", { style: "c
 }
 
 .ticket-title {
-    font-size: 1.5rem;
+    font-size: 1.35rem;
     font-weight: 700;
     margin: 0;
 }
 
 .ticket-content {
-    padding: 2rem;
+    padding: 1.5rem;
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2rem;
-    align-items: center;
+    grid-template-columns: minmax(220px, 0.95fr) minmax(260px, 1.05fr);
+    gap: 1.5rem;
+    align-items: start;
 }
 
 .qr-section {
     text-align: center;
+    align-self: center;
 }
 
 .qr-wrapper {
@@ -489,7 +499,7 @@ const formatCurrency = (temp) => (temp || 0).toLocaleString("vi-VN", { style: "c
     background: #fff;
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    margin-bottom: 1rem;
+    margin-bottom: 0.6rem;
 }
 
 .qr-instruction {
@@ -501,7 +511,7 @@ const formatCurrency = (temp) => (temp || 0).toLocaleString("vi-VN", { style: "c
 .transaction-info {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 1rem;
 }
 
 .transaction-id {
@@ -529,12 +539,12 @@ const formatCurrency = (temp) => (temp || 0).toLocaleString("vi-VN", { style: "c
 .payment-details {
     display: flex;
     flex-direction: column;
-    gap: 0.8rem;
+    gap: 0.5rem;
 }
 
 .snacks-list {
-    margin-top: 1rem;
-    padding-top: 1rem;
+    margin-top: 0.5rem;
+    padding-top: 0.75rem;
     border-top: 1px dashed rgba(255, 215, 0, 0.3);
 }
 
@@ -564,7 +574,7 @@ const formatCurrency = (temp) => (temp || 0).toLocaleString("vi-VN", { style: "c
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.5rem 0;
+    padding: 0.4rem 0;
 }
 
 .detail-row .label {
@@ -599,13 +609,14 @@ const formatCurrency = (temp) => (temp || 0).toLocaleString("vi-VN", { style: "c
 
 .ticket-footer {
     background: rgba(0, 0, 0, 0.3);
-    padding: 1.5rem 2rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 1rem 1.5rem;
+    border-top: none;
+    border-radius: 0 0 18px 18px;
 }
 
 .notice {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 0.8rem;
     color: #ccc;
 }
@@ -672,10 +683,11 @@ const formatCurrency = (temp) => (temp || 0).toLocaleString("vi-VN", { style: "c
 @media (max-width: 768px) {
     .movie-info-card {
         flex-direction: column;
+        align-items: center;
         text-align: center;
     }
 
-    .movie-poster {
+    .movie-poster-wrapper {
         width: 150px;
         height: 210px;
         margin: 0 auto;
@@ -683,7 +695,8 @@ const formatCurrency = (temp) => (temp || 0).toLocaleString("vi-VN", { style: "c
 
     .ticket-content {
         grid-template-columns: 1fr;
-        gap: 2rem;
+        gap: 1.25rem;
+        padding: 1.1rem;
     }
 
     .action-buttons {
@@ -796,6 +809,7 @@ const formatCurrency = (temp) => (temp || 0).toLocaleString("vi-VN", { style: "c
 .ticket-header {
     background: linear-gradient(135deg, #ff6b35, #ff8a5f);
     color: #fff;
+    border-radius: 18px 18px 0 0;
 }
 
 .detail-row .value {
@@ -830,7 +844,8 @@ const formatCurrency = (temp) => (temp || 0).toLocaleString("vi-VN", { style: "c
 
 .ticket-footer {
     background: #fff;
-    border-top: 1px solid #ececec;
+    border-top: none;
+    border-radius: 0 0 18px 18px;
 }
 
 .notice i {

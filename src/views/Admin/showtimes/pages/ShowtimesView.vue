@@ -113,7 +113,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed } from "vue";
-import api from "../../api";
+import api from "@/api";
 import { Modal } from "bootstrap";
 
 const showtimes = ref([]);
