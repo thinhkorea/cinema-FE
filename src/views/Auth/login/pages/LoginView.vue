@@ -115,15 +115,6 @@
                             </span>
                         </button>
 
-                        <div v-if="error" class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
-                            <strong>Lỗi!</strong> {{ error }}
-                            <button type="button" class="btn-close" @click="error = ''"></button>
-                        </div>
-
-                        <div v-if="success" class="alert alert-success alert-dismissible fade show mb-4" role="alert">
-                            {{ success }}
-                            <button type="button" class="btn-close" @click="success = ''"></button>
-                        </div>
                     </form>
 
                     <div class="text-center mt-4">
@@ -142,6 +133,7 @@
 import { reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth.store";
+import { getApiErrorMessage, showCinemaAlert } from "@/utils/cinemaAlert";
 
 const router = useRouter();
 const auth = useAuthStore();
@@ -151,8 +143,6 @@ const form = reactive({
     password: "",
 });
 
-const error = ref("");
-const success = ref("");
 const loading = ref(false);
 const showPassword = ref(false);
 
@@ -161,8 +151,6 @@ function togglePassword() {
 }
 
 async function handleLogin() {
-    error.value = "";
-    success.value = "";
     loading.value = true;
 
     try {
@@ -171,9 +159,13 @@ async function handleLogin() {
             password: form.password,
         });
 
-        success.value = "Đăng nhập thành công!";
+        await showCinemaAlert({
+            icon: "success",
+            title: "Đăng nhập thành công",
+            timer: 1200,
+        });
 
-        setTimeout(() => {
+        setTimeout(async () => {
             const role = auth.role;
             if (role === "ADMIN") {
                 router.push("/admin/dashboard");
@@ -182,18 +174,24 @@ async function handleLogin() {
             } else if (role === "CUSTOMER") {
                 router.push("/");
             } else {
-                error.value = "Không xác định được quyền truy cập.";
+                await showCinemaAlert({
+                    icon: "error",
+                    title: "Không xác định được quyền truy cập",
+                });
             }
         }, 600);
     } catch (err) {
         console.error("Login failed:", err);
-        const errorMsg = err.response?.data?.message || err.response?.data;
-
-        if (errorMsg === "Account is locked") {
-            error.value = "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.";
-        } else {
-            error.value = errorMsg || "Email/số điện thoại hoặc mật khẩu không đúng.";
-        }
+        const errorMsg = getApiErrorMessage(err, "Email/số điện thoại hoặc mật khẩu không đúng.");
+        const message =
+            errorMsg === "Account is locked"
+                ? "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên."
+                : errorMsg;
+        await showCinemaAlert({
+            icon: "error",
+            title: "Đăng nhập thất bại",
+            text: message,
+        });
     } finally {
         loading.value = false;
     }

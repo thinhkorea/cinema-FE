@@ -218,6 +218,7 @@
 <script setup>
 import { ref } from "vue";
 import AppHeader from "@/components/AppHeader.vue";
+import { showCinemaAlert } from "@/utils/cinemaAlert";
 
 // Contact form
 const contactForm = ref({
@@ -236,7 +237,11 @@ const sendMessage = async () => {
         // Simulate sending message
         await new Promise((resolve) => setTimeout(resolve, 2000));
 
-        alert("Cảm ơn bạn đã liên hệ! Chúng tôi sẽ phản hồi trong thời gian sớm nhất.");
+        await showCinemaAlert({
+            icon: "success",
+            title: "Gửi liên hệ thành công",
+            text: "Cảm ơn bạn đã liên hệ! Chúng tôi sẽ phản hồi trong thời gian sớm nhất.",
+        });
 
         // Reset form
         contactForm.value = {
@@ -246,7 +251,11 @@ const sendMessage = async () => {
             message: "",
         };
     } catch (error) {
-        alert("Có lỗi xảy ra. Vui lòng thử lại sau.");
+        await showCinemaAlert({
+            icon: "error",
+            title: "Không thể gửi liên hệ",
+            text: "Có lỗi xảy ra. Vui lòng thử lại sau.",
+        });
     } finally {
         sending.value = false;
     }

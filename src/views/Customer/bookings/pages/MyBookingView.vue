@@ -18,7 +18,7 @@
             </div>
 
             <!-- EMPTY -->
-            <div v-else-if="bookings.length === 0" class="alert alert-info text-center py-4">
+            <div v-else-if="bookings.length === 0" class="text-center py-4 text-muted">
                 <i class="bi bi-inbox fs-3 mb-3"></i>
                 <p class="mb-0">Bạn chưa có vé nào</p>
             </div>
@@ -164,6 +164,14 @@
                                                 <span>Chi tiết</span>
                                             </button>
                                             <button
+                                                v-if="canCancelGroup(group)"
+                                                class="btn-cancel"
+                                                @click="cancelGroup(group)"
+                                            >
+                                                <i class="bi bi-x-circle"></i>
+                                                <span>Hủy vé</span>
+                                            </button>
+                                            <button
                                                 class="btn-copy"
                                                 @click="copyTxnRef(group.txnRef)"
                                                 title="Sao chép mã"
@@ -213,6 +221,7 @@ import { ref, computed, onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import AppHeader from "@/components/AppHeader.vue";
 import api from "@/api";
+import { getApiErrorMessage, showCinemaAlert, showCinemaConfirm } from "@/utils/cinemaAlert";
 
 const router = useRouter();
 const bookings = ref([]);
@@ -221,6 +230,7 @@ const loading = ref(true);
 const filterStatus = ref("ALL");
 const currentPage = ref(1);
 const itemsPerPage = ref(10); // Số lượng vé tối đa per trang
+const notifiedEmpty = ref(false);
 
 const goHome = () => router.push("/");
 
@@ -231,19 +241,40 @@ watch(currentPage, () => {
 
 onMounted(async () => {
     try {
-        const response = await api.get("/bookings/my-bookings");
-        // Chỉ lấy những vé đã thanh toán (PAID)
-        bookings.value = (response.data || []).filter((b) => b.status === "PAID");
-
-        const txnRefs = [...new Set(bookings.value.map((b) => b.txnRef).filter(Boolean))];
-        await fetchSnacksForTransactions(txnRefs);
+        await loadMyBookings();
     } catch (error) {
         console.error("Lỗi khi tải lịch sử vé:", error);
-        alert("Không thể tải lịch sử vé");
+        await showCinemaAlert({
+            icon: "error",
+            title: "Không thể tải lịch sử vé",
+            text: "Vui lòng thử lại sau ít phút.",
+        });
     } finally {
         loading.value = false;
     }
 });
+
+const loadMyBookings = async () => {
+    const response = await api.get("/bookings/my-bookings");
+    const now = Date.now();
+    bookings.value = (response.data || []).filter((b) => {
+        const startTime = new Date(b.startTime).getTime();
+        return b.status === "PAID" && Number.isFinite(startTime) && startTime > now;
+    });
+
+    if (bookings.value.length === 0 && !notifiedEmpty.value) {
+        notifiedEmpty.value = true;
+        await showCinemaAlert({
+            icon: "info",
+            title: "Chưa có vé",
+            text: "Bạn chưa có vé nào trong lịch sử.",
+            timer: 1800,
+        });
+    }
+
+    const txnRefs = [...new Set(bookings.value.map((b) => b.txnRef).filter(Boolean))];
+    await fetchSnacksForTransactions(txnRefs);
+};
 
 // Vì chỉ hiển thị vé PAID, không cần filter
 const filteredBookings = computed(() => {
@@ -427,22 +458,46 @@ const viewGroupDetails = (txnRef) => {
 
 const copyTxnRef = (txnRef) => {
     navigator.clipboard.writeText(txnRef).then(() => {
-        alert("Đã sao chép mã giao dịch!");
+        showCinemaAlert({
+            icon: "success",
+            title: "Đã sao chép",
+            text: "Mã giao dịch đã được sao chép.",
+        });
     });
 };
 
-const cancelBooking = async (bookingId) => {
-    if (!confirm("Bạn chắc chắn muốn hủy vé này?")) return;
+const canCancelGroup = (group) => {
+    const startTime = new Date(group.startTime).getTime();
+    const cancelDeadline = startTime - 30 * 60 * 1000;
+    return Number.isFinite(startTime) && Date.now() < cancelDeadline;
+};
+
+const cancelGroup = async (group) => {
+    const confirmed = await showCinemaConfirm({
+        icon: "warning",
+        title: "Xác nhận hủy vé",
+        text: "Tiền vé sẽ không hoàn tiền mặt mà được hoàn thành điểm trong hệ thống.",
+        confirmButtonText: "Hủy vé",
+    });
+    if (!confirmed) return;
 
     try {
-        await api.delete(`/bookings/${bookingId}`);
-        alert("Hủy vé thành công");
-        // Reload lại danh sách
-        const response = await api.get("/bookings/my-bookings");
-        bookings.value = response.data || [];
+        const response = await api.post(`/bookings/txn/${group.txnRef}/cancel`);
+        const refundedPoints = response.data?.refundedPoints || 0;
+        const snackTotal = response.data?.snackTotal || 0;
+        await showCinemaAlert({
+            icon: "success",
+            title: "Hủy vé thành công",
+            text: `Bạn được hoàn ${refundedPoints} điểm${snackTotal > 0 ? " bao gồm cả bắp nước trong đơn." : "."}`,
+        });
+        await loadMyBookings();
     } catch (error) {
         console.error("Lỗi khi hủy vé:", error);
-        alert(error.response?.data?.error || "Không thể hủy vé");
+        await showCinemaAlert({
+            icon: "error",
+            title: "Không thể hủy vé",
+            text: getApiErrorMessage(error),
+        });
     }
 };
 
@@ -457,10 +512,14 @@ const downloadTicket = async (bookingId) => {
         link.setAttribute("download", `ticket_${bookingId}.pdf`);
         document.body.appendChild(link);
         link.click();
-        link.parentChild.removeChild(link);
+        link.parentNode.removeChild(link);
     } catch (error) {
         console.error("Lỗi khi tải vé:", error);
-        alert("Không thể tải vé");
+        await showCinemaAlert({
+            icon: "error",
+            title: "Không thể tải vé",
+            text: "Vui lòng thử lại sau ít phút.",
+        });
     }
 };
 
@@ -870,6 +929,30 @@ const leave = (el) => {
     box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
 }
 
+.btn-cancel {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: rgba(220, 53, 69, 0.12);
+    color: #dc3545;
+    border: 1px solid rgba(220, 53, 69, 0.25);
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-cancel:hover {
+    background: #dc3545;
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.25);
+}
+
 .btn-copy {
     display: flex;
     align-items: center;
@@ -1023,6 +1106,17 @@ const leave = (el) => {
     box-shadow: 0 4px 15px rgba(255, 107, 53, 0.32);
 }
 
+.btn-cancel {
+    background: #fff1f2;
+    color: #dc3545;
+    border-color: #ffc2c8;
+}
+
+.btn-cancel:hover {
+    background: #dc3545;
+    color: #fff;
+}
+
 .btn-copy {
     background: #fff5f1;
     color: #ff6b35;
@@ -1098,6 +1192,10 @@ const leave = (el) => {
     .btn-copy {
         width: 100%;
         height: 40px;
+    }
+
+    .btn-cancel {
+        width: 100%;
     }
 }
 </style>

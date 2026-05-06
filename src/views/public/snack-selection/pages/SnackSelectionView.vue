@@ -106,8 +106,8 @@
 import AppHeader from "@/components/AppHeader.vue";
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
-import Swal from "sweetalert2";
 import api from "@/api";
+import { showCinemaAlert } from "@/utils/cinemaAlert";
 
 const router = useRouter();
 const route = useRoute();
@@ -134,7 +134,11 @@ onMounted(async () => {
         const bookingFlowKey = bookingData.bookingFlowKey || `${movieId}_${showtimeId}_${bookingData.expiryTime || ""}`;
 
         if (!bookingData.selectedSeats || bookingData.selectedSeats.length === 0) {
-            alert("Không tìm thấy thông tin đặt vé. Vui lòng chọn ghế lại.");
+            await showCinemaAlert({
+                icon: "warning",
+                title: "Không tìm thấy thông tin đặt vé",
+                text: "Vui lòng chọn ghế lại.",
+            });
             router.push(`/booking/${movieId}/seats/${showtimeId}`);
             return;
         }
@@ -182,7 +186,11 @@ onMounted(async () => {
         startTimer(remainingSeconds);
     } catch (err) {
         console.error("Lỗi tải dữ liệu:", err);
-        alert("Không thể tải thông tin đặt vé!");
+        await showCinemaAlert({
+            icon: "error",
+            title: "Không thể tải thông tin đặt vé",
+            text: "Vui lòng thử lại sau ít phút.",
+        });
         loading.value = false;
     }
 });
@@ -281,17 +289,13 @@ const proceedToPayment = () => {
 };
 
 const showSeatHoldExpiredAlert = async () => {
-    await Swal.fire({
+    await showCinemaAlert({
         icon: "warning",
         title: "Hết thời gian giữ ghế",
         text: "Thời gian giữ ghế đã kết thúc. Vui lòng đặt vé lại.",
         confirmButtonText: "Quay về trang chủ",
         allowOutsideClick: false,
         allowEscapeKey: false,
-        customClass: {
-            confirmButton: "btn btn-warning px-4",
-        },
-        buttonsStyling: false,
     });
 };
 

@@ -166,6 +166,7 @@ import { ref, watchEffect, computed, onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth.store";
 import api from "@/api";
+import { showCinemaAlert } from "@/utils/cinemaAlert";
 
 const bookings = ref([]);
 const authStore = useAuthStore();
@@ -311,9 +312,13 @@ function formatDate(date) {
     return new Date(date).toLocaleDateString("vi-VN");
 }
 
-function printTicket(txnRef) {
+async function printTicket(txnRef) {
     if (!txnRef) {
-        alert("Không tìm thấy mã giao dịch!");
+        await showCinemaAlert({
+            icon: "error",
+            title: "Không thể in vé",
+            text: "Không tìm thấy mã giao dịch.",
+        });
         return;
     }
     // Mở trang in trong tab mới

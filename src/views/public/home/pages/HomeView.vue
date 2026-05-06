@@ -25,24 +25,23 @@
                     <button class="nav-button prev" @click="prevMovie">←</button>
 
                     <div class="carousel-container">
-                        <div class="movie-card movie-card-side" v-if="prevMovieItem" :key="`prev-${prevMovieItem.movieId}-${currentMovieIndex}`">
+                        <div
+                            class="movie-card movie-card-side"
+                            v-if="prevMovieItem"
+                            :key="`prev-${prevMovieItem.movieId}-${currentMovieIndex}`"
+                        >
                             <div class="movie-card-content">
-                                <img
-                                    :src="prevMovieItem.posterUrl"
-                                    :alt="prevMovieItem.title"
-                                />
+                                <img :src="prevMovieItem.posterUrl" :alt="prevMovieItem.title" />
                             </div>
                         </div>
 
-                        <div class="movie-card movie-card-main" v-if="currentMovie" :key="`main-${currentMovie.movieId}-${currentMovieIndex}`">
-                            <div
-                                class="movie-card-wrapper"
-                                @click="goDetail(currentMovie.movieId)"
-                            >
-                                <img
-                                    :src="currentMovie.posterUrl"
-                                    :alt="currentMovie.title"
-                                />
+                        <div
+                            class="movie-card movie-card-main"
+                            v-if="currentMovie"
+                            :key="`main-${currentMovie.movieId}-${currentMovieIndex}`"
+                        >
+                            <div class="movie-card-wrapper" @click="goDetail(currentMovie.movieId)">
+                                <img :src="currentMovie.posterUrl" :alt="currentMovie.title" />
                                 <div class="movie-overlay"></div>
                                 <div class="movie-info">
                                     <h2>{{ currentMovie.title }}</h2>
@@ -50,22 +49,20 @@
                                         {{ currentMovie.duration }} phút •
                                         {{ currentMovie.genre }}
                                     </p>
-                                    <button
-                                        class="btn book-now-btn mt-3"
-                                        @click.stop="goDetail(currentMovie.movieId)"
-                                    >
+                                    <button class="btn book-now-btn mt-3" @click.stop="goDetail(currentMovie.movieId)">
                                         Đặt vé ngay
                                     </button>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="movie-card movie-card-side" v-if="nextMovieItem" :key="`next-${nextMovieItem.movieId}-${currentMovieIndex}`">
+                        <div
+                            class="movie-card movie-card-side"
+                            v-if="nextMovieItem"
+                            :key="`next-${nextMovieItem.movieId}-${currentMovieIndex}`"
+                        >
                             <div class="movie-card-content">
-                                <img
-                                    :src="nextMovieItem.posterUrl"
-                                    :alt="nextMovieItem.title"
-                                />
+                                <img :src="nextMovieItem.posterUrl" :alt="nextMovieItem.title" />
                             </div>
                         </div>
                     </div>
@@ -205,6 +202,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth.store";
 import api from "@/api";
+import { showCinemaAlert } from "@/utils/cinemaAlert";
 
 const router = useRouter();
 const auth = useAuthStore();
@@ -293,7 +291,9 @@ const displayedMovies = computed(() => movies.value);
 const currentMovie = computed(() => displayedMovies.value[currentMovieIndex.value] || null);
 const prevMovieItem = computed(() => {
     if (!displayedMovies.value.length) return null;
-    return displayedMovies.value[(currentMovieIndex.value - 1 + displayedMovies.value.length) % displayedMovies.value.length];
+    return displayedMovies.value[
+        (currentMovieIndex.value - 1 + displayedMovies.value.length) % displayedMovies.value.length
+    ];
 });
 const nextMovieItem = computed(() => {
     if (!displayedMovies.value.length) return null;
@@ -386,9 +386,13 @@ const closeVideoModal = () => {
     currentVideoEmbed.value = "";
 };
 
-const openNewsDetail = (news) => {
+const openNewsDetail = async (news) => {
     // Tạm thời hiển thị thông báo, có thể chuyển đến trang chi tiết sau
-    alert(`Đang xem: ${news.title}\n\nNội dung: ${news.category} - ${news.date}`);
+    await showCinemaAlert({
+        icon: "info",
+        title: news.title,
+        text: `Nội dung: ${news.category} - ${news.date}`,
+    });
     // router.push(`/news/${news.id}`); // Chức năng trang chi tiết sau này
 };
 

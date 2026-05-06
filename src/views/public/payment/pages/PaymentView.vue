@@ -54,6 +54,58 @@
                         </div>
                     </div>
 
+                    <!-- Voucher Section -->
+                    <div class="voucher-section">
+                        <h3 class="subsection-title">
+                            <i class="bi bi-ticket-perforated"></i>
+                            Voucher giảm giá
+                        </h3>
+                        <div class="voucher-box">
+                            <input
+                                v-model.trim="voucherCode"
+                                type="text"
+                                placeholder="Nhập mã voucher"
+                                class="voucher-input"
+                                :disabled="voucherApplying"
+                            />
+                            <button
+                                @click="applyVoucher()"
+                                class="btn-apply"
+                                :disabled="voucherApplying"
+                                :aria-busy="voucherApplying"
+                            >
+                                Áp dụng
+                            </button>
+                        </div>
+                        <div class="voucher-list" v-if="availableVouchers.length">
+                            <p class="voucher-list-title">Mã phù hợp với bạn:</p>
+                            <div class="voucher-pill-list">
+                                <button
+                                    v-for="voucher in availableVouchers"
+                                    :key="voucher.code"
+                                    class="voucher-pill"
+                                    :class="{ selected: voucherApplied?.code === voucher.code }"
+                                    :disabled="voucherApplying"
+                                    @click="applyVoucher(voucher.code)"
+                                >
+                                    <div class="voucher-pill-title">{{ voucher.code }}</div>
+                                    <div class="voucher-pill-sub">
+                                        Giảm {{ formatCurrency(voucher.discountAmount) }}
+                                        <span v-if="voucher.newMemberOnly" class="voucher-badge">New</span>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+                        <p v-else class="voucher-empty">Không có voucher phù hợp.</p>
+                        <p v-if="voucherMessage" class="voucher-message" :class="voucherMessageTone">
+                            {{ voucherMessage }}
+                        </p>
+                        <p v-if="voucherApplied" class="voucher-preview">
+                            Đã áp dụng: <strong>{{ voucherApplied.code }}</strong> — Giảm
+                            <strong>{{ formatCurrency(voucherDiscount) }}</strong>
+                        </p>
+                    </div>
+
                     <!-- Payment Method Section -->
                     <div class="payment-method-section">
                         <h3 class="subsection-title">
@@ -112,6 +164,10 @@
                     </div>
 
                     <!-- Discount -->
+                    <div v-if="voucherDiscount > 0" class="detail-row discount-row">
+                        <span class="label">Giảm voucher ({{ voucherApplied?.code }})</span>
+                        <span class="value discount">-{{ formatCurrency(voucherDiscount) }}</span>
+                    </div>
                     <div v-if="pointsToUse > 0" class="detail-row discount-row">
                         <span class="label">Giảm từ điểm ({{ pointsToUse }}đ)</span>
                         <span class="value discount">-{{ formatCurrency(pointsToUse * 1000) }}</span>
@@ -138,12 +194,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useAuthStore } from "@/stores/auth.store";
-import Swal from "sweetalert2";
 import api from "@/api";
 import vnpayLogo from "@/assets/vnpay-logo.png";
+import { getApiErrorMessage, showCinemaAlert } from "@/utils/cinemaAlert";
 
 const router = useRouter();
 const route = useRoute();
@@ -163,6 +219,13 @@ const selectedSnacks = ref([]);
 const snackTotal = ref(0);
 const loyaltyPoints = ref(0);
 const pointsToUse = ref(0);
+const voucherCode = ref("");
+const voucherApplying = ref(false);
+const voucherApplied = ref(null);
+const voucherDiscount = ref(0);
+const availableVouchers = ref([]);
+const voucherMessage = ref("");
+const voucherMessageTone = ref("");
 
 // Timer
 const timeRemaining = ref("10:00");
@@ -175,7 +238,11 @@ onMounted(async () => {
         const bookingFlowKey = bookingData.bookingFlowKey || `${movieId}_${showtimeId}_${bookingData.expiryTime || ""}`;
 
         if (!bookingData.selectedSeats || bookingData.selectedSeats.length === 0) {
-            alert("Không tìm thấy thông tin đặt vé.");
+            await showCinemaAlert({
+                icon: "warning",
+                title: "Không tìm thấy thông tin đặt vé",
+                text: "Vui lòng chọn ghế lại.",
+            });
             router.push(`/booking/${movieId}/seats/${showtimeId}`);
             return;
         }
@@ -212,6 +279,7 @@ onMounted(async () => {
             loyaltyPoints.value = profileRes.data.loyaltyPoints || 0;
         }
 
+        await fetchAvailableVouchers();
         loading.value = false;
 
         // Start timer
@@ -220,7 +288,11 @@ onMounted(async () => {
         startTimer(remainingSeconds);
     } catch (err) {
         console.error("Lỗi tải dữ liệu:", err);
-        alert("Không thể tải thông tin thanh toán!");
+        await showCinemaAlert({
+            icon: "error",
+            title: "Không thể tải thông tin thanh toán",
+            text: "Vui lòng thử lại sau ít phút.",
+        });
     }
 });
 
@@ -235,31 +307,38 @@ const selectedSeatsText = computed(() => {
     return selectedSeats.value.map((s) => s.seatNumber).join(", ");
 });
 
+const baseTotal = computed(() => ticketPrice.value + snackTotal.value);
+
+const totalAfterVoucher = computed(() => {
+    return Math.max(0, baseTotal.value - voucherDiscount.value);
+});
+
 const maxPointsCanUse = computed(() => {
     const maxByPoints = loyaltyPoints.value;
-    const maxByTotal = Math.floor((ticketPrice.value + snackTotal.value) / 1000);
+    const maxByTotal = Math.floor(totalAfterVoucher.value / 1000);
     return Math.min(maxByPoints, maxByTotal);
 });
 
 const finalAmount = computed(() => {
-    const total = ticketPrice.value + snackTotal.value;
     const discount = pointsToUse.value * 1000;
-    return Math.max(0, total - discount);
+    return Math.max(0, totalAfterVoucher.value - discount);
+});
+
+watch(maxPointsCanUse, (nextMax) => {
+    if (pointsToUse.value > nextMax) {
+        pointsToUse.value = nextMax;
+    }
 });
 
 // Methods
 const showSeatHoldExpiredAlert = async () => {
-    await Swal.fire({
+    await showCinemaAlert({
         icon: "warning",
         title: "Hết thời gian giữ ghế",
         text: "Thời gian giữ ghế đã kết thúc. Vui lòng đặt vé lại.",
         confirmButtonText: "Quay về trang chủ",
         allowOutsideClick: false,
         allowEscapeKey: false,
-        customClass: {
-            confirmButton: "btn btn-warning px-4",
-        },
-        buttonsStyling: false,
     });
 };
 
@@ -287,6 +366,72 @@ const updateTimerDisplay = (seconds) => {
 
 const useMaxPoints = () => {
     pointsToUse.value = maxPointsCanUse.value;
+};
+
+const applyVoucher = async (code) => {
+    if (code) {
+        if (voucherApplied.value?.code === code) {
+            clearVoucher();
+            return;
+        }
+        voucherCode.value = code;
+    }
+
+    if (!voucherCode.value) {
+        voucherMessage.value = "Vui lòng nhập mã voucher.";
+        voucherMessageTone.value = "error";
+        return;
+    }
+
+    try {
+        voucherApplying.value = true;
+        const { data } = await api.post("/vouchers/validate", {
+            code: voucherCode.value,
+            totalAmount: baseTotal.value,
+        });
+
+        voucherApplied.value = data;
+        voucherDiscount.value = data.discountAmount || 0;
+        voucherMessage.value = "";
+        voucherMessageTone.value = "";
+        sessionStorage.setItem(
+            "pendingVoucher",
+            JSON.stringify({
+                code: data.code,
+                totalAmount: baseTotal.value,
+                discountAmount: voucherDiscount.value,
+            }),
+        );
+    } catch (err) {
+        console.error("Voucher validate failed:", err);
+        voucherMessage.value = getApiErrorMessage(err);
+        voucherMessageTone.value = "error";
+    } finally {
+        voucherApplying.value = false;
+    }
+};
+
+const fetchAvailableVouchers = async () => {
+    try {
+        const { data } = await api.get("/vouchers/available", {
+            params: {
+                totalAmount: baseTotal.value,
+            },
+        });
+        availableVouchers.value = Array.isArray(data) ? data : [];
+    } catch (err) {
+        console.error("Fetch vouchers failed:", err);
+        availableVouchers.value = [];
+    }
+};
+
+const clearVoucher = () => {
+    voucherApplied.value = null;
+    voucherDiscount.value = 0;
+    voucherCode.value = "";
+    voucherMessage.value = "";
+    voucherMessageTone.value = "";
+    sessionStorage.removeItem("pendingVoucher");
 };
 
 const goBack = () => {
@@ -325,14 +470,7 @@ const confirmPayment = async () => {
         console.log("Booking created with txnRef:", txnRef);
 
         // Step 2: Create payment
-        let finalAmountToPay = finalAmount.value;
-
-        // Calculate discount from points
-        let discountFromPoints = 0;
-        if (pointsToUse.value > 0) {
-            discountFromPoints = pointsToUse.value * 1000;
-            finalAmountToPay = ticketPrice.value + snackTotal.value - discountFromPoints;
-        }
+        const finalAmountToPay = finalAmount.value;
 
         const payRes = await api.post(`/payments/create-payment`, {
             txnRef,
@@ -349,6 +487,16 @@ const confirmPayment = async () => {
                 JSON.stringify({
                     txnRef: txnRef,
                     pointsToUse: pointsToUse.value,
+                }),
+            );
+        }
+
+        if (voucherApplied.value?.code) {
+            sessionStorage.setItem(
+                "pendingVoucher",
+                JSON.stringify({
+                    code: voucherApplied.value.code,
+                    totalAmount: baseTotal.value,
                 }),
             );
         }
@@ -378,8 +526,11 @@ const confirmPayment = async () => {
         window.location.href = paymentUrl;
     } catch (err) {
         console.error("Lỗi thanh toán:", err);
-        const backendMessage = err?.response?.data?.error;
-        alert(backendMessage || "Không thể khởi tạo thanh toán!");
+        await showCinemaAlert({
+            icon: "error",
+            title: "Không thể khởi tạo thanh toán",
+            text: getApiErrorMessage(err),
+        });
         processing.value = false;
     }
 };
@@ -613,6 +764,115 @@ const formatShortDate = (dateTime) => {
 .discount-preview {
     margin-top: 0.75rem;
     color: #198754;
+}
+
+.voucher-section {
+    border: 1px solid #e7e7e7;
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+}
+
+.voucher-box {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.voucher-input {
+    flex: 1;
+    padding: 0.65rem 0.75rem;
+    border-radius: 8px;
+    border: 1px solid #d9d9d9;
+    font-size: 0.95rem;
+}
+
+.btn-apply {
+    padding: 0.6rem 1rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-apply {
+    background: #ff6b35;
+    color: #fff;
+}
+
+.voucher-preview {
+    margin-top: 0.75rem;
+    color: #2f2f2f;
+    font-size: 0.95rem;
+}
+
+.voucher-list {
+    margin-top: 0.85rem;
+}
+
+.voucher-list-title {
+    margin: 0 0 0.6rem;
+    color: #555;
+    font-size: 0.9rem;
+}
+
+.voucher-pill-list {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
+.voucher-pill {
+    border: 1px dashed #ff6b35;
+    background: #fff8f4;
+    border-radius: 12px;
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    min-width: 140px;
+    text-align: left;
+}
+
+.voucher-pill.selected {
+    border-style: solid;
+    box-shadow: 0 6px 16px rgba(255, 107, 53, 0.18);
+}
+
+.voucher-pill-title {
+    font-weight: 700;
+    color: #ff6b35;
+}
+
+.voucher-pill-sub {
+    font-size: 0.85rem;
+    color: #555;
+    margin-top: 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.voucher-badge {
+    background: #ffe7dd;
+    color: #ff6b35;
+    padding: 0.1rem 0.4rem;
+    border-radius: 8px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.voucher-empty {
+    margin-top: 0.6rem;
+    color: #888;
+    font-size: 0.9rem;
+}
+
+.voucher-message {
+    margin-top: 0.6rem;
+    font-size: 0.9rem;
+}
+
+.voucher-message.error {
+    color: #dc3545;
 }
 
 .payment-method-box {

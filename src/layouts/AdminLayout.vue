@@ -65,9 +65,11 @@ const links = [
     { label: "Rooms", path: "/admin/rooms", icon: "bi bi-door-open" },
     { label: "Showtimes", path: "/admin/showtimes", icon: "bi bi-clock" },
     { label: "Bookings", path: "/admin/bookings", icon: "bi bi-ticket" },
+    { label: "Ingredients", path: "/admin/inventory", icon: "bi bi-box-seam" },
     { label: "Revenue", path: "/admin/revenue", icon: "bi bi-graph-up" },
     { label: "Register Staff", path: "/admin/register-staff", icon: "bi bi-person-plus" },
     { label: "Account", path: "/admin/users", icon: "bi bi-people" },
+    { label: "Vouchers", path: "/admin/vouchers", icon: "bi bi-ticket-perforated" },
 ];
 
 const logout = () => {

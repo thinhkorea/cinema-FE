@@ -78,9 +78,7 @@
                         </div>
                         <div class="col-6">
                             <small class="text-muted d-block mb-1">Tổng tiền</small>
-                            <h6 class="mb-0 fw-bold text-success">
-                                {{ getTotalAmount().toLocaleString("vi-VN") }}₫
-                            </h6>
+                            <h6 class="mb-0 fw-bold text-success">{{ getTotalAmount().toLocaleString("vi-VN") }}₫</h6>
                         </div>
                     </div>
                 </div>
@@ -151,8 +149,8 @@
                             submitting
                                 ? "Đang xử lý..."
                                 : selectedPaymentMethod === "cash"
-                                ? "Thanh toán tiền mặt"
-                                : "Tạo mã thanh toán"
+                                  ? "Thanh toán tiền mặt"
+                                  : "Tạo mã thanh toán"
                         }}
                     </button>
                 </div>
@@ -165,6 +163,7 @@
 import { ref, computed, onMounted } from "vue";
 import api from "@/api";
 import { useAuthStore } from "@/stores/auth.store";
+import { getApiErrorMessage, showCinemaAlert } from "@/utils/cinemaAlert";
 
 const props = defineProps({
     showtime: { type: Object, required: true },
@@ -275,7 +274,11 @@ async function handleCashPayment() {
         window.location.href = `/staff/payment-result?vnp_ResponseCode=00&vnp_TxnRef=${txnRef}`;
     } catch (err) {
         console.error("Lỗi thanh toán tiền mặt:", err);
-        alert(err.response?.data?.error || "Có lỗi xảy ra!");
+        await showCinemaAlert({
+            icon: "error",
+            title: "Thanh toán thất bại",
+            text: getApiErrorMessage(err),
+        });
     } finally {
         submitting.value = false;
     }
@@ -313,7 +316,11 @@ async function handleVnPay() {
         }
     } catch (err) {
         console.error("Lỗi tạo VNPay:", err);
-        alert(err.response?.data?.error || "Không thể tạo thanh toán VNPay!");
+        await showCinemaAlert({
+            icon: "error",
+            title: "Không thể tạo thanh toán VNPay",
+            text: getApiErrorMessage(err),
+        });
         submitting.value = false;
     }
 }
@@ -419,7 +426,9 @@ function formatTime(t) {
     border-radius: 20px;
     width: 90%;
     max-width: 480px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 0 1px rgba(0, 0, 0, 0.1);
+    box-shadow:
+        0 20px 60px rgba(0, 0, 0, 0.15),
+        0 0 1px rgba(0, 0, 0, 0.1);
     animation: slideUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
     border: 1px solid rgba(255, 255, 255, 0.8);
 }

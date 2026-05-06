@@ -266,7 +266,7 @@ import { ref, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import api from "@/api";
 import { useAuthStore } from "@/stores/auth.store";
-import Swal from "sweetalert2";
+import { showCinemaAlert, showCinemaToast } from "@/utils/cinemaAlert";
 
 const route = useRoute();
 const router = useRouter();
@@ -277,28 +277,6 @@ const reviews = ref([]);
 const reviewSummary = ref({ averageRating: 0, reviewCount: 0 });
 const submittingReview = ref(false);
 const reviewForm = ref({ rating: 5, comment: "" });
-
-const showAlert = ({ icon = "info", title = "Thông báo", text = "", toast = false }) => {
-    return Swal.fire({
-        icon,
-        title,
-        text,
-        toast,
-        position: toast ? "top-end" : "center",
-        timer: toast ? 1800 : undefined,
-        showConfirmButton: !toast,
-        timerProgressBar: toast,
-        background: "#ffffff",
-        color: "#333333",
-        confirmButtonColor: "#ff6b35",
-        customClass: {
-            popup: "movie-alert-popup",
-            confirmButton: "movie-alert-btn",
-            title: "movie-alert-title",
-            htmlContainer: "movie-alert-text",
-        },
-    });
-};
 
 // Ensure all hooks are called at the top level
 onMounted(async () => {
@@ -336,7 +314,7 @@ const submitReview = async () => {
     const movieId = route.params.id;
 
     if (hasCurrentUserReviewed()) {
-        await showAlert({
+        await showCinemaAlert({
             icon: "info",
             title: "Đã đánh giá",
             text: "Mỗi tài khoản chỉ được đánh giá phim 1 lần.",
@@ -345,7 +323,7 @@ const submitReview = async () => {
     }
 
     if (!auth.isAuthenticated) {
-        await showAlert({
+        await showCinemaAlert({
             icon: "warning",
             title: "Cần đăng nhập",
             text: "Bạn cần đăng nhập để gửi đánh giá.",
@@ -362,11 +340,10 @@ const submitReview = async () => {
         });
         reviewForm.value.comment = "";
         await fetchReviews(movieId);
-        await showAlert({
+        await showCinemaToast({
             icon: "success",
             title: "Đã gửi đánh giá",
             text: "Cảm ơn bạn đã chia sẻ cảm nhận về bộ phim!",
-            toast: true,
         });
     } catch (err) {
         console.error("Lỗi gửi review:", err);
@@ -376,7 +353,7 @@ const submitReview = async () => {
         const isValidationError =
             errorMessage.includes("sau khi suất chiếu") || errorMessage.includes("mua và thanh toán vé");
 
-        await showAlert({
+        await showCinemaAlert({
             icon: isValidationError ? "info" : "error",
             title: isValidationError ? "Chưa đủ điều kiện" : "Gửi đánh giá thất bại",
             text: errorMessage,
@@ -396,7 +373,7 @@ const goBooking = () => {
     if (id) {
         router.push(`/booking/${id}`);
     } else {
-        showAlert({
+        showCinemaAlert({
             icon: "error",
             title: "Không thể đặt vé",
             text: "Không tìm thấy thông tin phim để đặt vé.",
@@ -777,31 +754,6 @@ const formatReviewTime = (value) => {
     color: #4f4f4f;
     line-height: 1.6;
     white-space: pre-wrap;
-}
-
-:deep(.movie-alert-popup) {
-    border: 1px solid #e6e6e6;
-    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.16);
-}
-
-:deep(.movie-alert-title) {
-    color: #333333;
-    font-weight: 700;
-}
-
-:deep(.movie-alert-text) {
-    color: #555555;
-}
-
-:deep(.movie-alert-btn) {
-    color: #ffffff !important;
-    font-weight: 700 !important;
-    border: none !important;
-    box-shadow: none !important;
-}
-
-:deep(.swal2-timer-progress-bar) {
-    background: #ff6b35 !important;
 }
 
 .btn-warning:active {

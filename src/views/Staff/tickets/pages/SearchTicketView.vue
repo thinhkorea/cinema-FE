@@ -9,9 +9,6 @@
             </button>
         </div>
 
-        <!-- Thông báo -->
-        <div v-if="error" class="alert alert-danger">{{ error }}</div>
-
         <!-- Kết quả -->
         <div v-if="tickets.length > 0" class="mt-4">
             <h5 class="mb-3">
@@ -75,7 +72,7 @@
                         </tbody>
                     </table>
                 </div>
-                <div v-else class="alert alert-light border mb-0">Không có bắp nước cho mã giao dịch này.</div>
+                <div v-else class="text-muted">Không có bắp nước cho mã giao dịch này.</div>
             </div>
 
             <!-- Hành động in -->
@@ -97,7 +94,7 @@
         </div>
 
         <!-- Nếu chưa tìm thấy -->
-        <div v-else-if="searched && tickets.length === 0 && !error" class="alert alert-warning">
+        <div v-else-if="searched && tickets.length === 0" class="text-muted text-center py-4">
             Không tìm thấy vé với mã giao dịch này.
         </div>
     </div>
@@ -106,6 +103,7 @@
 <script setup>
 import { computed, ref } from "vue";
 import api from "@/api";
+import { showCinemaAlert, showCinemaToast } from "@/utils/cinemaAlert";
 
 const txnRef = ref("");
 const tickets = ref([]);
@@ -113,17 +111,19 @@ const snacks = ref([]);
 const loading = ref(false);
 const printing = ref(false);
 const printedTxn = ref([]); // danh sách txnRef đã in
-const error = ref("");
 const searched = ref(false);
 const snackTotal = computed(() => snacks.value.reduce((sum, item) => sum + item.subtotal, 0));
 
 // === Tra cứu vé ===
 async function searchTicket() {
     if (!txnRef.value.trim()) {
-        error.value = "Vui lòng nhập mã giao dịch!";
+        await showCinemaAlert({
+            icon: "warning",
+            title: "Thiếu mã giao dịch",
+            text: "Vui lòng nhập mã giao dịch!",
+        });
         return;
     }
-    error.value = "";
     loading.value = true;
     searched.value = false;
 
@@ -141,6 +141,20 @@ async function searchTicket() {
 
         searched.value = true;
 
+        if (tickets.value.length === 0) {
+            await showCinemaAlert({
+                icon: "warning",
+                title: "Không tìm thấy vé",
+                text: "Không tìm thấy vé với mã giao dịch này.",
+            });
+        } else if (snacks.value.length === 0) {
+            await showCinemaToast({
+                icon: "info",
+                title: "Không có bắp nước",
+                text: "Mã giao dịch này không kèm bắp nước.",
+            });
+        }
+
         // Nếu tất cả vé đều printed = true → chặn nút in
         if (tickets.value.length > 0 && tickets.value.every((t) => t.printed)) {
             const trimmedTxn = txnRef.value.trim();
@@ -150,8 +164,13 @@ async function searchTicket() {
         console.log("Vé tìm được:", res.data);
     } catch (err) {
         console.error("Lỗi tra cứu vé:", err);
-        error.value = "Không thể tra cứu vé. Kiểm tra kết nối hoặc mã giao dịch.";
         snacks.value = [];
+        searched.value = true;
+        await showCinemaAlert({
+            icon: "error",
+            title: "Tra cứu thất bại",
+            text: "Không thể tra cứu vé. Kiểm tra kết nối hoặc mã giao dịch.",
+        });
     } finally {
         loading.value = false;
     }

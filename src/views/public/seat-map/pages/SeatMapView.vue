@@ -33,11 +33,7 @@
                     </div>
 
                     <div class="seat-grid mb-4">
-                        <div
-                            v-for="row in seatLayout"
-                            :key="row.rowLabel"
-                            class="seat-row"
-                        >
+                        <div v-for="row in seatLayout" :key="row.rowLabel" class="seat-row">
                             <div class="row-label">{{ row.rowLabel }}</div>
                             <div class="row-seats">
                                 <div
@@ -165,7 +161,7 @@ import { ref, onMounted, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import api from "@/api";
 import { useAuthStore } from "@/stores/auth.store";
-import Swal from "sweetalert2";
+import { showCinemaAlert } from "@/utils/cinemaAlert";
 
 const route = useRoute();
 const router = useRouter();
@@ -174,22 +170,6 @@ const auth = useAuthStore();
 const movieId = route.params.movieId;
 const showtimeId = route.params.showtimeId;
 const DEBUG_HOLD_DURATION_MS = 10 * 60 * 1000; // Default 10 minutes
-
-const showCinemaAlert = ({ icon = "info", title, text, confirmButtonText = "Đã hiểu" }) => {
-    return Swal.fire({
-        icon,
-        title,
-        text,
-        confirmButtonText,
-        customClass: {
-            popup: "cinema-alert-popup",
-            title: "cinema-alert-title",
-            htmlContainer: "cinema-alert-text",
-            confirmButton: "cinema-alert-confirm",
-        },
-        buttonsStyling: false,
-    });
-};
 
 // State cho modal SĐT
 const showPhoneModal = ref(false);
@@ -1215,38 +1195,6 @@ const confirmBooking = async () => {
 .btn-primary:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
-}
-
-:deep(.cinema-alert-popup) {
-    border-radius: 16px;
-    border: 1px solid #ffd8ca;
-    box-shadow: 0 14px 30px rgba(255, 107, 53, 0.2);
-}
-
-:deep(.cinema-alert-title) {
-    color: #2f2f2f;
-    font-weight: 800;
-}
-
-:deep(.cinema-alert-text) {
-    color: #666666;
-    font-size: 0.98rem;
-}
-
-:deep(.cinema-alert-confirm) {
-    background: linear-gradient(135deg, #ff6b35, #ff8a5f);
-    color: #ffffff;
-    border: none;
-    border-radius: 10px;
-    font-weight: 700;
-    padding: 0.62rem 1.2rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-:deep(.cinema-alert-confirm:hover) {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 14px rgba(255, 107, 53, 0.3);
 }
 
 /* Responsive */

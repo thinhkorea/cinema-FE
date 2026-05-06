@@ -210,6 +210,7 @@
 import { ref, reactive, computed, onMounted } from "vue";
 import { Modal } from "bootstrap";
 import api from "@/api";
+import { getApiErrorMessage, showCinemaAlert, showCinemaConfirm } from "@/utils/cinemaAlert";
 
 const movies = ref([]);
 const loading = ref(true);
@@ -285,20 +286,32 @@ const save = async () => {
         console.log("Save response:", response);
         modal.hide();
         await fetchMovies();
-        alert("Lưu phim thành công!");
+        await showCinemaAlert({
+            icon: "success",
+            title: "Lưu phim thành công",
+            timer: 1500,
+        });
     } catch (error) {
         console.error("Save error:", error);
-        alert("Lỗi khi lưu phim: " + error.message);
+        await showCinemaAlert({
+            icon: "error",
+            title: "Không thể lưu phim",
+            text: getApiErrorMessage(error),
+        });
     } finally {
         saving.value = false;
     }
 };
 
 const remove = async (id) => {
-    if (confirm("Bạn có chắc muốn xóa phim này?")) {
-        await api.delete(`/movies/${id}`);
-        await fetchMovies();
-    }
+    const confirmed = await showCinemaConfirm({
+        title: "Xóa phim",
+        text: "Bạn có chắc muốn xóa phim này?",
+        confirmButtonText: "Xóa",
+    });
+    if (!confirmed) return;
+    await api.delete(`/movies/${id}`);
+    await fetchMovies();
 };
 
 const statusLabel = (s) => {

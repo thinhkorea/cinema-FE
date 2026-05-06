@@ -29,7 +29,7 @@
         </div>
 
         <!-- Danh sách ghế chọn -->
-        <div v-if="selectedSeats.length" class="alert alert-info mt-4">
+        <div v-if="selectedSeats.length" class="mt-4 text-muted">
             Đã chọn: <strong>{{ selectedSeatLabels.join(", ") }}</strong>
         </div>
     </div>

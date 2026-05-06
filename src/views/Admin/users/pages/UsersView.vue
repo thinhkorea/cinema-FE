@@ -34,7 +34,9 @@
                 <div class="spinner-border text-primary"></div>
             </div>
 
-            <div v-else-if="customers.length === 0" class="alert alert-info">Chưa có khách hàng nào</div>
+            <div v-else-if="customers.length === 0" class="text-muted py-3">
+                Chưa có khách hàng nào
+            </div>
 
             <div v-else class="table-responsive">
                 <table class="table table-hover align-middle">
@@ -96,7 +98,9 @@
                 <div class="spinner-border text-primary"></div>
             </div>
 
-            <div v-else-if="staffs.length === 0" class="alert alert-info">Chưa có nhân viên nào</div>
+            <div v-else-if="staffs.length === 0" class="text-muted py-3">
+                Chưa có nhân viên nào
+            </div>
 
             <div v-else class="table-responsive">
                 <table class="table table-hover align-middle">
@@ -155,82 +159,28 @@
         </div>
     </div>
 
-    <!-- Modal xác nhận -->
-    <div class="modal fade" id="confirmModal" tabindex="-1" ref="confirmModalRef">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Xác nhận hành động</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    {{ confirmMessage }}
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                    <button type="button" class="btn btn-primary" @click="confirmAction" data-bs-dismiss="modal">
-                        Xác nhận
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal thông báo kết quả -->
-    <div class="modal fade" id="resultModal" tabindex="-1" ref="resultModalRef">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg">
-                <div class="modal-header border-0" :class="resultStatus === 'success' ? 'bg-success' : 'bg-danger'">
-                    <h5 class="modal-title text-white d-flex align-items-center">
-                        <i
-                            :class="
-                                resultStatus === 'success' ? 'bi bi-check-circle-fill' : 'bi bi-exclamation-circle-fill'
-                            "
-                            class="me-2"
-                        ></i>
-                        {{ resultStatus === "success" ? "Thành công" : "Lỗi" }}
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body text-center py-4">
-                    <i
-                        :class="
-                            resultStatus === 'success'
-                                ? 'bi bi-check-circle text-success'
-                                : 'bi bi-exclamation-triangle text-danger'
-                        "
-                        style="font-size: 3rem; display: block; margin-bottom: 1rem"
-                    ></i>
-                    <h5 class="mb-2">{{ resultMessage }}</h5>
-                </div>
-                <div class="modal-footer border-0">
-                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Đóng</button>
-                </div>
-            </div>
-        </div>
-    </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from "vue";
 import api from "@/api";
-import * as bootstrap from "bootstrap";
+import { getApiErrorMessage, showCinemaAlert, showCinemaConfirm, showCinemaToast } from "@/utils/cinemaAlert";
 
 const activeTab = ref("customers");
 const customers = ref([]);
 const staffs = ref([]);
 const loadingUsers = ref(true);
 const loadingStaffs = ref(true);
+const notifiedEmptyUsers = ref(false);
+const notifiedEmptyStaffs = ref(false);
 
-const confirmModalRef = ref(null);
-let confirmModal = null;
-const confirmMessage = ref("");
-const pendingAction = ref(null);
-
-const resultModalRef = ref(null);
-let resultModal = null;
-const resultMessage = ref("");
-const resultStatus = ref("success");
+const confirmAction = async (message) => {
+    return showCinemaConfirm({
+        title: "Xác nhận",
+        text: message,
+        confirmButtonText: "Xác nhận",
+    });
+};
 
 // Fetch khách hàng
 const fetchUsers = async () => {
@@ -238,9 +188,21 @@ const fetchUsers = async () => {
     try {
         const { data } = await api.get("/admin/users");
         customers.value = data;
+        if (customers.value.length === 0 && !notifiedEmptyUsers.value) {
+            notifiedEmptyUsers.value = true;
+            await showCinemaToast({
+                icon: "info",
+                title: "Chưa có khách hàng",
+                text: "Danh sách khách hàng đang trống.",
+            });
+        }
     } catch (err) {
         console.error("Error loading users:", err);
-        alert("Lỗi khi tải danh sách khách hàng");
+        await showCinemaAlert({
+            icon: "error",
+            title: "Không thể tải danh sách khách hàng",
+            text: "Vui lòng thử lại sau ít phút.",
+        });
     } finally {
         loadingUsers.value = false;
     }
@@ -252,9 +214,21 @@ const fetchStaffs = async () => {
     try {
         const { data } = await api.get("/admin/staffs");
         staffs.value = data;
+        if (staffs.value.length === 0 && !notifiedEmptyStaffs.value) {
+            notifiedEmptyStaffs.value = true;
+            await showCinemaToast({
+                icon: "info",
+                title: "Chưa có nhân viên",
+                text: "Danh sách nhân viên đang trống.",
+            });
+        }
     } catch (err) {
         console.error("Error loading staffs:", err);
-        alert("Lỗi khi tải danh sách nhân viên");
+        await showCinemaAlert({
+            icon: "error",
+            title: "Không thể tải danh sách nhân viên",
+            text: "Vui lòng thử lại sau ít phút.",
+        });
     } finally {
         loadingStaffs.value = false;
     }
@@ -263,145 +237,137 @@ const fetchStaffs = async () => {
 // Khóa tài khoản khách hàng
 const lockUser = (userId) => {
     const user = customers.value.find((u) => u.userId === userId);
-    confirmMessage.value = `Bạn có chắc chắn muốn khóa tài khoản "${user.username}" không?`;
-    pendingAction.value = async () => {
+    const message = `Bạn có chắc chắn muốn khóa tài khoản "${user.username}" không?`;
+    confirmAction(message).then(async (confirmed) => {
+        if (!confirmed) return;
         try {
             await api.put(`/admin/users/${userId}/lock`);
             await fetchUsers();
-            showResultModal("Khóa tài khoản thành công", "success");
+            await showCinemaAlert({ icon: "success", title: "Khóa tài khoản thành công", timer: 1500 });
         } catch (err) {
             console.error("Error locking user:", err);
-            showResultModal("Lỗi khi khóa tài khoản", "error");
+            await showCinemaAlert({
+                icon: "error",
+                title: "Lỗi khi khóa tài khoản",
+                text: getApiErrorMessage(err),
+            });
         }
-    };
-    showConfirmModal();
+    });
 };
 
 // Mở khóa tài khoản khách hàng
 const unlockUser = (userId) => {
     const user = customers.value.find((u) => u.userId === userId);
-    confirmMessage.value = `Bạn có chắc chắn muốn mở khóa tài khoản "${user.username}" không?`;
-    pendingAction.value = async () => {
+    const message = `Bạn có chắc chắn muốn mở khóa tài khoản "${user.username}" không?`;
+    confirmAction(message).then(async (confirmed) => {
+        if (!confirmed) return;
         try {
             await api.put(`/admin/users/${userId}/unlock`);
             await fetchUsers();
-            showResultModal("Mở khóa tài khoản thành công", "success");
+            await showCinemaAlert({ icon: "success", title: "Mở khóa tài khoản thành công", timer: 1500 });
         } catch (err) {
             console.error("Error unlocking user:", err);
-            showResultModal("Lỗi khi mở khóa tài khoản", "error");
+            await showCinemaAlert({
+                icon: "error",
+                title: "Lỗi khi mở khóa tài khoản",
+                text: getApiErrorMessage(err),
+            });
         }
-    };
-    showConfirmModal();
+    });
 };
 
 // Xóa tài khoản khách hàng
 const deleteUser = (userId, username) => {
-    confirmMessage.value = `Bạn có chắc chắn muốn xóa tài khoản "${username}" không? Hành động này không thể hoàn tác.`;
-    pendingAction.value = async () => {
+    const message = `Bạn có chắc chắn muốn xóa tài khoản "${username}" không? Hành động này không thể hoàn tác.`;
+    confirmAction(message).then(async (confirmed) => {
+        if (!confirmed) return;
         try {
-            await api.delete(`/admin/users/${userId}`);
+            const { data } = await api.delete(`/admin/users/${userId}`);
             await fetchUsers();
-            showResultModal("Xóa tài khoản thành công", "success");
+            await showCinemaAlert({
+                icon: "success",
+                title: data?.message || "Xóa tài khoản thành công",
+                timer: 1800,
+            });
         } catch (err) {
             console.error("Error deleting user:", err);
-            showResultModal("Lỗi khi xóa tài khoản", "error");
+            await showCinemaAlert({
+                icon: "error",
+                title: "Lỗi khi xóa tài khoản",
+                text: getApiErrorMessage(err),
+            });
         }
-    };
-    showConfirmModal();
+    });
 };
 
 // Khóa tài khoản nhân viên
 const lockStaff = (username, userId) => {
-    confirmMessage.value = `Bạn có chắc chắn muốn khóa tài khoản nhân viên "${username}" không?`;
-    pendingAction.value = async () => {
+    const message = `Bạn có chắc chắn muốn khóa tài khoản nhân viên "${username}" không?`;
+    confirmAction(message).then(async (confirmed) => {
+        if (!confirmed) return;
         try {
             console.log("Locking staff with userId:", userId);
             await api.put(`/admin/users/${userId}/lock`);
             console.log("Lock successful");
             await fetchStaffs();
-            showResultModal("Khóa tài khoản nhân viên thành công", "success");
+            await showCinemaAlert({ icon: "success", title: "Khóa tài khoản nhân viên thành công", timer: 1500 });
         } catch (err) {
             console.error("Error locking staff:", err);
-            showResultModal(
-                "Lỗi khi khóa tài khoản nhân viên: " + (err.response?.data?.message || err.message),
-                "error"
-            );
+            await showCinemaAlert({
+                icon: "error",
+                title: "Lỗi khi khóa tài khoản nhân viên",
+                text: getApiErrorMessage(err),
+            });
         }
-    };
-    showConfirmModal();
+    });
 };
 
 // Mở khóa tài khoản nhân viên
 const unlockStaff = (username, userId) => {
-    confirmMessage.value = `Bạn có chắc chắn muốn mở khóa tài khoản nhân viên "${username}" không?`;
-    pendingAction.value = async () => {
+    const message = `Bạn có chắc chắn muốn mở khóa tài khoản nhân viên "${username}" không?`;
+    confirmAction(message).then(async (confirmed) => {
+        if (!confirmed) return;
         try {
             console.log("Unlocking staff with userId:", userId);
             await api.put(`/admin/users/${userId}/unlock`);
             console.log("Unlock successful");
             await fetchStaffs();
-            showResultModal("Mở khóa tài khoản nhân viên thành công", "success");
+            await showCinemaAlert({ icon: "success", title: "Mở khóa tài khoản nhân viên thành công", timer: 1500 });
         } catch (err) {
             console.error("Error unlocking staff:", err);
-            showResultModal(
-                "Lỗi khi mở khóa tài khoản nhân viên: " + (err.response?.data?.message || err.message),
-                "error"
-            );
+            await showCinemaAlert({
+                icon: "error",
+                title: "Lỗi khi mở khóa tài khoản nhân viên",
+                text: getApiErrorMessage(err),
+            });
         }
-    };
-    showConfirmModal();
+    });
 };
 
 // Xóa tài khoản nhân viên
 const deleteStaff = (username, userId) => {
-    confirmMessage.value = `Bạn có chắc chắn muốn xóa tài khoản nhân viên "${username}" không? Hành động này không thể hoàn tác.`;
-    pendingAction.value = async () => {
+    const message = `Bạn có chắc chắn muốn xóa tài khoản nhân viên "${username}" không? Hành động này không thể hoàn tác.`;
+    confirmAction(message).then(async (confirmed) => {
+        if (!confirmed) return;
         try {
             console.log("Deleting staff with userId:", userId);
-            await api.delete(`/admin/users/${userId}`);
+            const { data } = await api.delete(`/admin/users/${userId}`);
             console.log("Delete successful");
             await fetchStaffs();
-            showResultModal("Xóa tài khoản nhân viên thành công", "success");
+            await showCinemaAlert({
+                icon: "success",
+                title: data?.message || "Xóa tài khoản nhân viên thành công",
+                timer: 1800,
+            });
         } catch (err) {
             console.error("Error deleting staff:", err);
-            showResultModal(
-                "Lỗi khi xóa tài khoản nhân viên: " + (err.response?.data?.message || err.message),
-                "error"
-            );
+            await showCinemaAlert({
+                icon: "error",
+                title: "Lỗi khi xóa tài khoản nhân viên",
+                text: getApiErrorMessage(err),
+            });
         }
-    };
-    showConfirmModal();
-};
-
-// Hiển thị modal xác nhận
-const showConfirmModal = () => {
-    if (!confirmModal) {
-        confirmModal = new bootstrap.Modal(confirmModalRef.value);
-    }
-    confirmModal.show();
-};
-
-// Hiển thị modal kết quả
-const showResultModal = (message, status = "success") => {
-    resultMessage.value = message;
-    resultStatus.value = status;
-
-    if (!resultModal) {
-        resultModal = new bootstrap.Modal(resultModalRef.value);
-    }
-    resultModal.show();
-    
-    // Tự đóng sau 2 giây
-    setTimeout(() => {
-        resultModal.hide();
-    }, 2000);
-};
-
-// Xác nhận hành động
-const confirmAction = async () => {
-    if (pendingAction.value) {
-        await pendingAction.value();
-    }
+    });
 };
 
 // Khi component mount

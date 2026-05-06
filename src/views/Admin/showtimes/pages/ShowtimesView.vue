@@ -96,7 +96,9 @@
                     </div>
 
                     <div class="mb-3">
-                        <small class="text-muted">Giá vé sẽ tự set theo ngày chiếu: Thứ 2-5 = 65.000đ, Thứ 6-CN = 80.000đ</small>
+                        <small class="text-muted"
+                            >Giá vé sẽ tự set theo ngày chiếu: Thứ 2-5 = 65.000đ, Thứ 6-CN = 80.000đ</small
+                        >
                     </div>
                 </div>
 
@@ -115,6 +117,7 @@
 import { ref, reactive, onMounted, computed } from "vue";
 import api from "@/api";
 import { Modal } from "bootstrap";
+import { showCinemaConfirm } from "@/utils/cinemaAlert";
 
 const showtimes = ref([]);
 const movies = ref([]);
@@ -218,7 +221,12 @@ const save = async () => {
     }
 };
 const remove = async (id) => {
-    if (!confirm("Delete this showtime?")) return;
+    const confirmed = await showCinemaConfirm({
+        title: "Xóa suất chiếu",
+        text: "Bạn có chắc muốn xóa suất chiếu này?",
+        confirmButtonText: "Xóa",
+    });
+    if (!confirmed) return;
     await api.delete(`/showtimes/${id}`);
     await fetchShowtimes();
 };

@@ -51,6 +51,12 @@
                                         >{{ ((profile.loyaltyPoints || 0) * 1000).toLocaleString() }}đ</span
                                     >
                                 </div>
+                                <div class="info-row">
+                                    <span class="info-label">Hết hạn điểm:</span>
+                                    <span class="info-value">
+                                        {{ nextExpiryDate || "Không có điểm sắp hết hạn" }}
+                                    </span>
+                                </div>
                                 <div class="exchange-info">
                                     <i class="bi bi-info-circle me-2"></i>
                                     <span>Tích: 20.000đ = 1 điểm</span>
@@ -156,13 +162,15 @@
 import { ref, onMounted } from "vue";
 import { useAuthStore } from "@/stores/auth.store";
 import api from "@/api";
-import Swal from "sweetalert2";
 import { useRouter } from "vue-router";
+import { showCinemaAlert } from "@/utils/cinemaAlert";
 
 const router = useRouter();
 const auth = useAuthStore();
 const profile = ref({ user: {} });
 const loading = ref(true);
+const loyalty = ref({ availablePoints: 0, transactions: [] });
+const nextExpiryDate = ref("");
 
 const goHome = () => router.push("/");
 
@@ -171,7 +179,11 @@ onMounted(async () => {
         const userId = auth.userId || localStorage.getItem("userId");
 
         if (!userId) {
-            Swal.fire("Thông báo", "Bạn cần đăng nhập để xem hồ sơ", "info");
+            await showCinemaAlert({
+                icon: "info",
+                title: "Cần đăng nhập",
+                text: "Bạn cần đăng nhập để xem hồ sơ.",
+            });
             router.push("/login");
             return;
         }
@@ -181,37 +193,75 @@ onMounted(async () => {
         profile.value.user = profile.value.user || {};
         profile.value.user.email = profile.value.user.email || profile.value.email || "";
         profile.value.user.phone = profile.value.user.phone || profile.value.phone || "";
+        await loadLoyalty();
     } catch (err) {
         console.error(err);
-        Swal.fire("Lỗi", "Không thể tải hồ sơ", "error");
+        await showCinemaAlert({
+            icon: "error",
+            title: "Không thể tải hồ sơ",
+            text: "Vui lòng thử lại sau ít phút.",
+        });
     } finally {
         loading.value = false;
     }
 });
+
+const loadLoyalty = async () => {
+    try {
+        const { data } = await api.get("/loyalty/my-points");
+        loyalty.value = data || { availablePoints: 0, transactions: [] };
+        nextExpiryDate.value = getNearestExpiryDate(loyalty.value.transactions || []);
+    } catch (err) {
+        console.error("Loyalty load failed:", err);
+        nextExpiryDate.value = "Không thể tải hạn điểm";
+    }
+};
+
+const getNearestExpiryDate = (transactions) => {
+    const candidates = transactions
+        .filter((t) => t && t.expiredAt && t.expired === false)
+        .map((t) => new Date(t.expiredAt))
+        .filter((d) => Number.isFinite(d.getTime()));
+
+    if (!candidates.length) return "";
+    candidates.sort((a, b) => a.getTime() - b.getTime());
+    return formatDate(candidates[0]);
+};
+
+const formatDate = (date) => {
+    return new Date(date).toLocaleDateString("vi-VN");
+};
 
 const updateProfile = async () => {
     try {
         const userId = auth.userId || localStorage.getItem("userId");
 
         if (!userId) {
-            Swal.fire("Thông báo", "Không xác định được người dùng!", "warning");
+            await showCinemaAlert({
+                icon: "warning",
+                title: "Không xác định được người dùng",
+                text: "Vui lòng đăng nhập lại.",
+            });
             return;
         }
 
         await api.put(`/auth/profile/${userId}`, profile.value);
 
-        await Swal.fire({
+        await showCinemaAlert({
             icon: "success",
             title: "Cập nhật thành công!",
             text: "Hồ sơ của bạn đã được lưu.",
             timer: 1500,
-            showConfirmButton: false,
         });
 
         router.push("/");
     } catch (err) {
         console.error(err);
-        Swal.fire("Lỗi", "Cập nhật thất bại", "error");
+        await showCinemaAlert({
+            icon: "error",
+            title: "Cập nhật thất bại",
+            text: "Vui lòng thử lại sau ít phút.",
+        });
     }
 };
 </script>

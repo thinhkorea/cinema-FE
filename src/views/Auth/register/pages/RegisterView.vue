@@ -274,9 +274,9 @@
 
 <script setup>
 import { onUnmounted, ref } from "vue";
-import Swal from "sweetalert2";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth.store";
+import { showCinemaAlert } from "@/utils/cinemaAlert";
 
 const router = useRouter();
 const auth = useAuthStore();
@@ -297,18 +297,11 @@ const form = ref({
 });
 
 const showAuthAlert = (title, text, icon = "info") => {
-    return Swal.fire({
+    return showCinemaAlert({
         icon,
         title,
         text,
         confirmButtonText: "Đã hiểu",
-        customClass: {
-            popup: "auth-alert-popup",
-            title: "auth-alert-title",
-            htmlContainer: "auth-alert-text",
-            confirmButton: "auth-alert-confirm",
-        },
-        buttonsStyling: false,
     });
 };
 
@@ -705,33 +698,23 @@ function togglePassword() {
     color: #d6a38f;
 }
 
-:deep(.auth-alert-popup) {
-    border-radius: 14px;
-    border: 1px solid #ffd8ca;
-    box-shadow: 0 14px 32px rgba(255, 107, 53, 0.2);
-}
+@media (max-width: 991px) {
+    .register-wrapper {
+        max-width: 100%;
+    }
 
-:deep(.auth-alert-title) {
-    color: #2f2f2f;
-    font-weight: 800;
-}
+    .register-card {
+        padding: 30px;
+    }
 
-:deep(.auth-alert-text) {
-    color: #6a6a6a;
-}
+    .register-title {
+        font-size: 24px;
+    }
 
-:deep(.auth-alert-confirm) {
-    background: linear-gradient(135deg, #ff6b35, #ff5722);
-    color: #fff;
-    border: none;
-    border-radius: 10px;
-    font-weight: 700;
-    padding: 0.62rem 1.2rem;
-    cursor: pointer;
-}
-
-:deep(.auth-alert-confirm:hover) {
-    box-shadow: 0 8px 18px rgba(255, 107, 53, 0.28);
+    .bg-decoration-1,
+    .bg-decoration-2 {
+        display: none;
+    }
 }
 
 @media (max-width: 576px) {

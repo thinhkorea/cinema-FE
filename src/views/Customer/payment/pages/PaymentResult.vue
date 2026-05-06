@@ -80,7 +80,34 @@ onMounted(async () => {
         if (isSuccess) {
             console.log("Thanh toán thành công.");
 
-            // BƯỚC 1: REDEEM POINTS trước (nếu có)
+            // BƯỚC 1: REDEEM VOUCHER trước (nếu có)
+            let voucherToRedeem = null;
+            const sessionVoucher = sessionStorage.getItem("pendingVoucher");
+            if (sessionVoucher) {
+                voucherToRedeem = JSON.parse(sessionVoucher);
+            } else {
+                const localVoucher = localStorage.getItem("pendingVoucher");
+                if (localVoucher) {
+                    voucherToRedeem = JSON.parse(localVoucher);
+                }
+            }
+
+            if (voucherToRedeem?.code && txnRef) {
+                try {
+                    await api.post(`/vouchers/redeem`, {
+                        code: voucherToRedeem.code,
+                        txnRef,
+                        totalAmount: voucherToRedeem.totalAmount || 0,
+                    });
+                } catch (err) {
+                    console.error("Lỗi khi redeem voucher:", err);
+                } finally {
+                    sessionStorage.removeItem("pendingVoucher");
+                    localStorage.removeItem("pendingVoucher");
+                }
+            }
+
+            // BƯỚC 2: REDEEM POINTS (nếu có)
             let pointsToRedeem = null;
 
             // Ưu tiên sessionStorage (từ SeatMapView vừa rồi)
@@ -109,7 +136,7 @@ onMounted(async () => {
                 }
             }
 
-            // BƯỚC 2: XÁC NHẬN THANH TOÁN (endpoint gọn nhẹ, phản hồi nhanh hơn)
+            // BƯỚC 3: XÁC NHẬN THANH TOÁN (endpoint gọn nhẹ, phản hồi nhanh hơn)
             await api.post(`/bookings/pay-by-txn/${txnRef}`);
 
             if (txnRef) {

@@ -74,9 +74,11 @@ const routes = [
             { path: "rooms", component: () => import("@/views/Admin/rooms/pages/RoomsView.vue") },
             { path: "showtimes", component: () => import("@/views/Admin/showtimes/pages/ShowtimesView.vue") },
             { path: "bookings", component: () => import("@/views/Admin/bookings/pages/BookingsView.vue") },
+            { path: "inventory", component: () => import("@/views/Admin/inventory/pages/InventoryManagementView.vue") },
             { path: "revenue", component: () => import("@/views/Admin/revenue/pages/RevenueChart.vue") },
             { path: "register-staff", component: () => import("@/views/Admin/staff/pages/RegisterStaffView.vue") },
             { path: "users", component: () => import("@/views/Admin/users/pages/UsersView.vue") },
+            { path: "vouchers", component: () => import("@/views/Admin/vouchers/pages/VouchersView.vue") },
         ],
     },
 
