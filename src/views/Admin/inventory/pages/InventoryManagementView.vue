@@ -32,8 +32,24 @@
             </div>
         </div>
 
+        <div class="section-tabs mb-3">
+            <button
+                v-for="tab in sectionTabs"
+                :key="tab.key"
+                class="section-widget"
+                :class="{ active: activeSection === tab.key }"
+                @click="activeSection = tab.key"
+            >
+                <span class="section-widget-top">
+                    <span class="section-widget-label">{{ tab.label }}</span>
+                    <span class="section-widget-arrow">›</span>
+                </span>
+                <small class="section-widget-desc">{{ tab.description }}</small>
+            </button>
+        </div>
+
         <div class="row g-3">
-            <div class="col-12 col-xl-7">
+            <div class="col-12 col-xl-7" v-show="activeSection === 'ingredients'">
                 <div class="panel">
                     <div class="panel-head d-flex justify-content-between align-items-center">
                         <h6 class="mb-0">Danh sách nguyên liệu</h6>
@@ -94,6 +110,9 @@
                                         <button class="btn btn-sm btn-outline-secondary" @click="viewMovements(item)">
                                             Lịch sử
                                         </button>
+                                        <button class="btn btn-sm btn-outline-danger" @click="deleteIngredient(item)">
+                                            Xóa
+                                        </button>
                                     </td>
                                 </tr>
                                 <tr v-if="!ingredients.length">
@@ -105,7 +124,7 @@
                 </div>
             </div>
 
-            <div class="col-12 col-xl-5">
+            <div class="col-12 col-xl-5" v-show="activeSection === 'recipes'">
                 <div class="panel h-100">
                     <div class="panel-head d-flex justify-content-between align-items-center">
                         <h6 class="mb-0">Công thức món Snack</h6>
@@ -115,13 +134,36 @@
                         <label class="form-label">Chọn món snack</label>
                         <select class="form-select" v-model="selectedSnackId" @change="loadRecipe">
                             <option value="">-- Chọn món --</option>
-                            <option v-for="sn in snacks" :key="sn.snackId" :value="sn.snackId">
+                            <option v-for="sn in recipeSnacks" :key="sn.snackId" :value="sn.snackId">
                                 {{ sn.snackName }}
                             </option>
                         </select>
                     </div>
 
                     <div class="mt-3" v-if="selectedSnackId">
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                            <div class="form-check form-switch">
+                                <input
+                                    class="form-check-input"
+                                    type="checkbox"
+                                    id="toggleWarehouseTrackable"
+                                    v-model="snackTrackableDraft"
+                                />
+                                <label class="form-check-label" for="toggleWarehouseTrackable">
+                                    Theo dõi kho thành phẩm
+                                </label>
+                            </div>
+                            <button
+                                class="btn btn-sm btn-outline-primary"
+                                :disabled="savingSnackTrackable"
+                                @click="saveSnackTrackable"
+                            >
+                                <span v-if="savingSnackTrackable" class="spinner-border spinner-border-sm me-1"></span>
+                                Lưu trạng thái kho
+                            </button>
+                            <small class="text-muted">Bật để quản lý số phần làm sẵn.</small>
+                        </div>
+
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <div class="small text-muted">Định mức cho 1 sản phẩm</div>
                             <button class="btn btn-sm btn-outline-primary" @click="addRecipeRow">+ Dòng</button>
@@ -200,7 +242,169 @@
                 </div>
             </div>
 
-            <div class="col-12">
+            <div class="col-12" v-show="activeSection === 'warehouse'">
+                <div class="panel">
+                    <div class="panel-head d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">Bật theo dõi kho cho snack</h6>
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            <small class="text-muted">Bật để quản lý số phần làm sẵn</small>
+                            <button
+                                class="btn btn-sm btn-primary"
+                                :disabled="savingAllSnackTrackable"
+                                @click="saveAllSnackTrackable"
+                            >
+                                <span
+                                    v-if="savingAllSnackTrackable"
+                                    class="spinner-border spinner-border-sm me-1"
+                                ></span>
+                                Lưu tất cả
+                            </button>
+                        </div>
+                    </div>
+                    <div class="table-responsive mt-2">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Snack</th>
+                                    <th>Loại</th>
+                                    <th>Theo dõi kho</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="snack in snacks" :key="`track-${snack.snackId}`">
+                                    <td>{{ snack.snackName }}</td>
+                                    <td>{{ snack.category }}</td>
+                                    <td>
+                                        <div class="form-check form-switch">
+                                            <input
+                                                class="form-check-input"
+                                                type="checkbox"
+                                                :id="`track-input-${snack.snackId}`"
+                                                v-model="snack.warehouseTrackable"
+                                            />
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr v-if="!snacks.length">
+                                    <td colspan="3" class="text-center text-muted py-3">
+                                        Chưa có snack nào. Vui lòng tạo snack trước.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12" v-show="activeSection === 'warehouse'">
+                <div class="panel">
+                    <div class="panel-head d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">Tồn kho snack thành phẩm</h6>
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            <small class="text-muted">Áp dụng cho snack có bật theo dõi kho</small>
+                            <button class="btn btn-sm btn-primary" @click="openCreateSnack">+ Thêm sản phẩm</button>
+                        </div>
+                    </div>
+                    <div class="table-responsive mt-2">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Snack</th>
+                                    <th>Loại</th>
+                                    <th>Tồn kho</th>
+                                    <th>Cảnh báo</th>
+                                    <th class="text-end">Điều chỉnh</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="snack in snackWarehouseStocks" :key="`wh-${snack.snackId}`">
+                                    <td>{{ snack.snackName }}</td>
+                                    <td>{{ snack.category }}</td>
+                                    <td>
+                                        <span
+                                            class="badge"
+                                            :class="snack.lowStock ? 'bg-warning text-dark' : 'bg-success'"
+                                        >
+                                            {{ formatQty(snack.warehouseStock) }} phần
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="1"
+                                            class="form-control form-control-sm"
+                                            style="width: 110px"
+                                            v-model.number="warehouseAdjustments[snack.snackId].reorderLevel"
+                                        />
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="d-flex flex-wrap gap-2 justify-content-end">
+                                            <select
+                                                class="form-select form-select-sm"
+                                                style="width: 120px"
+                                                v-model="warehouseAdjustments[snack.snackId].operation"
+                                            >
+                                                <option value="SET">Set</option>
+                                                <option value="ADD">Add</option>
+                                                <option value="SUBTRACT">Subtract</option>
+                                            </select>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                step="1"
+                                                class="form-control form-control-sm"
+                                                style="width: 110px"
+                                                placeholder="Số lượng"
+                                                v-model.number="warehouseAdjustments[snack.snackId].quantity"
+                                            />
+                                            <input
+                                                type="text"
+                                                class="form-control form-control-sm"
+                                                style="width: 160px"
+                                                placeholder="Ghi chú"
+                                                v-model="warehouseAdjustments[snack.snackId].note"
+                                            />
+                                            <button
+                                                class="btn btn-sm btn-outline-primary"
+                                                :disabled="savingWarehouse[snack.snackId]"
+                                                @click="updateSnackWarehouse(snack)"
+                                            >
+                                                <span
+                                                    v-if="savingWarehouse[snack.snackId]"
+                                                    class="spinner-border spinner-border-sm me-1"
+                                                ></span>
+                                                Cập nhật
+                                            </button>
+                                            <button
+                                                class="btn btn-sm btn-outline-secondary"
+                                                @click="viewSnackWarehouseMovements(snack)"
+                                            >
+                                                Lịch sử
+                                            </button>
+                                            <button
+                                                class="btn btn-sm btn-outline-danger"
+                                                :disabled="!!deletingSnackIds[snack.snackId]"
+                                                @click="deleteSnack(snack)"
+                                            >
+                                                <span v-if="deletingSnackIds[snack.snackId]" class="spinner-border spinner-border-sm me-1"></span>
+                                                Xóa
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr v-if="!snackWarehouseStocks.length">
+                                    <td colspan="5" class="text-center text-muted py-3">
+                                        Chưa có snack nào được theo dõi kho thành phẩm.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12" v-show="activeSection === 'batches'">
                 <div class="panel">
                     <div class="panel-head d-flex justify-content-between align-items-center">
                         <h6 class="mb-0">Lô sắp hết hạn ({{ expiringDays }} ngày)</h6>
@@ -231,7 +435,7 @@
                 </div>
             </div>
 
-            <div class="col-12">
+            <div class="col-12" v-show="activeSection === 'batches'">
                 <div class="panel">
                     <div class="panel-head d-flex justify-content-between align-items-center">
                         <h6 class="mb-0 text-danger">Lô đã hết hạn</h6>
@@ -331,6 +535,131 @@
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
                         <button class="btn btn-primary" type="submit" :disabled="savingIngredient">Lưu</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="modal fade" id="snackModal" tabindex="-1" ref="snackModalEl" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <form class="modal-content" @submit.prevent="submitSnack">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Thêm sản phẩm bắp nước</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Tên sản phẩm</label>
+                                <input
+                                    class="form-control"
+                                    v-model.trim="snackForm.snackName"
+                                    placeholder="Ví dụ: Bắp 2 Ngăn 64OZ Phô Mai + Caramel"
+                                    required
+                                />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Loại</label>
+                                <select class="form-select" v-model="snackForm.category" required>
+                                    <option value="COMBO">Combo</option>
+                                    <option value="DRINK">Nước</option>
+                                    <option value="SNACK">Snack/Bắp</option>
+                                    <option value="OTHER">Khác</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Giá bán</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    step="1000"
+                                    class="form-control"
+                                    v-model.number="snackForm.price"
+                                    required
+                                />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Mô tả</label>
+                                <textarea class="form-control" rows="2" v-model="snackForm.description"></textarea>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Ảnh sản phẩm</label>
+                                <input
+                                    type="file"
+                                    class="form-control"
+                                    accept="image/*"
+                                    :disabled="uploadingSnackImage"
+                                    @change="handleSnackImageUpload"
+                                />
+                                <div v-if="uploadingSnackImage" class="form-text text-primary">Đang upload ảnh...</div>
+                                <div v-else-if="snackForm.imageUrl" class="form-text">
+                                    Đã chọn ảnh:
+                                    <a :href="snackForm.imageUrl" target="_blank" rel="noopener">Xem ảnh</a>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Tồn ban đầu</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    step="1"
+                                    class="form-control"
+                                    v-model.number="snackForm.warehouseStock"
+                                    :disabled="!snackForm.warehouseTrackable"
+                                />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Mức cảnh báo</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    step="1"
+                                    class="form-control"
+                                    v-model.number="snackForm.warehouseReorderLevel"
+                                    :disabled="!snackForm.warehouseTrackable"
+                                />
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <div>
+                                    <div class="form-check form-switch">
+                                        <input
+                                            class="form-check-input"
+                                            type="checkbox"
+                                            id="newSnackWarehouseTrackable"
+                                            v-model="snackForm.warehouseTrackable"
+                                        />
+                                        <label class="form-check-label" for="newSnackWarehouseTrackable">
+                                            Theo dõi kho thành phẩm
+                                        </label>
+                                    </div>
+                                    <div class="form-check mt-2">
+                                        <input
+                                            class="form-check-input"
+                                            type="checkbox"
+                                            id="newSnackAvailable"
+                                            v-model="snackForm.available"
+                                        />
+                                        <label class="form-check-label" for="newSnackAvailable">
+                                            Hiển thị cho customer
+                                        </label>
+                                    </div>
+                                    <small class="text-muted d-block mt-1">
+                                        Tắt mục này nếu chỉ dùng cho staff/kho, ví dụ: Bắp riêng.
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Hạn dùng</label>
+                                <input type="date" class="form-control" v-model="snackForm.expiryDate" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                        <button class="btn btn-primary" type="submit" :disabled="savingSnack || uploadingSnackImage">
+                            <span v-if="savingSnack" class="spinner-border spinner-border-sm me-1"></span>
+                            Lưu sản phẩm
+                        </button>
                     </div>
                 </form>
             </div>
@@ -521,11 +850,63 @@
                 </div>
             </div>
         </div>
+
+        <div class="modal fade" id="snackMovementModal" tabindex="-1" ref="snackMovementModalEl" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Lịch sử tồn kho: {{ selectedSnackWarehouse?.snackName }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div v-if="loadingSnackWarehouseMovements" class="text-center text-muted py-3">
+                            Đang tải lịch sử tồn kho...
+                        </div>
+                        <div v-else-if="snackWarehouseMovementError" class="alert alert-danger py-2">
+                            {{ snackWarehouseMovementError }}
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Thời gian</th>
+                                        <th>Hành động</th>
+                                        <th>Biến động</th>
+                                        <th>Trước</th>
+                                        <th>Sau</th>
+                                        <th>Người thực hiện</th>
+                                        <th>Ghi chú</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="m in snackWarehouseMovements" :key="m.movementId">
+                                        <td>{{ formatDateTime(m.createdAt) }}</td>
+                                        <td>{{ m.action }}</td>
+                                        <td :class="m.quantityChange >= 0 ? 'text-success' : 'text-danger'">
+                                            {{ m.quantityChange >= 0 ? "+" : "" }}{{ formatQty(m.quantityChange) }}
+                                        </td>
+                                        <td>{{ formatQty(m.quantityBefore) }}</td>
+                                        <td>{{ formatQty(m.quantityAfter) }}</td>
+                                        <td>{{ m.performedBy }}</td>
+                                        <td>{{ m.note || "-" }}</td>
+                                    </tr>
+                                    <tr v-if="!loadingSnackWarehouseMovements && !snackWarehouseMovements.length">
+                                        <td colspan="7" class="text-center text-muted py-3">
+                                            Chưa có lịch sử tồn kho cho sản phẩm này.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { Modal } from "bootstrap";
 import api from "@/api";
 import { marked } from "marked";
@@ -561,9 +942,44 @@ const lowStockIngredients = ref([]);
 const expiringBatches = ref([]);
 const expiredBatches = ref([]);
 const snacks = ref([]);
+const recipeSnacks = computed(() => {
+    return snacks.value.filter(sn => sn.category === "SNACK" && sn.snackName && sn.snackName.toLowerCase().includes('bắp'));
+});
+const snackWarehouseStocks = ref([]);
+const deletingSnackIds = ref({});
+const selectedSnackWarehouse = ref(null);
+const snackWarehouseMovements = ref([]);
+const loadingSnackWarehouseMovements = ref(false);
+const snackWarehouseMovementError = ref("");
+const warehouseAdjustments = ref({});
+const savingWarehouse = ref({});
+const uploadingSnackImage = ref(false);
+const activeSection = ref("warehouse");
 
 const lowStockThreshold = 10;
 const expiringDays = 7;
+const sectionTabs = [
+    {
+        key: "warehouse",
+        label: "Tồn kho snack",
+        description: "Bắp nước thành phẩm",
+    },
+    {
+        key: "ingredients",
+        label: "Nguyên liệu",
+        description: "Danh sách & nhập xuất",
+    },
+    {
+        key: "recipes",
+        label: "Công thức",
+        description: "Định mức nguyên liệu",
+    },
+    {
+        key: "batches",
+        label: "Lô & hạn dùng",
+        description: "Sắp hết hạn / hết hạn",
+    },
+];
 
 const selectedSnackId = ref("");
 const recipeDraft = ref([]);
@@ -572,12 +988,16 @@ const recipeInstructionsDraft = ref("");
 const savingRecipeInstructions = ref(false);
 const showInstructionsPreview = ref(false);
 const instructionsError = ref("");
+const snackTrackableDraft = ref(false);
+const savingSnackTrackable = ref(false);
+const savingAllSnackTrackable = ref(false);
 
 const selectedIngredient = ref(null);
 const selectedIngredientBatches = ref([]);
 const ingredientMovements = ref([]);
 
 const savingIngredient = ref(false);
+const savingSnack = ref(false);
 const savingBatch = ref(false);
 const savingConsume = ref(false);
 const discardingExpiredAll = ref(false);
@@ -589,6 +1009,20 @@ const ingredientForm = ref({
     unit: "",
     stock: 0,
     active: true,
+});
+
+const snackForm = ref({
+    snackName: "",
+    description: "",
+    price: 0,
+    imageUrl: "",
+    category: "SNACK",
+    available: true,
+    warehouseTrackable: true,
+    warehouseStock: 0,
+    warehouseReorderLevel: 10,
+    expiryDate: "",
+    recipeInstructions: "",
 });
 
 const batchForm = ref({
@@ -607,15 +1041,19 @@ const consumeForm = ref({
 });
 
 const ingredientModalEl = ref(null);
+const snackModalEl = ref(null);
 const batchModalEl = ref(null);
 const batchesListModalEl = ref(null);
 const consumeModalEl = ref(null);
 const movementModalEl = ref(null);
+const snackMovementModalEl = ref(null);
 let ingredientModal = null;
+let snackModal = null;
 let batchModal = null;
 let batchesListModal = null;
 let consumeModal = null;
 let movementModal = null;
+let snackMovementModal = null;
 
 const toNumber = (val) => {
     const parsed = Number(val);
@@ -639,12 +1077,13 @@ const formatDateTime = (val) => {
 
 const loadAll = async () => {
     try {
-        const [ingRes, lowRes, expRes, expiredRes, snackRes] = await Promise.all([
+        const [ingRes, lowRes, expRes, expiredRes, snackRes, snackWarehouseRes] = await Promise.all([
             api.get("/admin/inventory/ingredients"),
             api.get(`/admin/inventory/ingredients/low-stock?threshold=${lowStockThreshold}`),
             api.get(`/admin/inventory/ingredients/expiring-batches?days=${expiringDays}`),
             api.get("/admin/inventory/ingredients/expired-batches"),
             api.get("/snacks/admin/all"),
+            api.get("/snacks/admin/warehouse-stocks"),
         ]);
 
         ingredients.value = ingRes.data || [];
@@ -652,12 +1091,83 @@ const loadAll = async () => {
         expiringBatches.value = expRes.data || [];
         expiredBatches.value = expiredRes.data || [];
         snacks.value = snackRes.data || [];
+        snackWarehouseStocks.value = snackWarehouseRes.data || [];
+        warehouseAdjustments.value = snackWarehouseStocks.value.reduce((acc, item) => {
+            acc[item.snackId] = {
+                operation: "SET",
+                quantity: null,
+                reorderLevel: toNumber(item.warehouseReorderLevel),
+                note: "",
+            };
+            return acc;
+        }, {});
     } catch (err) {
         await showAlert({
             icon: "error",
             title: "Lỗi",
             text: err?.response?.data?.error || "Không thể tải dữ liệu inventory.",
         });
+    }
+};
+
+const updateSnackWarehouse = async (snack) => {
+    const draft = warehouseAdjustments.value?.[snack.snackId];
+    if (!draft) {
+        await showAlert({ icon: "warning", title: "Thiếu dữ liệu", text: "Không tìm thấy dữ liệu cập nhật." });
+        return;
+    }
+    const hasQuantity = draft.quantity !== null && draft.quantity !== "" && !Number.isNaN(Number(draft.quantity));
+    if (draft.quantity !== null && draft.quantity !== "" && Number.isNaN(Number(draft.quantity))) {
+        await showAlert({ icon: "warning", title: "Số lượng không hợp lệ", text: "Số lượng phải >= 0." });
+        return;
+    }
+    if (hasQuantity && Number(draft.quantity) < 0) {
+        await showAlert({ icon: "warning", title: "Số lượng không hợp lệ", text: "Số lượng phải >= 0." });
+        return;
+    }
+    if (draft.reorderLevel === null || Number.isNaN(Number(draft.reorderLevel)) || Number(draft.reorderLevel) < 0) {
+        await showAlert({ icon: "warning", title: "Cảnh báo không hợp lệ", text: "Mức cảnh báo phải >= 0." });
+        return;
+    }
+
+    savingWarehouse.value = { ...savingWarehouse.value, [snack.snackId]: true };
+    try {
+        const payload = {
+            reorderLevel: Number(draft.reorderLevel),
+            operation: draft.operation,
+            note: draft.note,
+        };
+        if (hasQuantity) {
+            payload.quantity = Number(draft.quantity);
+        }
+        await api.patch(`/snacks/admin/${snack.snackId}/warehouse-stock`, payload);
+        await loadAll();
+        await showAlert({ icon: "success", title: "Hoàn tất", text: "Đã cập nhật tồn kho snack." });
+    } catch (err) {
+        await showAlert({
+            icon: "error",
+            title: "Lỗi",
+            text: err?.response?.data?.error || "Không thể cập nhật tồn kho snack.",
+        });
+    } finally {
+        savingWarehouse.value = { ...savingWarehouse.value, [snack.snackId]: false };
+    }
+};
+
+const deleteSnack = async (snack) => {
+    if (!snack || !snack.snackId) return;
+    const ok = await showConfirm(`Bạn có chắc muốn xóa sản phẩm "${snack.snackName}"? Hành động này không thể hoàn tác.`);
+    if (!ok) return;
+
+    deletingSnackIds.value = { ...deletingSnackIds.value, [snack.snackId]: true };
+    try {
+        await api.delete(`/snacks/${snack.snackId}`);
+        await loadAll();
+        await showAlert({ icon: "success", title: "Đã xóa", text: "Đã xóa sản phẩm." });
+    } catch (err) {
+        await showAlert({ icon: "error", title: "Lỗi", text: err?.response?.data?.error || "Không thể xóa sản phẩm." });
+    } finally {
+        deletingSnackIds.value = { ...deletingSnackIds.value, [snack.snackId]: false };
     }
 };
 
@@ -710,6 +1220,89 @@ const submitIngredient = async () => {
         });
     } finally {
         savingIngredient.value = false;
+    }
+};
+
+const openCreateSnack = () => {
+    snackForm.value = {
+        snackName: "",
+        description: "",
+        price: 0,
+        imageUrl: "",
+        category: "SNACK",
+        available: true,
+        warehouseTrackable: true,
+        warehouseStock: 0,
+        warehouseReorderLevel: 10,
+        expiryDate: "",
+        recipeInstructions: "",
+    };
+
+    if (!snackModal && snackModalEl.value) {
+        snackModal = new Modal(snackModalEl.value);
+    }
+    snackModal?.show();
+};
+
+const handleSnackImageUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+        await showAlert({ icon: "warning", title: "File không hợp lệ", text: "Vui lòng chọn file ảnh." });
+        event.target.value = "";
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+    uploadingSnackImage.value = true;
+    try {
+        const res = await api.post("/snacks/admin/upload-image", formData);
+        snackForm.value.imageUrl = res.data?.imageUrl || "";
+    } catch (err) {
+        await showAlert({
+            icon: "error",
+            title: "Lỗi upload ảnh",
+            text: err?.response?.data?.error || "Không thể upload ảnh sản phẩm.",
+        });
+        event.target.value = "";
+    } finally {
+        uploadingSnackImage.value = false;
+    }
+};
+
+const submitSnack = async () => {
+    if (!snackForm.value.snackName || snackForm.value.price === null || snackForm.value.price < 0) {
+        await showAlert({
+            icon: "warning",
+            title: "Thông tin không hợp lệ",
+            text: "Vui lòng nhập tên sản phẩm và giá bán hợp lệ.",
+        });
+        return;
+    }
+
+    savingSnack.value = true;
+    try {
+        const payload = {
+            ...snackForm.value,
+            warehouseStock: snackForm.value.warehouseTrackable ? toNumber(snackForm.value.warehouseStock) : 0,
+            warehouseReorderLevel: snackForm.value.warehouseTrackable
+                ? toNumber(snackForm.value.warehouseReorderLevel)
+                : 0,
+            expiryDate: snackForm.value.expiryDate || null,
+        };
+        await api.post("/snacks", payload);
+        snackModal?.hide();
+        await loadAll();
+        await showAlert({ icon: "success", title: "Hoàn tất", text: "Đã thêm sản phẩm bắp nước." });
+    } catch (err) {
+        await showAlert({
+            icon: "error",
+            title: "Lỗi",
+            text: err?.response?.data?.error || "Không thể thêm sản phẩm.",
+        });
+    } finally {
+        savingSnack.value = false;
     }
 };
 
@@ -824,6 +1417,32 @@ const viewMovements = async (item) => {
     }
 };
 
+const viewSnackWarehouseMovements = async (snack) => {
+    selectedSnackWarehouse.value = snack;
+    snackWarehouseMovements.value = [];
+    snackWarehouseMovementError.value = "";
+
+    if (!snackMovementModal && snackMovementModalEl.value) {
+        snackMovementModal = new Modal(snackMovementModalEl.value);
+    }
+    snackMovementModal?.show();
+
+    loadingSnackWarehouseMovements.value = true;
+    try {
+        const res = await api.get(`/snacks/admin/${snack.snackId}/warehouse-movements`);
+        snackWarehouseMovements.value = res.data || [];
+    } catch (err) {
+        snackWarehouseMovementError.value = err?.response?.data?.error || "Không thể tải lịch sử tồn kho snack.";
+        await showAlert({
+            icon: "error",
+            title: "Lỗi",
+            text: snackWarehouseMovementError.value,
+        });
+    } finally {
+        loadingSnackWarehouseMovements.value = false;
+    }
+};
+
 const discardExpiredBatch = async (batch) => {
     if (!batch?.batchId) return;
 
@@ -874,11 +1493,33 @@ const discardAllExpiredBatches = async () => {
     }
 };
 
+const deleteIngredient = async (item) => {
+    if (!item?.ingredientId) return;
+    const ok = await showConfirm(`Xóa nguyên liệu "${item.ingredientName}"? Hành động này không thể hoàn tác.`);
+    if (!ok) return;
+
+    try {
+        await api.delete(`/admin/inventory/ingredients/${item.ingredientId}`);
+        await loadAll();
+        await showAlert({ icon: "success", title: "Hoàn tất", text: "Đã xóa nguyên liệu." });
+    } catch (err) {
+        await showAlert({
+            icon: "error",
+            title: "Lỗi",
+            text: err?.response?.data?.error || "Không thể xóa nguyên liệu.",
+        });
+    }
+};
+
 const loadRecipe = async () => {
     if (!selectedSnackId.value) {
         recipeDraft.value = [];
+        snackTrackableDraft.value = false;
         return;
     }
+
+    const currentSnack = snacks.value.find((snack) => snack.snackId === selectedSnackId.value);
+    snackTrackableDraft.value = !!currentSnack?.warehouseTrackable;
 
     try {
         const res = await api.get(`/admin/inventory/snacks/${selectedSnackId.value}/recipe`);
@@ -974,6 +1615,79 @@ const saveRecipeInstructions = async () => {
     }
 };
 
+const buildSnackPayload = (snack, warehouseTrackableValue) => ({
+    snackName: snack.snackName,
+    description: snack.description,
+    price: snack.price,
+    imageUrl: snack.imageUrl,
+    category: snack.category,
+    available: snack.available,
+    warehouseTrackable: warehouseTrackableValue ?? snack.warehouseTrackable,
+    expiryDate: snack.expiryDate,
+    recipeInstructions: snack.recipeInstructions,
+});
+
+const saveSnackTrackable = async () => {
+    if (!selectedSnackId.value) return;
+    const currentSnack = snacks.value.find((snack) => snack.snackId === selectedSnackId.value);
+    if (!currentSnack) {
+        await showAlert({ icon: "warning", title: "Thiếu snack", text: "Không tìm thấy snack đã chọn." });
+        return;
+    }
+    if (!currentSnack.snackName || currentSnack.price == null || !currentSnack.category) {
+        await showAlert({
+            icon: "warning",
+            title: "Thiếu thông tin snack",
+            text: "Vui lòng kiểm tra tên, giá và loại snack trước khi lưu.",
+        });
+        return;
+    }
+
+    savingSnackTrackable.value = true;
+    try {
+        await api.put(`/snacks/${currentSnack.snackId}`, buildSnackPayload(currentSnack, snackTrackableDraft.value));
+        await loadAll();
+        await showAlert({ icon: "success", title: "Hoàn tất", text: "Đã cập nhật trạng thái kho." });
+    } catch (err) {
+        await showAlert({
+            icon: "error",
+            title: "Lỗi",
+            text: err?.response?.data?.error || "Không thể cập nhật trạng thái kho.",
+        });
+    } finally {
+        savingSnackTrackable.value = false;
+    }
+};
+
+const saveAllSnackTrackable = async () => {
+    if (!snacks.value.length) return;
+
+    const invalid = snacks.value.find((snack) => !snack.snackName || snack.price == null || !snack.category);
+    if (invalid) {
+        await showAlert({
+            icon: "warning",
+            title: "Thiếu thông tin snack",
+            text: "Vui lòng kiểm tra tên, giá và loại snack trước khi lưu.",
+        });
+        return;
+    }
+
+    savingAllSnackTrackable.value = true;
+    try {
+        await Promise.all(snacks.value.map((snack) => api.put(`/snacks/${snack.snackId}`, buildSnackPayload(snack))));
+        await loadAll();
+        await showAlert({ icon: "success", title: "Hoàn tất", text: "Đã lưu trạng thái kho cho tất cả snack." });
+    } catch (err) {
+        await showAlert({
+            icon: "error",
+            title: "Lỗi",
+            text: err?.response?.data?.error || "Không thể lưu trạng thái kho cho tất cả snack.",
+        });
+    } finally {
+        savingAllSnackTrackable.value = false;
+    }
+};
+
 const renderedInstructionsHtml = () => {
     const md = recipeInstructionsDraft.value || "";
     try {
@@ -1028,6 +1742,78 @@ onMounted(async () => {
     padding-bottom: 10px;
 }
 
+.section-tabs {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.section-widget {
+    border: 1px solid #eee2dc;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(103, 58, 43, 0.05);
+    color: #4b403b;
+    cursor: pointer;
+    min-height: 74px;
+    padding: 12px 14px;
+    text-align: left;
+    transition:
+        background-color 0.2s ease,
+        border-color 0.2s ease,
+        box-shadow 0.2s ease,
+        transform 0.2s ease;
+}
+
+.section-widget:hover {
+    background-color: #f8fbff;
+    border-color: #9cc5fe;
+    box-shadow: 0 6px 14px rgba(13, 110, 253, 0.1);
+    transform: translateY(-1px);
+}
+
+.section-widget.active {
+    border-color: #0d6efd;
+    background-color: #f3f8ff;
+    box-shadow: 0 6px 14px rgba(13, 110, 253, 0.12);
+}
+
+.section-widget-top {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.section-widget-label,
+.section-widget-desc {
+    display: block;
+}
+
+.section-widget-label {
+    color: #3f3732;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.section-widget-arrow {
+    align-items: center;
+    color: #0d6efd;
+    display: inline-flex;
+    font-size: 20px;
+    font-weight: 700;
+    height: 24px;
+    justify-content: center;
+    line-height: 1;
+    width: 24px;
+}
+
+.section-widget-desc {
+    color: #7c716b;
+    font-size: 12px;
+    margin-top: 4px;
+}
+
 .recipe-list {
     display: flex;
     flex-direction: column;
@@ -1041,6 +1827,10 @@ onMounted(async () => {
 }
 
 @media (max-width: 576px) {
+    .section-tabs {
+        grid-template-columns: 1fr;
+    }
+
     .recipe-row {
         grid-template-columns: 1fr;
     }

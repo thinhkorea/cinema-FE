@@ -72,9 +72,9 @@ const links = [
     { label: "Vouchers", path: "/admin/vouchers", icon: "bi bi-ticket-perforated" },
 ];
 
-const logout = () => {
-    auth.logout();
-    router.push("/login");
+const logout = async () => {
+    await auth.logout();
+    router.replace("/login");
 };
 
 const goHome = () => {

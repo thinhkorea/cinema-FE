@@ -75,6 +75,14 @@
                 <div v-else class="text-muted">Không có bắp nước cho mã giao dịch này.</div>
             </div>
 
+            <div v-if="snacks.length > 0" class="mt-3 d-flex flex-wrap align-items-center gap-2">
+                <button class="btn btn-warning" @click="fulfillSnacks" :disabled="fulfilling || snacksFulfilled">
+                    <span v-if="fulfilling" class="spinner-border spinner-border-sm me-2"></span>
+                    <i class="bi bi-box-seam me-2"></i>
+                    Xác nhận xuất bắp nước
+                </button>
+            </div>
+
             <!-- Hành động in -->
             <div class="text-center mt-4">
                 <button
@@ -112,7 +120,11 @@ const loading = ref(false);
 const printing = ref(false);
 const printedTxn = ref([]); // danh sách txnRef đã in
 const searched = ref(false);
+const fulfilling = ref(false);
 const snackTotal = computed(() => snacks.value.reduce((sum, item) => sum + item.subtotal, 0));
+const snacksFulfilled = computed(
+    () => tickets.value.length > 0 && tickets.value.every((ticket) => ticket.snacksFulfilled),
+);
 
 // === Tra cứu vé ===
 async function searchTicket() {
@@ -218,6 +230,31 @@ async function printGroup() {
         console.error("Lỗi khi cập nhật trạng thái in:", err);
     } finally {
         printing.value = false;
+    }
+}
+
+async function fulfillSnacks() {
+    const currentTxnRef = txnRef.value.trim();
+    if (!currentTxnRef) return;
+
+    fulfilling.value = true;
+    try {
+        const res = await api.post(`/staff/snacks/fulfill/${currentTxnRef}`);
+        await showCinemaAlert({
+            icon: "success",
+            title: "Xuất kho thành công",
+            text: res.data?.message || "Đã xuất bắp nước cho mã giao dịch này.",
+        });
+        await searchTicket();
+    } catch (err) {
+        console.error("Lỗi khi xuất bắp nước:", err);
+        await showCinemaAlert({
+            icon: "error",
+            title: "Xuất kho thất bại",
+            text: err?.response?.data?.error || "Không thể xuất bắp nước. Vui lòng thử lại.",
+        });
+    } finally {
+        fulfilling.value = false;
     }
 }
 

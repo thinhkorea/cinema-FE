@@ -105,9 +105,9 @@ const links = [
     { label: "Tra cứu vé", path: "/staff/search-ticket" },
 ];
 
-const logout = () => {
-    auth.logout();
-    router.push("/login");
+const logout = async () => {
+    await auth.logout();
+    router.replace("/login");
 };
 
 const goHome = () => {
