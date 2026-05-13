@@ -1,50 +1,24 @@
-<template>
+﻿<template>
     <div class="inventory-page p-3 p-md-4">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
             <h5 class="mb-0">Quản lý Nguyên Liệu & Công Thức</h5>
             <button class="btn btn-outline-secondary" @click="loadAll">Tải lại dữ liệu</button>
         </div>
 
-        <div class="row g-3 mb-3">
-            <div class="col-md-3">
-                <div class="summary-card border-warning">
-                    <div class="summary-title">Nguyên liệu sắp hết</div>
-                    <div class="summary-value text-warning">{{ lowStockIngredients.length }}</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="summary-card border-danger">
-                    <div class="summary-title">Lô sắp hết hạn</div>
-                    <div class="summary-value text-danger">{{ expiringBatches.length }}</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="summary-card border-danger">
-                    <div class="summary-title">Lô đã hết hạn</div>
-                    <div class="summary-value text-danger">{{ expiredBatches.length }}</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="summary-card border-primary">
-                    <div class="summary-title">Tổng nguyên liệu</div>
-                    <div class="summary-value text-primary">{{ ingredients.length }}</div>
-                </div>
-            </div>
-        </div>
-
         <div class="section-tabs mb-3">
             <button
-                v-for="tab in sectionTabs"
+                v-for="(tab, index) in sectionTabs"
                 :key="tab.key"
                 class="section-widget"
                 :class="{ active: activeSection === tab.key }"
+                :style="{ '--tab-color': tab.color }"
                 @click="activeSection = tab.key"
             >
-                <span class="section-widget-top">
-                    <span class="section-widget-label">{{ tab.label }}</span>
-                    <span class="section-widget-arrow">›</span>
+                <span class="section-widget-number">{{ index + 1 }}</span>
+                <span class="section-widget-text">
+                    <strong>{{ tab.label }}</strong>
+                    <small>{{ tab.description }}</small>
                 </span>
-                <small class="section-widget-desc">{{ tab.description }}</small>
             </button>
         </div>
 
@@ -127,7 +101,7 @@
             <div class="col-12 col-xl-5" v-show="activeSection === 'recipes'">
                 <div class="panel h-100">
                     <div class="panel-head d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0">Công thức món Snack</h6>
+                        <h6 class="mb-0">Công thức Bắp Rang</h6>
                     </div>
 
                     <div class="mt-3">
@@ -153,15 +127,26 @@
                                     Theo dõi kho thành phẩm
                                 </label>
                             </div>
+                            <div class="form-check form-switch">
+                                <input
+                                    class="form-check-input"
+                                    type="checkbox"
+                                    id="toggleSnackAvailable"
+                                    v-model="snackAvailableDraft"
+                                />
+                                <label class="form-check-label" for="toggleSnackAvailable">
+                                    Hiển thị cho customer
+                                </label>
+                            </div>
                             <button
                                 class="btn btn-sm btn-outline-primary"
                                 :disabled="savingSnackTrackable"
                                 @click="saveSnackTrackable"
                             >
                                 <span v-if="savingSnackTrackable" class="spinner-border spinner-border-sm me-1"></span>
-                                Lưu trạng thái kho
+                                Lưu trạng thái
                             </button>
-                            <small class="text-muted">Bật để quản lý số phần làm sẵn.</small>
+                            <small class="text-muted">Tắt hiển thị nếu món chỉ dùng cho staff/kho.</small>
                         </div>
 
                         <div class="d-flex justify-content-between align-items-center mb-2">
@@ -202,32 +187,6 @@
                                 <div class="form-text text-danger" v-if="instructionsError">
                                     {{ instructionsError }}
                                 </div>
-                                <div class="mt-2 d-flex gap-2 align-items-center">
-                                    <button
-                                        class="btn btn-primary"
-                                        :disabled="savingRecipeInstructions"
-                                        @click="saveRecipeInstructions"
-                                    >
-                                        <span
-                                            v-if="savingRecipeInstructions"
-                                            class="spinner-border spinner-border-sm me-2"
-                                        ></span>
-                                        Lưu hướng dẫn
-                                    </button>
-                                    <button class="btn btn-outline-secondary" @click="loadRecipe">Tải lại</button>
-                                    <button
-                                        class="btn btn-outline-info ms-2"
-                                        @click="showInstructionsPreview = !showInstructionsPreview"
-                                    >
-                                        {{ showInstructionsPreview ? "Ẩn xem trước" : "Xem trước" }}
-                                    </button>
-                                </div>
-
-                                <div
-                                    v-if="showInstructionsPreview"
-                                    class="mt-3 p-3 border rounded bg-light"
-                                    v-html="renderedInstructionsHtml()"
-                                ></div>
                             </div>
                         </div>
 
@@ -242,12 +201,51 @@
                 </div>
             </div>
 
-            <div class="col-12" v-show="activeSection === 'warehouse'">
+            <div class="col-12 col-xl-7" v-show="activeSection === 'recipes'">
+                <div class="panel h-100">
+                    <div class="panel-head d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">Công thức hiển thị</h6>
+                        <small class="text-muted" v-if="selectedRecipeSnack">
+                            {{ selectedRecipeSnack.snackName }}
+                        </small>
+                    </div>
+
+                    <div v-if="selectedSnackId" class="mt-3">
+                        <div class="recipe-text-preview">
+                            <div class="recipe-text-title">
+                                {{ selectedRecipeSnack?.snackName || "Món bắp" }}
+                            </div>
+                            <div class="recipe-text-subtitle">Định mức cho 1 sản phẩm</div>
+
+                            <div v-if="recipeDisplayRows.length" class="recipe-text-lines">
+                                <p v-for="row in recipeDisplayRows" :key="row.ingredientId">
+                                    {{ row.ingredientName }}: {{ formatQty(row.quantityPerSnack) }} {{ row.unit }}
+                                </p>
+                            </div>
+                            <p v-else class="text-muted mb-0">Chưa có dòng công thức hợp lệ.</p>
+                        </div>
+
+                        <div class="mt-3">
+                            <div class="small text-muted mb-2">Hướng dẫn / ghi chú chế biến</div>
+                            <div
+                                v-if="recipeInstructionsDraft.trim()"
+                                class="recipe-instructions-preview"
+                                v-html="renderedInstructionsHtml()"
+                            ></div>
+                            <div v-else class="recipe-instructions-preview text-muted">Chưa có hướng dẫn chế biến.</div>
+                        </div>
+                    </div>
+
+                    <div v-else class="text-center text-muted py-5">Chọn một món bắp để xem công thức.</div>
+                </div>
+            </div>
+
+            <div class="col-12" v-show="activeSection === 'snack-settings'">
                 <div class="panel">
                     <div class="panel-head d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0">Bật theo dõi kho cho snack</h6>
+                        <h6 class="mb-0">Quản lý Bắp Nước</h6>
                         <div class="d-flex flex-wrap align-items-center gap-2">
-                            <small class="text-muted">Bật để quản lý số phần làm sẵn</small>
+                            <small class="text-muted">Bật/tắt kho thành phẩm và hiển thị online</small>
                             <button
                                 class="btn btn-sm btn-primary"
                                 :disabled="savingAllSnackTrackable"
@@ -268,6 +266,7 @@
                                     <th>Snack</th>
                                     <th>Loại</th>
                                     <th>Theo dõi kho</th>
+                                    <th>Hiển thị cho customer</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -284,9 +283,19 @@
                                             />
                                         </div>
                                     </td>
+                                    <td>
+                                        <div class="form-check form-switch">
+                                            <input
+                                                class="form-check-input"
+                                                type="checkbox"
+                                                :id="`available-input-${snack.snackId}`"
+                                                v-model="snack.available"
+                                            />
+                                        </div>
+                                    </td>
                                 </tr>
                                 <tr v-if="!snacks.length">
-                                    <td colspan="3" class="text-center text-muted py-3">
+                                    <td colspan="4" class="text-center text-muted py-3">
                                         Chưa có snack nào. Vui lòng tạo snack trước.
                                     </td>
                                 </tr>
@@ -299,7 +308,7 @@
             <div class="col-12" v-show="activeSection === 'warehouse'">
                 <div class="panel">
                     <div class="panel-head d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0">Tồn kho snack thành phẩm</h6>
+                        <h6 class="mb-0">Tồn kho Bắp Nước thành phẩm</h6>
                         <div class="d-flex flex-wrap align-items-center gap-2">
                             <small class="text-muted">Áp dụng cho snack có bật theo dõi kho</small>
                             <button class="btn btn-sm btn-primary" @click="openCreateSnack">+ Thêm sản phẩm</button>
@@ -309,7 +318,7 @@
                         <table class="table table-sm align-middle mb-0">
                             <thead>
                                 <tr>
-                                    <th>Snack</th>
+                                    <th>Bắp/Nước</th>
                                     <th>Loại</th>
                                     <th>Tồn kho</th>
                                     <th>Cảnh báo</th>
@@ -387,7 +396,10 @@
                                                 :disabled="!!deletingSnackIds[snack.snackId]"
                                                 @click="deleteSnack(snack)"
                                             >
-                                                <span v-if="deletingSnackIds[snack.snackId]" class="spinner-border spinner-border-sm me-1"></span>
+                                                <span
+                                                    v-if="deletingSnackIds[snack.snackId]"
+                                                    class="spinner-border spinner-border-sm me-1"
+                                                ></span>
                                                 Xóa
                                             </button>
                                         </div>
@@ -943,7 +955,9 @@ const expiringBatches = ref([]);
 const expiredBatches = ref([]);
 const snacks = ref([]);
 const recipeSnacks = computed(() => {
-    return snacks.value.filter(sn => sn.category === "SNACK" && sn.snackName && sn.snackName.toLowerCase().includes('bắp'));
+    return snacks.value.filter(
+        (sn) => sn.category === "SNACK" && sn.snackName && sn.snackName.toLowerCase().includes("bắp"),
+    );
 });
 const snackWarehouseStocks = ref([]);
 const deletingSnackIds = ref({});
@@ -960,24 +974,34 @@ const lowStockThreshold = 10;
 const expiringDays = 7;
 const sectionTabs = [
     {
+        key: "snack-settings",
+        label: "Quản lý bắp nước",
+        description: "Theo dõi kho & hiển thị",
+        color: "#ffcf4d",
+    },
+    {
         key: "warehouse",
-        label: "Tồn kho snack",
+        label: "Tồn kho bắp nước",
         description: "Bắp nước thành phẩm",
+        color: "#ff8758",
     },
     {
         key: "ingredients",
         label: "Nguyên liệu",
         description: "Danh sách & nhập xuất",
+        color: "#f05b64",
     },
     {
         key: "recipes",
         label: "Công thức",
         description: "Định mức nguyên liệu",
+        color: "#5fd16a",
     },
     {
         key: "batches",
         label: "Lô & hạn dùng",
         description: "Sắp hết hạn / hết hạn",
+        color: "#5bc4a5",
     },
 ];
 
@@ -985,10 +1009,9 @@ const selectedSnackId = ref("");
 const recipeDraft = ref([]);
 const savingRecipe = ref(false);
 const recipeInstructionsDraft = ref("");
-const savingRecipeInstructions = ref(false);
-const showInstructionsPreview = ref(false);
 const instructionsError = ref("");
 const snackTrackableDraft = ref(false);
+const snackAvailableDraft = ref(true);
 const savingSnackTrackable = ref(false);
 const savingAllSnackTrackable = ref(false);
 
@@ -1069,6 +1092,40 @@ const formatDate = (val) => {
     if (!val) return "-";
     return new Date(val).toLocaleDateString("vi-VN");
 };
+
+const getIngredientById = (ingredientId) => {
+    return ingredients.value.find((ingredient) => String(ingredient.ingredientId) === String(ingredientId));
+};
+
+const selectedRecipeSnack = computed(() => {
+    return snacks.value.find((snack) => String(snack.snackId) === String(selectedSnackId.value));
+});
+
+const recipeDisplayRows = computed(() => {
+    const groupedRows = new Map();
+
+    recipeDraft.value.forEach((row) => {
+        const ingredient = getIngredientById(row.ingredientId);
+        const quantityPerSnack = toNumber(row.quantityPerSnack);
+        if (!ingredient || quantityPerSnack <= 0) return;
+
+        const key = String(ingredient.ingredientId);
+        const current = groupedRows.get(key);
+        if (current) {
+            current.quantityPerSnack += quantityPerSnack;
+            return;
+        }
+
+        groupedRows.set(key, {
+            ingredientId: ingredient.ingredientId,
+            ingredientName: ingredient.ingredientName,
+            unit: ingredient.unit,
+            quantityPerSnack,
+        });
+    });
+
+    return Array.from(groupedRows.values());
+});
 
 const formatDateTime = (val) => {
     if (!val) return "-";
@@ -1156,7 +1213,9 @@ const updateSnackWarehouse = async (snack) => {
 
 const deleteSnack = async (snack) => {
     if (!snack || !snack.snackId) return;
-    const ok = await showConfirm(`Bạn có chắc muốn xóa sản phẩm "${snack.snackName}"? Hành động này không thể hoàn tác.`);
+    const ok = await showConfirm(
+        `Bạn có chắc muốn xóa sản phẩm "${snack.snackName}"? Hành động này không thể hoàn tác.`,
+    );
     if (!ok) return;
 
     deletingSnackIds.value = { ...deletingSnackIds.value, [snack.snackId]: true };
@@ -1514,12 +1573,15 @@ const deleteIngredient = async (item) => {
 const loadRecipe = async () => {
     if (!selectedSnackId.value) {
         recipeDraft.value = [];
+        recipeInstructionsDraft.value = "";
         snackTrackableDraft.value = false;
+        snackAvailableDraft.value = true;
         return;
     }
 
-    const currentSnack = snacks.value.find((snack) => snack.snackId === selectedSnackId.value);
+    const currentSnack = snacks.value.find((snack) => String(snack.snackId) === String(selectedSnackId.value));
     snackTrackableDraft.value = !!currentSnack?.warehouseTrackable;
+    snackAvailableDraft.value = currentSnack?.available !== false;
 
     try {
         const res = await api.get(`/admin/inventory/snacks/${selectedSnackId.value}/recipe`);
@@ -1561,18 +1623,52 @@ const removeRecipeRow = (index) => {
 const saveRecipe = async () => {
     if (!selectedSnackId.value) return;
 
-    const payload = recipeDraft.value
-        .filter((row) => row.ingredientId && toNumber(row.quantityPerSnack) > 0)
-        .map((row) => ({
-            ingredientId: row.ingredientId,
-            quantityPerSnack: toNumber(row.quantityPerSnack),
-        }));
+    instructionsError.value = "";
+    const instructions = (recipeInstructionsDraft.value || "").trim();
+    if (instructions.length > 10000) {
+        instructionsError.value = "Hướng dẫn quá dài (tối đa 10000 ký tự).";
+        return;
+    }
+
+    const groupedRecipe = new Map();
+    recipeDraft.value.forEach((row) => {
+        const ingredientId = row.ingredientId;
+        const quantityPerSnack = toNumber(row.quantityPerSnack);
+        if (!ingredientId || quantityPerSnack <= 0) return;
+
+        const currentQuantity = groupedRecipe.get(ingredientId) || 0;
+        groupedRecipe.set(ingredientId, currentQuantity + quantityPerSnack);
+    });
+
+    const payload = Array.from(groupedRecipe.entries()).map(([ingredientId, quantityPerSnack]) => ({
+        ingredientId,
+        quantityPerSnack,
+    }));
+
+    if (!payload.length) {
+        await showAlert({
+            icon: "warning",
+            title: "Thieu du lieu",
+            text: "Can it nhat mot dong cong thuc hop le de luu.",
+        });
+        return;
+    }
 
     savingRecipe.value = true;
     try {
         await api.put(`/admin/inventory/snacks/${selectedSnackId.value}/recipe`, payload);
+        await api.put(`/admin/inventory/snacks/${selectedSnackId.value}/instructions`, {
+            instructions: recipeInstructionsDraft.value || "",
+        });
         await loadRecipe();
         await loadAll();
+        await showCinemaAlert({
+            icon: "success",
+            title: "Hoàn tất",
+            text: "Đã lưu công thức.",
+            timer: 1600,
+            showConfirmButton: false,
+        });
     } catch (err) {
         await showAlert({
             icon: "error",
@@ -1584,44 +1680,13 @@ const saveRecipe = async () => {
     }
 };
 
-const saveRecipeInstructions = async () => {
-    if (!selectedSnackId.value) return;
-    // validation
-    instructionsError.value = "";
-    const txt = (recipeInstructionsDraft.value || "").trim();
-    if (!txt) {
-        instructionsError.value = "Hướng dẫn không được để trống.";
-        return;
-    }
-    if (txt.length > 10000) {
-        instructionsError.value = "Hướng dẫn quá dài (tối đa 10000 ký tự).";
-        return;
-    }
-    savingRecipeInstructions.value = true;
-    try {
-        await api.put(`/admin/inventory/snacks/${selectedSnackId.value}/instructions`, {
-            instructions: recipeInstructionsDraft.value,
-        });
-        await loadAll();
-        await showAlert({ icon: "success", title: "Hoàn tất", text: "Đã lưu hướng dẫn/nội dung công thức." });
-    } catch (err) {
-        await showAlert({
-            icon: "error",
-            title: "Lỗi",
-            text: err?.response?.data?.error || "Không thể lưu hướng dẫn công thức.",
-        });
-    } finally {
-        savingRecipeInstructions.value = false;
-    }
-};
-
-const buildSnackPayload = (snack, warehouseTrackableValue) => ({
+const buildSnackPayload = (snack, warehouseTrackableValue, availableValue) => ({
     snackName: snack.snackName,
     description: snack.description,
     price: snack.price,
     imageUrl: snack.imageUrl,
     category: snack.category,
-    available: snack.available,
+    available: availableValue ?? snack.available,
     warehouseTrackable: warehouseTrackableValue ?? snack.warehouseTrackable,
     expiryDate: snack.expiryDate,
     recipeInstructions: snack.recipeInstructions,
@@ -1645,14 +1710,17 @@ const saveSnackTrackable = async () => {
 
     savingSnackTrackable.value = true;
     try {
-        await api.put(`/snacks/${currentSnack.snackId}`, buildSnackPayload(currentSnack, snackTrackableDraft.value));
+        await api.put(
+            `/snacks/${currentSnack.snackId}`,
+            buildSnackPayload(currentSnack, snackTrackableDraft.value, snackAvailableDraft.value),
+        );
         await loadAll();
-        await showAlert({ icon: "success", title: "Hoàn tất", text: "Đã cập nhật trạng thái kho." });
+        await showAlert({ icon: "success", title: "Hoàn tất", text: "Đã cập nhật trạng thái snack." });
     } catch (err) {
         await showAlert({
             icon: "error",
             title: "Lỗi",
-            text: err?.response?.data?.error || "Không thể cập nhật trạng thái kho.",
+            text: err?.response?.data?.error || "Không thể cập nhật trạng thái snack.",
         });
     } finally {
         savingSnackTrackable.value = false;
@@ -1744,20 +1812,22 @@ onMounted(async () => {
 
 .section-tabs {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 10px;
 }
 
 .section-widget {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 78px;
     border: 1px solid #eee2dc;
-    border-radius: 12px;
+    border-radius: 10px;
     background: #fff;
-    box-shadow: 0 4px 12px rgba(103, 58, 43, 0.05);
     color: #4b403b;
-    cursor: pointer;
-    min-height: 74px;
-    padding: 12px 14px;
+    padding: 12px;
     text-align: left;
+    box-shadow: 0 4px 12px rgba(103, 58, 43, 0.05);
     transition:
         background-color 0.2s ease,
         border-color 0.2s ease,
@@ -1765,53 +1835,47 @@ onMounted(async () => {
         transform 0.2s ease;
 }
 
-.section-widget:hover {
-    background-color: #f8fbff;
-    border-color: #9cc5fe;
-    box-shadow: 0 6px 14px rgba(13, 110, 253, 0.1);
+.section-widget:hover,
+.section-widget.active {
+    border-color: var(--tab-color);
+    box-shadow: 0 8px 18px rgba(103, 58, 43, 0.12);
     transform: translateY(-1px);
 }
 
 .section-widget.active {
-    border-color: #0d6efd;
-    background-color: #f3f8ff;
-    box-shadow: 0 6px 14px rgba(13, 110, 253, 0.12);
+    background: color-mix(in srgb, var(--tab-color) 12%, #fff);
 }
 
-.section-widget-top {
+.section-widget-number {
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: inline-flex;
     align-items: center;
-    display: flex;
-    justify-content: space-between;
-    gap: 10px;
+    justify-content: center;
+    background: var(--tab-color);
+    color: #fff;
+    font-weight: 800;
+    line-height: 1;
 }
 
-.section-widget-label,
-.section-widget-desc {
-    display: block;
+.section-widget-text {
+    min-width: 0;
+    display: grid;
+    gap: 3px;
 }
 
-.section-widget-label {
+.section-widget-text strong {
     color: #3f3732;
     font-size: 14px;
-    font-weight: 700;
+    line-height: 1.2;
 }
 
-.section-widget-arrow {
-    align-items: center;
-    color: #0d6efd;
-    display: inline-flex;
-    font-size: 20px;
-    font-weight: 700;
-    height: 24px;
-    justify-content: center;
-    line-height: 1;
-    width: 24px;
-}
-
-.section-widget-desc {
+.section-widget-text small {
     color: #7c716b;
     font-size: 12px;
-    margin-top: 4px;
+    line-height: 1.25;
 }
 
 .recipe-list {
@@ -1826,9 +1890,60 @@ onMounted(async () => {
     gap: 8px;
 }
 
+.recipe-text-preview,
+.recipe-instructions-preview {
+    background: #f8fbff;
+    border: 1px solid #dceafe;
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.recipe-text-preview {
+    color: #403a36;
+}
+
+.recipe-text-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.recipe-text-subtitle {
+    color: #6a6663;
+    font-size: 13px;
+    margin-bottom: 10px;
+}
+
+.recipe-text-lines p {
+    margin-bottom: 6px;
+}
+
+.recipe-text-lines p:last-child {
+    margin-bottom: 0;
+}
+
+.recipe-instructions-preview {
+    min-height: 96px;
+}
+
+.recipe-instructions-preview :deep(p:last-child),
+.recipe-instructions-preview :deep(ul:last-child),
+.recipe-instructions-preview :deep(ol:last-child) {
+    margin-bottom: 0;
+}
+
 @media (max-width: 576px) {
     .section-tabs {
-        grid-template-columns: 1fr;
+        display: flex;
+        gap: 10px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+        scroll-snap-type: x proximity;
+    }
+
+    .section-widget {
+        flex: 0 0 220px;
+        scroll-snap-align: start;
     }
 
     .recipe-row {

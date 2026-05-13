@@ -93,6 +93,7 @@ const routes = [
             { path: "sold-tickets", component: () => import("@/views/Staff/tickets/pages/SoldTicketsView.vue") },
             { path: "payment-result", component: () => import("@/views/Staff/tickets/pages/PaymentResult.vue") },
             { path: "search-ticket", component: () => import("@/views/Staff/tickets/pages/SearchTicketView.vue") },
+            { path: "recipes", component: () => import("@/views/Staff/recipes/pages/PopcornRecipesView.vue") },
             { path: "ticket/:txnRef", component: () => import("@/views/Staff/tickets/pages/Ticket.vue") },
         ],
     },

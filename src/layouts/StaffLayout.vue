@@ -58,6 +58,16 @@
                                 <i class="bi bi-search me-2"></i> Tra cứu vé
                             </router-link>
                         </li>
+                        <li class="nav-item">
+                            <router-link
+                                to="/staff/recipes"
+                                class="nav-link"
+                                active-class="active"
+                                @click="closeOnMobile"
+                            >
+                                <i class="bi bi-journal-text me-2"></i> Công thức bắp
+                            </router-link>
+                        </li>
                     </ul>
                 </div>
 
@@ -103,6 +113,7 @@ const links = [
     { label: "Suất chiếu", path: "/staff/showtimes" },
     { label: "Vé đã bán", path: "/staff/sold-tickets" },
     { label: "Tra cứu vé", path: "/staff/search-ticket" },
+    { label: "Công thức bắp", path: "/staff/recipes" },
 ];
 
 const logout = async () => {
