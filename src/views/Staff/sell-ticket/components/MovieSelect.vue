@@ -46,7 +46,7 @@
         <div v-else class="row g-4">
             <div v-for="m in displayedMovies" :key="m.movieId" class="col-md-3">
                 <div class="card movie-card h-100" @click="$emit('select', m)">
-                    <img :src="m.posterUrl || '/default-poster.jpg'" class="card-img-top" />
+                    <img :src="resolveMediaUrl(m.posterUrl, '/default-poster.jpg')" class="card-img-top" />
                     <div class="card-body">
                         <h5 class="card-title">{{ m.title }}</h5>
                         <p class="text-muted small mb-1">{{ m.genre }} • {{ m.duration }} phút</p>
@@ -68,6 +68,7 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import api from "@/api";
+import { resolveMediaUrl } from "@/utils/mediaUrl";
 
 const activeTab = ref("now_showing");
 const nowShowingMovies = ref([]);

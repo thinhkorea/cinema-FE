@@ -22,7 +22,7 @@
                     <div class="col-lg-4">
                         <div class="poster-card">
                             <img
-                                :src="movie.posterUrl || '/placeholder.svg?height=500&width=350'"
+                                :src="resolveMediaUrl(movie.posterUrl, '/placeholder.svg?height=500&width=350')"
                                 alt="poster"
                                 class="poster-image"
                             />
@@ -144,6 +144,7 @@ import AppHeader from "@/components/AppHeader.vue";
 import { ref, onMounted, computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import api from "@/api";
+import { resolveMediaUrl } from "@/utils/mediaUrl";
 
 const router = useRouter();
 const route = useRoute();

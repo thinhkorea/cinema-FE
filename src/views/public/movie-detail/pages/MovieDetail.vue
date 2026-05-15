@@ -20,7 +20,7 @@
                     <!-- Background Image -->
                     <div class="hero-image-wrapper">
                         <img
-                            :src="movie.posterUrl || '/placeholder.svg?height=1080&width=1920'"
+                            :src="resolveMediaUrl(movie.posterUrl, '/placeholder.svg?height=1080&width=1920')"
                             :alt="movie.title"
                             class="hero-image"
                         />
@@ -239,7 +239,7 @@
                                 <div class="card bg-white border-0 rounded-2 overflow-hidden mb-4">
                                     <div class="poster-card-wrapper">
                                         <img
-                                            :src="movie.posterUrl || '/placeholder.svg?height=600&width=400'"
+                                            :src="resolveMediaUrl(movie.posterUrl, '/placeholder.svg?height=600&width=400')"
                                             :alt="movie.title"
                                             class="card-img-top poster-image"
                                         />
@@ -267,6 +267,7 @@ import { useRoute, useRouter } from "vue-router";
 import api from "@/api";
 import { useAuthStore } from "@/stores/auth.store";
 import { showCinemaAlert, showCinemaToast } from "@/utils/cinemaAlert";
+import { resolveMediaUrl } from "@/utils/mediaUrl";
 
 const route = useRoute();
 const router = useRouter();

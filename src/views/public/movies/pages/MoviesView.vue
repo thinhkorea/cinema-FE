@@ -35,7 +35,7 @@
                 <div v-else class="movies-vertical-list">
                     <div v-for="movie in filteredMovies" :key="movie.movieId" class="movie-item">
                         <div class="movie-poster-section">
-                            <img :src="movie.posterUrl" :alt="movie.title" class="movie-poster" />
+                            <img :src="resolveMediaUrl(movie.posterUrl)" :alt="movie.title" class="movie-poster" />
                         </div>
 
                         <div class="movie-details-section">
@@ -139,6 +139,7 @@ import { useRouter } from "vue-router";
 import AppHeader from "@/components/AppHeader.vue";
 import AppFooter from "@/components/AppFooter.vue";
 import api from "@/api";
+import { resolveMediaUrl } from "@/utils/mediaUrl";
 
 const router = useRouter();
 const movies = ref([]);

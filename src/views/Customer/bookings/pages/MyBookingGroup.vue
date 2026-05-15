@@ -29,7 +29,7 @@
                 <div class="movie-info-card">
                     <div class="movie-poster-wrapper">
                         <img
-                            :src="moviePoster || '/placeholder.svg?height=400&width=300'"
+                            :src="resolveMediaUrl(moviePoster, '/placeholder.svg?height=400&width=300')"
                             :alt="movieTitle"
                             class="movie-poster"
                         />
@@ -157,6 +157,7 @@ import { useRoute, useRouter } from "vue-router";
 import { ref, onMounted, computed } from "vue";
 import { useAuthStore } from "@/stores/auth.store";
 import api from "@/api";
+import { resolveMediaUrl } from "@/utils/mediaUrl";
 
 const route = useRoute();
 const router = useRouter();

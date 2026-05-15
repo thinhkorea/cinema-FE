@@ -31,7 +31,7 @@
                             :key="`prev-${prevMovieItem.movieId}-${currentMovieIndex}`"
                         >
                             <div class="movie-card-content">
-                                <img :src="prevMovieItem.posterUrl" :alt="prevMovieItem.title" />
+                                <img :src="resolveMediaUrl(prevMovieItem.posterUrl)" :alt="prevMovieItem.title" />
                             </div>
                         </div>
 
@@ -41,7 +41,7 @@
                             :key="`main-${currentMovie.movieId}-${currentMovieIndex}`"
                         >
                             <div class="movie-card-wrapper" @click="goDetail(currentMovie.movieId)">
-                                <img :src="currentMovie.posterUrl" :alt="currentMovie.title" />
+                                <img :src="resolveMediaUrl(currentMovie.posterUrl)" :alt="currentMovie.title" />
                                 <div class="movie-overlay"></div>
                                 <div class="movie-info">
                                     <h2>{{ currentMovie.title }}</h2>
@@ -62,7 +62,7 @@
                             :key="`next-${nextMovieItem.movieId}-${currentMovieIndex}`"
                         >
                             <div class="movie-card-content">
-                                <img :src="nextMovieItem.posterUrl" :alt="nextMovieItem.title" />
+                                <img :src="resolveMediaUrl(nextMovieItem.posterUrl)" :alt="nextMovieItem.title" />
                             </div>
                         </div>
                     </div>
@@ -203,6 +203,7 @@ import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth.store";
 import api from "@/api";
 import { showCinemaAlert } from "@/utils/cinemaAlert";
+import { resolveMediaUrl } from "@/utils/mediaUrl";
 
 const router = useRouter();
 const auth = useAuthStore();

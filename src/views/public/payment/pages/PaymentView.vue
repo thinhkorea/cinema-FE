@@ -134,7 +134,7 @@
 
                 <!-- Movie Info -->
                 <div class="movie-info" v-if="movie">
-                    <img :src="movie.posterUrl" :alt="movie.title" class="movie-poster" />
+                    <img :src="resolveMediaUrl(movie.posterUrl)" :alt="movie.title" class="movie-poster" />
                     <h3 class="movie-title">{{ movie.title }}</h3>
                     <p class="theater-info">{{ showtime?.room?.roomName || showtime?.screen?.name }}</p>
                     <p class="showtime-info">
@@ -200,6 +200,7 @@ import { useAuthStore } from "@/stores/auth.store";
 import api from "@/api";
 import vnpayLogo from "@/assets/vnpay-logo.png";
 import { getApiErrorMessage, showCinemaAlert } from "@/utils/cinemaAlert";
+import { resolveMediaUrl } from "@/utils/mediaUrl";
 
 const router = useRouter();
 const route = useRoute();

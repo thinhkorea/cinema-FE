@@ -45,6 +45,10 @@ export const showCinemaAlert = ({
 } = {}) => {
     const resolvedHtml = html || buildAlertHtml({ text, note, noteTitle });
     const resolvedText = resolvedHtml ? undefined : text;
+    const autoCloseSuccess = icon === "success" && !showCancelButton;
+    const resolvedTimer = timer ?? (autoCloseSuccess ? 1600 : undefined);
+    const resolvedShowConfirmButton = showConfirmButton ?? (autoCloseSuccess ? false : !resolvedTimer);
+
     return Swal.fire({
         icon,
         title,
@@ -55,9 +59,9 @@ export const showCinemaAlert = ({
         cancelButtonText,
         allowOutsideClick,
         allowEscapeKey,
-        timer,
-        timerProgressBar: timerProgressBar ?? Boolean(timer),
-        showConfirmButton: showConfirmButton ?? !timer,
+        timer: resolvedTimer,
+        timerProgressBar: timerProgressBar ?? Boolean(resolvedTimer),
+        showConfirmButton: resolvedShowConfirmButton,
         customClass: cinemaAlertClasses,
         buttonsStyling: false,
     });

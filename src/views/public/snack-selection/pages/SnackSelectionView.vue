@@ -60,7 +60,7 @@
 
                 <!-- Movie Info -->
                 <div class="movie-info" v-if="movie">
-                    <img :src="movie.posterUrl" :alt="movie.title" class="movie-poster" />
+                    <img :src="resolveImageUrl(movie.posterUrl)" :alt="movie.title" class="movie-poster" />
                     <h3 class="movie-title">{{ movie.title }}</h3>
                     <p class="theater-info">{{ showtime?.room?.roomName || showtime?.screen?.name }}</p>
                     <p class="showtime-info">
@@ -124,6 +124,14 @@ const loading = ref(true);
 const snackList = ref([]);
 const selectedSnacks = ref({});
 
+const resolveImageUrl = (url) => {
+    if (!url) return "https://via.placeholder.com/150?text=Snack";
+    if (/^https?:\/\//i.test(url) || url.startsWith("data:")) return url;
+    const apiBaseUrl = api.defaults.baseURL || "";
+    const origin = apiBaseUrl.replace(/\/api\/?$/, "");
+    return `${origin}${url.startsWith("/") ? url : `/${url}`}`;
+};
+
 // Timer
 const timeRemaining = ref("06:47");
 let timerInterval = null;
@@ -160,7 +168,7 @@ onMounted(async () => {
             name: snack.snackName,
             description: snack.description,
             price: snack.price,
-            image: snack.imageUrl || "https://via.placeholder.com/150?text=Snack",
+            image: resolveImageUrl(snack.imageUrl),
         }));
 
         const savedSnacks = sessionStorage.getItem("selectedSnacks");

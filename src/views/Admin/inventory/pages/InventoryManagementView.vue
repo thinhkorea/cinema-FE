@@ -267,6 +267,7 @@
                                     <th>Loại</th>
                                     <th>Theo dõi kho</th>
                                     <th>Hiển thị cho customer</th>
+                                    <th class="text-end">Chi tiết</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -293,9 +294,14 @@
                                             />
                                         </div>
                                     </td>
+                                    <td class="text-end">
+                                        <button class="btn btn-sm btn-outline-secondary" @click="openEditSnack(snack)">
+                                            Chi tiết
+                                        </button>
+                                    </td>
                                 </tr>
                                 <tr v-if="!snacks.length">
-                                    <td colspan="4" class="text-center text-muted py-3">
+                                    <td colspan="5" class="text-center text-muted py-3">
                                         Chưa có snack nào. Vui lòng tạo snack trước.
                                     </td>
                                 </tr>
@@ -390,6 +396,9 @@
                                                 @click="viewSnackWarehouseMovements(snack)"
                                             >
                                                 Lịch sử
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-dark" @click="openEditSnack(snack)">
+                                                Chi tiết
                                             </button>
                                             <button
                                                 class="btn btn-sm btn-outline-danger"
@@ -556,7 +565,9 @@
             <div class="modal-dialog modal-lg">
                 <form class="modal-content" @submit.prevent="submitSnack">
                     <div class="modal-header">
-                        <h5 class="modal-title">Thêm sản phẩm bắp nước</h5>
+                        <h5 class="modal-title">
+                            {{ snackForm.snackId ? "Chi tiết bắp nước" : "Thêm sản phẩm bắp nước" }}
+                        </h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
@@ -597,6 +608,7 @@
                             <div class="col-12">
                                 <label class="form-label">Ảnh sản phẩm</label>
                                 <input
+                                    ref="snackImageInputEl"
                                     type="file"
                                     class="form-control"
                                     accept="image/*"
@@ -605,20 +617,40 @@
                                 />
                                 <div v-if="uploadingSnackImage" class="form-text text-primary">Đang upload ảnh...</div>
                                 <div v-else-if="snackForm.imageUrl" class="form-text">
-                                    Đã chọn ảnh:
-                                    <a :href="snackForm.imageUrl" target="_blank" rel="noopener">Xem ảnh</a>
+                                    <a :href="resolveImageUrl(snackForm.imageUrl)" target="_blank" rel="noopener">
+                                        <strong>{{ snackImageFileName }}</strong>
+                                    </a>
+                                </div>
+                                <div v-if="snackImagePreviewUrl || snackForm.imageUrl" class="snack-image-preview mt-2">
+                                    <div v-if="showSnackImageLoading" class="snack-image-state">Đang tải ảnh...</div>
+                                    <div v-if="snackImageError" class="snack-image-state text-danger">
+                                        Không tải được ảnh.
+                                    </div>
+                                    <img
+                                        v-show="!snackImageError"
+                                        :key="snackImagePreviewUrl || snackForm.imageUrl"
+                                        :src="snackImagePreviewUrl || resolveImageUrl(snackForm.imageUrl)"
+                                        alt="Ảnh sản phẩm"
+                                        @load="snackImageLoading = false"
+                                        @error="handleSnackImageError"
+                                    />
                                 </div>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Tồn ban đầu</label>
+                                <label class="form-label">{{
+                                    snackForm.snackId ? "Tồn kho hiện tại" : "Tồn ban đầu"
+                                }}</label>
                                 <input
                                     type="number"
                                     min="0"
                                     step="1"
                                     class="form-control"
                                     v-model.number="snackForm.warehouseStock"
-                                    :disabled="!snackForm.warehouseTrackable"
+                                    :disabled="snackForm.snackId || !snackForm.warehouseTrackable"
                                 />
+                                <div v-if="snackForm.snackId" class="form-text">
+                                    Điều chỉnh tồn kho ở tab Tồn kho bắp nước.
+                                </div>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Mức cảnh báo</label>
@@ -670,7 +702,7 @@
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
                         <button class="btn btn-primary" type="submit" :disabled="savingSnack || uploadingSnackImage">
                             <span v-if="savingSnack" class="spinner-border spinner-border-sm me-1"></span>
-                            Lưu sản phẩm
+                            {{ snackForm.snackId ? "Cập nhật sản phẩm" : "Lưu sản phẩm" }}
                         </button>
                     </div>
                 </form>
@@ -918,7 +950,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { Modal } from "bootstrap";
 import api from "@/api";
 import { marked } from "marked";
@@ -968,7 +1000,12 @@ const snackWarehouseMovementError = ref("");
 const warehouseAdjustments = ref({});
 const savingWarehouse = ref({});
 const uploadingSnackImage = ref(false);
-const activeSection = ref("warehouse");
+const snackImageLoading = ref(false);
+const snackImageError = ref(false);
+const snackImagePreviewUrl = ref("");
+const snackImageFileName = ref("");
+const snackImageUploadToken = ref(0);
+const activeSection = ref("snack-settings");
 
 const lowStockThreshold = 10;
 const expiringDays = 7;
@@ -1005,6 +1042,95 @@ const sectionTabs = [
     },
 ];
 
+const resolveImageUrl = (url) => {
+    if (!url) return "";
+    if (/^(https?:|blob:|data:)/i.test(url)) return url;
+    const apiBaseUrl = api.defaults.baseURL || "";
+    const origin = apiBaseUrl.replace(/\/api\/?$/, "");
+    return `${origin}${url.startsWith("/") ? url : `/${url}`}`;
+};
+
+const getImageFileName = (url) => {
+    if (!url) return "";
+    const cleanUrl = String(url).split("?")[0].split("#")[0];
+    const fileName = cleanUrl.substring(cleanUrl.lastIndexOf("/") + 1);
+    return decodeURIComponent(fileName || "ảnh sản phẩm");
+};
+
+const clearSnackImagePreview = () => {
+    if (snackImagePreviewUrl.value) {
+        URL.revokeObjectURL(snackImagePreviewUrl.value);
+        snackImagePreviewUrl.value = "";
+    }
+};
+
+const clearSnackImageInput = () => {
+    if (snackImageInputEl.value) {
+        snackImageInputEl.value.value = "";
+    }
+};
+
+const showSnackImageLoading = computed(() => snackImageLoading.value && !snackImagePreviewUrl.value);
+
+const SNACK_IMAGE_MAX_DIMENSION = 1200;
+const SNACK_IMAGE_QUALITY = 0.82;
+const SNACK_IMAGE_SKIP_COMPRESS_BYTES = 450 * 1024;
+
+const loadImageFromFile = (file) =>
+    new Promise((resolve, reject) => {
+        const image = new Image();
+        const url = URL.createObjectURL(file);
+
+        image.onload = () => {
+            URL.revokeObjectURL(url);
+            resolve(image);
+        };
+        image.onerror = () => {
+            URL.revokeObjectURL(url);
+            reject(new Error("Không thể đọc ảnh."));
+        };
+        image.src = url;
+    });
+
+const compressSnackImageFile = async (file) => {
+    if (file.type === "image/gif" || file.size <= SNACK_IMAGE_SKIP_COMPRESS_BYTES) {
+        return file;
+    }
+
+    try {
+        const image = await loadImageFromFile(file);
+        const scale = Math.min(
+            1,
+            SNACK_IMAGE_MAX_DIMENSION /
+                Math.max(image.naturalWidth || image.width, image.naturalHeight || image.height),
+        );
+
+        if (scale === 1 && file.size <= SNACK_IMAGE_SKIP_COMPRESS_BYTES * 2) {
+            return file;
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round((image.naturalWidth || image.width) * scale));
+        canvas.height = Math.max(1, Math.round((image.naturalHeight || image.height) * scale));
+
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+        const blob = await new Promise((resolve) => {
+            canvas.toBlob(resolve, "image/jpeg", SNACK_IMAGE_QUALITY);
+        });
+
+        if (!blob || blob.size >= file.size) {
+            return file;
+        }
+
+        const baseName = file.name.replace(/\.[^.]+$/, "") || "snack";
+        return new File([blob], `${baseName}.jpg`, { type: "image/jpeg" });
+    } catch (err) {
+        return file;
+    }
+};
+
 const selectedSnackId = ref("");
 const recipeDraft = ref([]);
 const savingRecipe = ref(false);
@@ -1035,6 +1161,7 @@ const ingredientForm = ref({
 });
 
 const snackForm = ref({
+    snackId: null,
     snackName: "",
     description: "",
     price: 0,
@@ -1065,6 +1192,7 @@ const consumeForm = ref({
 
 const ingredientModalEl = ref(null);
 const snackModalEl = ref(null);
+const snackImageInputEl = ref(null);
 const batchModalEl = ref(null);
 const batchesListModalEl = ref(null);
 const consumeModalEl = ref(null);
@@ -1283,7 +1411,15 @@ const submitIngredient = async () => {
 };
 
 const openCreateSnack = () => {
+    snackImageUploadToken.value += 1;
+    uploadingSnackImage.value = false;
+    clearSnackImageInput();
+    clearSnackImagePreview();
+    snackImageFileName.value = "";
+    snackImageLoading.value = false;
+    snackImageError.value = false;
     snackForm.value = {
+        snackId: null,
         snackName: "",
         description: "",
         price: 0,
@@ -1303,6 +1439,37 @@ const openCreateSnack = () => {
     snackModal?.show();
 };
 
+const openEditSnack = (snack) => {
+    snackImageUploadToken.value += 1;
+    uploadingSnackImage.value = false;
+    clearSnackImageInput();
+    clearSnackImagePreview();
+    const fullSnack = snacks.value.find((item) => item.snackId === snack.snackId) || snack;
+    const warehouseRow = snackWarehouseStocks.value.find((item) => item.snackId === snack.snackId);
+    snackImageLoading.value = !!fullSnack.imageUrl;
+    snackImageError.value = false;
+    snackForm.value = {
+        snackId: fullSnack.snackId,
+        snackName: fullSnack.snackName || "",
+        description: fullSnack.description || "",
+        price: fullSnack.price ?? 0,
+        imageUrl: fullSnack.imageUrl || "",
+        category: fullSnack.category || "SNACK",
+        available: fullSnack.available !== false,
+        warehouseTrackable: fullSnack.warehouseTrackable !== false,
+        warehouseStock: warehouseRow?.warehouseStock ?? fullSnack.warehouseStock ?? 0,
+        warehouseReorderLevel: warehouseRow?.warehouseReorderLevel ?? fullSnack.warehouseReorderLevel ?? 10,
+        expiryDate: fullSnack.expiryDate || "",
+        recipeInstructions: fullSnack.recipeInstructions || "",
+    };
+    snackImageFileName.value = getImageFileName(snackForm.value.imageUrl);
+
+    if (!snackModal && snackModalEl.value) {
+        snackModal = new Modal(snackModalEl.value);
+    }
+    snackModal?.show();
+};
+
 const handleSnackImageUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -1312,22 +1479,55 @@ const handleSnackImageUpload = async (event) => {
         return;
     }
 
-    const formData = new FormData();
-    formData.append("file", file);
+    clearSnackImagePreview();
+    snackImagePreviewUrl.value = URL.createObjectURL(file);
+    snackImageFileName.value = file.name;
+    snackImageLoading.value = false;
+    snackImageError.value = false;
+
+    const uploadToken = snackImageUploadToken.value + 1;
+    snackImageUploadToken.value = uploadToken;
+    const uploadTargetSnackId = snackForm.value.snackId || null;
     uploadingSnackImage.value = true;
     try {
+        const uploadFile = await compressSnackImageFile(file);
+        const formData = new FormData();
+        formData.append("file", uploadFile);
         const res = await api.post("/snacks/admin/upload-image", formData);
+        const isCurrentUpload =
+            snackImageUploadToken.value === uploadToken && (snackForm.value.snackId || null) === uploadTargetSnackId;
+        if (!isCurrentUpload) {
+            return;
+        }
         snackForm.value.imageUrl = res.data?.imageUrl || "";
+        snackImageLoading.value = false;
+        snackImageError.value = false;
     } catch (err) {
+        const isCurrentUpload =
+            snackImageUploadToken.value === uploadToken && (snackForm.value.snackId || null) === uploadTargetSnackId;
+        if (!isCurrentUpload) {
+            return;
+        }
         await showAlert({
             icon: "error",
             title: "Lỗi upload ảnh",
             text: err?.response?.data?.error || "Không thể upload ảnh sản phẩm.",
         });
+        clearSnackImagePreview();
+        snackForm.value.imageUrl = "";
+        snackImageFileName.value = "";
         event.target.value = "";
     } finally {
-        uploadingSnackImage.value = false;
+        if (snackImageUploadToken.value === uploadToken) {
+            snackImageLoading.value = false;
+            uploadingSnackImage.value = false;
+        }
     }
+};
+
+const handleSnackImageError = () => {
+    snackImageLoading.value = false;
+    snackImageError.value = true;
 };
 
 const submitSnack = async () => {
@@ -1342,23 +1542,40 @@ const submitSnack = async () => {
 
     savingSnack.value = true;
     try {
+        const isEditing = !!snackForm.value.snackId;
         const payload = {
             ...snackForm.value,
-            warehouseStock: snackForm.value.warehouseTrackable ? toNumber(snackForm.value.warehouseStock) : 0,
-            warehouseReorderLevel: snackForm.value.warehouseTrackable
-                ? toNumber(snackForm.value.warehouseReorderLevel)
-                : 0,
+            snackId: undefined,
+            warehouseStock: isEditing
+                ? null
+                : snackForm.value.warehouseTrackable
+                  ? toNumber(snackForm.value.warehouseStock)
+                  : 0,
+            warehouseReorderLevel: isEditing
+                ? null
+                : snackForm.value.warehouseTrackable
+                  ? toNumber(snackForm.value.warehouseReorderLevel)
+                  : 0,
             expiryDate: snackForm.value.expiryDate || null,
         };
-        await api.post("/snacks", payload);
+        if (isEditing) {
+            await api.put(`/snacks/${snackForm.value.snackId}`, payload);
+        } else {
+            await api.post("/snacks", payload);
+        }
         snackModal?.hide();
+        clearSnackImagePreview();
         await loadAll();
-        await showAlert({ icon: "success", title: "Hoàn tất", text: "Đã thêm sản phẩm bắp nước." });
+        await showAlert({
+            icon: "success",
+            title: "Hoàn tất",
+            text: isEditing ? "Đã cập nhật sản phẩm bắp nước." : "Đã thêm sản phẩm bắp nước.",
+        });
     } catch (err) {
         await showAlert({
             icon: "error",
             title: "Lỗi",
-            text: err?.response?.data?.error || "Không thể thêm sản phẩm.",
+            text: err?.response?.data?.error || "Không thể lưu sản phẩm.",
         });
     } finally {
         savingSnack.value = false;
@@ -1656,16 +1873,18 @@ const saveRecipe = async () => {
 
     savingRecipe.value = true;
     try {
+        const statusSaved = await saveSelectedSnackStatus();
+        if (!statusSaved) return;
         await api.put(`/admin/inventory/snacks/${selectedSnackId.value}/recipe`, payload);
         await api.put(`/admin/inventory/snacks/${selectedSnackId.value}/instructions`, {
             instructions: recipeInstructionsDraft.value || "",
         });
-        await loadRecipe();
         await loadAll();
+        await loadRecipe();
         await showCinemaAlert({
             icon: "success",
             title: "Hoàn tất",
-            text: "Đã lưu công thức.",
+            text: "Đã lưu công thức và trạng thái snack.",
             timer: 1600,
             showConfirmButton: false,
         });
@@ -1692,12 +1911,12 @@ const buildSnackPayload = (snack, warehouseTrackableValue, availableValue) => ({
     recipeInstructions: snack.recipeInstructions,
 });
 
-const saveSnackTrackable = async () => {
+const getSelectedSnackForStatus = async () => {
     if (!selectedSnackId.value) return;
-    const currentSnack = snacks.value.find((snack) => snack.snackId === selectedSnackId.value);
+    const currentSnack = snacks.value.find((snack) => String(snack.snackId) === String(selectedSnackId.value));
     if (!currentSnack) {
         await showAlert({ icon: "warning", title: "Thiếu snack", text: "Không tìm thấy snack đã chọn." });
-        return;
+        return null;
     }
     if (!currentSnack.snackName || currentSnack.price == null || !currentSnack.category) {
         await showAlert({
@@ -1705,15 +1924,30 @@ const saveSnackTrackable = async () => {
             title: "Thiếu thông tin snack",
             text: "Vui lòng kiểm tra tên, giá và loại snack trước khi lưu.",
         });
-        return;
+        return null;
     }
 
+    return currentSnack;
+};
+
+const saveSelectedSnackStatus = async () => {
+    const currentSnack = await getSelectedSnackForStatus();
+    if (!currentSnack) return false;
+
+    await api.put(
+        `/snacks/${currentSnack.snackId}`,
+        buildSnackPayload(currentSnack, snackTrackableDraft.value, snackAvailableDraft.value),
+    );
+    currentSnack.warehouseTrackable = snackTrackableDraft.value;
+    currentSnack.available = snackAvailableDraft.value;
+    return true;
+};
+
+const saveSnackTrackable = async () => {
     savingSnackTrackable.value = true;
     try {
-        await api.put(
-            `/snacks/${currentSnack.snackId}`,
-            buildSnackPayload(currentSnack, snackTrackableDraft.value, snackAvailableDraft.value),
-        );
+        const saved = await saveSelectedSnackStatus();
+        if (!saved) return;
         await loadAll();
         await showAlert({ icon: "success", title: "Hoàn tất", text: "Đã cập nhật trạng thái snack." });
     } catch (err) {
@@ -1769,6 +2003,10 @@ const renderedInstructionsHtml = () => {
 onMounted(async () => {
     await loadAll();
 });
+
+onUnmounted(() => {
+    clearSnackImagePreview();
+});
 </script>
 
 <style scoped>
@@ -1808,6 +2046,36 @@ onMounted(async () => {
 .panel-head {
     border-bottom: 1px solid #f3e9e5;
     padding-bottom: 10px;
+}
+
+.snack-image-preview {
+    position: relative;
+    width: 120px;
+    height: 90px;
+    border: 1px solid #eee2dc;
+    border-radius: 8px;
+    background: #fff8f4;
+    overflow: hidden;
+}
+
+.snack-image-state {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    background: rgba(255, 248, 244, 0.92);
+    font-size: 12px;
+    text-align: center;
+    z-index: 1;
+}
+
+.snack-image-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
 }
 
 .section-tabs {
