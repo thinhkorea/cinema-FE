@@ -10,12 +10,12 @@
                     <tr>
                         <th>#</th>
                         <th>Khách hàng / Nhân viên</th>
-                        <th>Movie</th>
-                        <th>Room</th>
-                        <th>Seat</th>
-                        <th>Showtime</th>
-                        <th>Status</th>
-                        <th>Created At</th>
+                        <th>Phim</th>
+                        <th>Phòng</th>
+                        <th>Ghế</th>
+                        <th>Suất chiếu</th>
+                        <th>Trạng thái</th>
+                        <th>Ngày tạo</th>
                     </tr>
                 </thead>
                 <tbody>

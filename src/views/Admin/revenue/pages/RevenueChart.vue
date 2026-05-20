@@ -52,7 +52,14 @@ const chartOptions = {
     title: { display: false }
   },
   scales: {
-    y: { beginAtZero: true, ticks: { callback: v => v.toLocaleString() + '₫' } }
+    y: {
+      beginAtZero: true,
+      suggestedMax: 100000,
+      ticks: {
+        precision: 0,
+        callback: value => formatCurrency(value)
+      }
+    }
   }
 }
 
@@ -62,13 +69,17 @@ onMounted(async () => {
   try {
     const res = await api.get('/admin/revenue')
     chartData.value.labels = res.data.map(r => r.month)
-    chartData.value.datasets[0].data = res.data.map(r => r.revenue)
+    chartData.value.datasets[0].data = res.data.map(r => Number(r.revenue || 0))
   } catch (err) {
     console.error('Error loading revenue data:', err)
   } finally {
     loading.value = false
   }
 })
+
+function formatCurrency(value) {
+  return `${Math.round(Number(value || 0)).toLocaleString('vi-VN')}đ`
+}
 </script>
 
 <style scoped>

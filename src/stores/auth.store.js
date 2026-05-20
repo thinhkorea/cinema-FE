@@ -2,16 +2,48 @@ import { defineStore } from "pinia";
 import api from "@/api";
 import { jwtDecode } from "jwt-decode";
 
+function applySession(target, accessToken, refreshToken, userIdOverride = null) {
+    const decoded = jwtDecode(accessToken);
+
+    target.token = accessToken;
+    target.refreshToken = refreshToken;
+    target.role = decoded.role || "CUSTOMER";
+    target.username = decoded.sub;
+    target.fullName = decoded.fullName || decoded.sub;
+    target.userId = userIdOverride ?? target.userId ?? localStorage.getItem("userId");
+
+    localStorage.setItem("token", accessToken);
+    localStorage.setItem("accessToken", accessToken);
+    localStorage.setItem("refreshToken", refreshToken);
+    localStorage.setItem("role", target.role);
+    localStorage.setItem("username", target.username);
+    localStorage.setItem("fullName", target.fullName);
+    if (target.userId != null) {
+        localStorage.setItem("userId", target.userId);
+    }
+}
+
+function clearSessionStorage() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("username");
+    localStorage.removeItem("role");
+    localStorage.removeItem("fullName");
+    localStorage.removeItem("userId");
+}
+
 export const useAuthStore = defineStore("auth", {
     state: () => ({
-        token: localStorage.getItem("token") || null,
+        token: localStorage.getItem("accessToken") || localStorage.getItem("token") || null,
+        refreshToken: localStorage.getItem("refreshToken") || null,
         username: localStorage.getItem("username") || null,
         role: localStorage.getItem("role") || null,
         fullName: localStorage.getItem("fullName") || null,
         userId: localStorage.getItem("userId") || null,
-        sessionValidationInterval: null, // Để lưu interval ID
-        isValidatingSession: false, // Flag để tránh validation đồng thời
-        hasShownConcurrentLoginAlert: false, // Flag để tránh multiple alerts
+        sessionValidationInterval: null,
+        isValidatingSession: false,
+        hasShownConcurrentLoginAlert: false,
     }),
 
     getters: {
@@ -22,85 +54,65 @@ export const useAuthStore = defineStore("auth", {
     },
 
     actions: {
+        setSession(accessToken, refreshToken, userId = null) {
+            applySession(this, accessToken, refreshToken, userId);
+        },
+
+        clearSession() {
+            this.token = null;
+            this.refreshToken = null;
+            this.username = null;
+            this.role = null;
+            this.fullName = null;
+            this.userId = null;
+            this.isValidatingSession = false;
+            this.hasShownConcurrentLoginAlert = false;
+            clearSessionStorage();
+            this.stopSessionValidation();
+        },
+
         async login(credentials) {
             try {
-                console.log("Đang login với:", credentials.identifier || credentials.username);
-
                 const response = await api.post("/auth/login", credentials);
-                console.log("Response từ server:", response.data);
+                const {
+                    token,
+                    accessToken,
+                    refreshToken,
+                    role,
+                    message,
+                    userId,
+                } = response.data;
 
-                const { token, role, message, userId } = response.data;
+                const effectiveAccessToken = accessToken || token;
 
-                // Kiểm tra response hợp lệ
                 if (message !== "OK") throw new Error(message || "Sai tài khoản hoặc mật khẩu");
-                if (!token) throw new Error("Server không trả về token");
+                if (!effectiveAccessToken) throw new Error("Server không trả về access token");
+                if (!refreshToken) throw new Error("Server không trả về refresh token");
 
-                // Giải mã token để lấy thông tin chi tiết
-                const decoded = jwtDecode(token);
-
-                // Lưu vào state
-                this.token = token;
-                this.role = decoded.role || "CUSTOMER";
-                this.username = decoded.sub;
-                this.fullName = decoded.fullName || decoded.sub; // Lấy fullName, nếu không có thì dùng username
-                this.userId = userId;
-
-                // Lưu vào localStorage
-                localStorage.setItem("token", token);
-                localStorage.setItem("role", this.role);
-                localStorage.setItem("username", this.username);
-                localStorage.setItem("fullName", this.fullName);
-                localStorage.setItem("userId", this.userId);
-
-                console.log("Login thành công!");
-                console.log("   Token:", token.substring(0, 30) + "...");
-                console.log("   Role:", this.role);
-                console.log("   Username:", this.username);
-                console.log("   FullName:", this.fullName);
-
-                // Bắt đầu kiểm tra session định kỳ
+                this.setSession(effectiveAccessToken, refreshToken, userId);
+                if (role) {
+                    this.role = role;
+                    localStorage.setItem("role", role);
+                }
                 this.startSessionValidation();
             } catch (error) {
-                console.error("Login thất bại:", error);
-
-                // Reset state khi lỗi
-                this.token = null;
-                this.role = null;
-                this.username = null;
-                this.fullName = null;
-                this.userId = null;
-
-                // Throw error để LoginView.vue xử lý
-                localStorage.clear();
+                this.clearSession();
                 throw error;
             }
         },
 
         async sendRegisterOtp(userData) {
-            try {
-                console.log("Gửi OTP đăng ký cho:", userData.email);
-                const response = await api.post("/auth/register/send-otp", userData);
-                return response.data;
-            } catch (error) {
-                console.error("Gửi OTP thất bại:", error);
-                throw error;
-            }
+            const response = await api.post("/auth/register/send-otp", userData);
+            return response.data;
         },
 
         async verifyRegisterOtp(email, otp) {
-            try {
-                console.log("Xác thực OTP cho:", email);
-                const response = await api.post("/auth/register/verify-otp", { email, otp });
-                return response.data;
-            } catch (error) {
-                console.error("Xác thực OTP thất bại:", error);
-                throw error;
-            }
+            const response = await api.post("/auth/register/verify-otp", { email, otp });
+            return response.data;
         },
 
         async logout() {
             try {
-                // Gọi API logout để xóa session trong database
                 if (this.token) {
                     await api.post(
                         "/auth/logout",
@@ -112,84 +124,48 @@ export const useAuthStore = defineStore("auth", {
                 }
             } catch (error) {
                 console.error("Lỗi khi logout:", error);
-                // Tiếp tục logout dù có lỗi API
             } finally {
-                // Xóa dữ liệu local
-                this.token = null;
-                this.username = null;
-                this.role = null;
-                this.fullName = null;
-                this.userId = null;
-                this.isValidatingSession = false;
-                this.hasShownConcurrentLoginAlert = false;
-
-                localStorage.removeItem("token");
-                localStorage.removeItem("username");
-                localStorage.removeItem("role");
-                localStorage.removeItem("fullName");
-                localStorage.removeItem("userId");
-
-                // Dừng session validation
-                this.stopSessionValidation();
-
-                console.log("Đã logout");
+                this.clearSession();
             }
         },
 
-        // Khôi phục session khi reload trang
         restoreSession() {
-            const token = localStorage.getItem("token");
+            const token = localStorage.getItem("accessToken") || localStorage.getItem("token");
+            const refreshToken = localStorage.getItem("refreshToken");
             const role = localStorage.getItem("role");
             const username = localStorage.getItem("username");
             const fullName = localStorage.getItem("fullName");
             const userId = localStorage.getItem("userId");
 
-            if (token && role && userId) {
+            if (token && refreshToken && role && userId) {
                 this.token = token;
+                this.refreshToken = refreshToken;
                 this.role = role;
                 this.username = username;
                 this.fullName = fullName;
                 this.userId = userId;
-                console.log("Session restored:", { username, role, fullName });
-
-                // Bắt đầu session validation khi restore
                 this.startSessionValidation();
             }
         },
 
-        // Kiểm tra session còn hợp lệ không (cho concurrent login)
         async validateSession() {
             if (!this.token || this.isValidatingSession) return true;
 
             this.isValidatingSession = true;
-            console.log("Đang kiểm tra session validation...");
 
             try {
-                // Gọi API để validate token hiện tại
-                const response = await api.get("/auth/me");
-                console.log("Session validation thành công");
-                // Reset flag khi thành công
+                await api.get("/auth/me");
                 this.hasShownConcurrentLoginAlert = false;
-                return true; // Session còn hợp lệ
+                return true;
             } catch (error) {
-                console.log("Session validation thất bại:", error.response?.status);
                 const errorData = error.response?.data;
-                console.log("Error data full:", JSON.stringify(errorData, null, 2));
-                console.log("Error message:", errorData?.message);
-                console.log("Error code:", errorData?.code);
 
-                // Kiểm tra nếu là lỗi CONCURRENT_LOGIN - thử nhiều pattern khác nhau
                 if (
                     errorData?.code === "CONCURRENT_LOGIN" ||
                     errorData?.message?.includes("CONCURRENT_LOGIN") ||
                     errorData?.message?.includes("concurrent") ||
-                    errorData?.message?.includes("already logged in") ||
                     errorData === "CONCURRENT_LOGIN"
                 ) {
-                    console.warn("CONCURRENT_LOGIN detected - Session đã bị vô hiệu hóa");
-                    console.log("Hiển thị thông báo concurrent login...");
-
-                    // Chỉ logout nếu chưa thực hiện trước đó
                     if (!this.hasShownConcurrentLoginAlert) {
                         this.hasShownConcurrentLoginAlert = true;
                         await this.logout();
@@ -200,9 +176,7 @@ export const useAuthStore = defineStore("auth", {
                     return false;
                 }
 
-                // Các lỗi khác cũng logout (chỉ khi chưa alert)
                 if (error.response?.status === 401 && !this.hasShownConcurrentLoginAlert) {
-                    console.warn("Session expired (401)");
                     this.hasShownConcurrentLoginAlert = true;
                     await this.logout();
                     window.location.href = "/login";
@@ -215,26 +189,18 @@ export const useAuthStore = defineStore("auth", {
             }
         },
 
-        // Bắt đầu kiểm tra session định kỳ
         startSessionValidation() {
             if (this.sessionValidationInterval) {
                 clearInterval(this.sessionValidationInterval);
             }
 
-            console.log("Bắt đầu session validation (mỗi 30 giây)");
-
-            // Kiểm tra mỗi 30 giây (thay vì 5 giây để giảm tải)
             this.sessionValidationInterval = setInterval(async () => {
                 if (this.isAuthenticated && !this.isValidatingSession) {
-                    console.log("Thực hiện session validation...");
                     await this.validateSession();
-                } else {
-                    console.log("⏸Không authenticated hoặc đang validation, bỏ qua");
                 }
-            }, 30000); // 30 giây
+            }, 30000);
         },
 
-        // Dừng kiểm tra session
         stopSessionValidation() {
             if (this.sessionValidationInterval) {
                 clearInterval(this.sessionValidationInterval);
@@ -242,50 +208,38 @@ export const useAuthStore = defineStore("auth", {
             }
         },
 
-        // Kiểm tra xem tài khoản có còn active không
         async checkAccountStatus() {
-            if (!this.token) return { isActive: true, reason: null }; // Không có token thì không cần check
+            if (!this.token) return { isActive: true, reason: null };
 
             try {
                 const response = await api.get("/auth/me");
                 const userData = response.data;
 
-                console.log("Account status check:", userData);
-
-                // Kiểm tra xem isActive có tồn tại và là false
                 if (userData.isActive === false) {
-                    console.warn("Account is locked by admin!");
                     await this.logout();
                     return { isActive: false, reason: "ACCOUNT_LOCKED" };
                 }
 
                 return { isActive: true, reason: null };
             } catch (error) {
-                console.warn("Account check error:", error.response?.status, error.response?.data);
                 const errorData = error.response?.data;
 
-                // Kiểm tra concurrent login
                 if (
                     errorData?.code === "CONCURRENT_LOGIN" ||
                     errorData?.message?.includes("CONCURRENT_LOGIN") ||
                     errorData?.message?.includes("concurrent") ||
-                    errorData?.message?.includes("already logged in") ||
                     errorData === "CONCURRENT_LOGIN"
                 ) {
-                    console.warn("Concurrent login detected in checkAccountStatus");
                     await this.logout();
                     return { isActive: false, reason: "CONCURRENT_LOGIN" };
                 }
 
-                // Nếu bị lỗi 400 hoặc 401, tài khoản bị khóa hoặc token không hợp lệ
                 if (error.response?.status === 400 || error.response?.status === 401) {
                     if (errorData?.message === "Account is locked" || errorData === "Account is locked") {
-                        console.warn("Account is locked (from API error)!");
                         await this.logout();
                         return { isActive: false, reason: "ACCOUNT_LOCKED" };
                     }
-                    // Token expired hoặc không hợp lệ
-                    this.logout();
+                    await this.logout();
                     return { isActive: false, reason: "TOKEN_EXPIRED" };
                 }
 

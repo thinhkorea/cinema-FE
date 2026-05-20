@@ -34,16 +34,14 @@
                 <div class="spinner-border text-primary"></div>
             </div>
 
-            <div v-else-if="customers.length === 0" class="text-muted py-3">
-                Chưa có khách hàng nào
-            </div>
+            <div v-else-if="customers.length === 0" class="text-muted py-3">Chưa có khách hàng nào</div>
 
             <div v-else class="table-responsive">
                 <table class="table table-hover align-middle">
                     <thead class="table-light">
                         <tr>
                             <th>#</th>
-                            <th>Tên tài khoản</th>
+                            <th>Email</th>
                             <th>Tên đầy đủ</th>
                             <th>Trạng thái</th>
                             <th>Hành động</th>
@@ -52,7 +50,7 @@
                     <tbody>
                         <tr v-for="(user, index) in customers" :key="user.userId">
                             <td>{{ index + 1 }}</td>
-                            <td class="fw-semibold">{{ user.username }}</td>
+                            <td class="fw-semibold">{{ user.email || "N/A" }}</td>
                             <td>{{ user.fullName || "N/A" }}</td>
                             <td>
                                 <span class="badge" :class="user.isActive ? 'bg-success' : 'bg-danger'">
@@ -60,6 +58,13 @@
                                 </span>
                             </td>
                             <td>
+                                <button
+                                    class="btn btn-sm btn-outline-secondary me-2"
+                                    @click="openAccountDetail(user, 'customer')"
+                                    title="Xem chi tiết"
+                                >
+                                    <i class="bi bi-eye"></i> Chi tiết
+                                </button>
                                 <button
                                     v-if="user.isActive"
                                     class="btn btn-sm btn-warning me-2"
@@ -77,8 +82,8 @@
                                     <i class="bi bi-unlock"></i> Mở khóa
                                 </button>
                                 <button
-                                    class="btn btn-sm btn-danger"
-                                    @click="deleteUser(user.userId, user.username)"
+                                    class="btn btn-sm btn-outline-danger"
+                                    @click="deleteUser(user.userId, user.email)"
                                     title="Xóa tài khoản"
                                 >
                                     <i class="bi bi-trash"></i> Xóa
@@ -98,16 +103,13 @@
                 <div class="spinner-border text-primary"></div>
             </div>
 
-            <div v-else-if="staffs.length === 0" class="text-muted py-3">
-                Chưa có nhân viên nào
-            </div>
+            <div v-else-if="staffs.length === 0" class="text-muted py-3">Chưa có nhân viên nào</div>
 
             <div v-else class="table-responsive">
                 <table class="table table-hover align-middle">
                     <thead class="table-light">
                         <tr>
                             <th>#</th>
-                            <th>Tên tài khoản</th>
                             <th>Tên đầy đủ</th>
                             <th>Email</th>
                             <th>Điện thoại</th>
@@ -118,7 +120,6 @@
                     <tbody>
                         <tr v-for="(staff, index) in staffs" :key="staff.staffId">
                             <td>{{ index + 1 }}</td>
-                            <td class="fw-semibold">{{ staff.username }}</td>
                             <td>{{ staff.fullName || "N/A" }}</td>
                             <td>{{ staff.email || "N/A" }}</td>
                             <td>{{ staff.phone || "N/A" }}</td>
@@ -129,9 +130,16 @@
                             </td>
                             <td>
                                 <button
+                                    class="btn btn-sm btn-outline-secondary me-2"
+                                    @click="openAccountDetail(staff, 'staff')"
+                                    title="Xem chi tiết"
+                                >
+                                    <i class="bi bi-eye"></i> Chi tiết
+                                </button>
+                                <button
                                     v-if="staff.isActive"
                                     class="btn btn-sm btn-warning me-2"
-                                    @click="lockStaff(staff.username, staff.userId)"
+                                    @click="lockStaff(staff.email, staff.userId)"
                                     title="Khóa tài khoản"
                                 >
                                     <i class="bi bi-lock"></i> Khóa
@@ -139,14 +147,14 @@
                                 <button
                                     v-else
                                     class="btn btn-sm btn-info me-2"
-                                    @click="unlockStaff(staff.username, staff.userId)"
+                                    @click="unlockStaff(staff.email, staff.userId)"
                                     title="Mở khóa tài khoản"
                                 >
                                     <i class="bi bi-unlock"></i> Mở khóa
                                 </button>
                                 <button
-                                    class="btn btn-sm btn-danger"
-                                    @click="deleteStaff(staff.username, staff.userId)"
+                                    class="btn btn-sm btn-outline-danger"
+                                    @click="deleteStaff(staff.email, staff.userId)"
                                     title="Xóa tài khoản"
                                 >
                                     <i class="bi bi-trash"></i> Xóa
@@ -157,12 +165,34 @@
                 </table>
             </div>
         </div>
-    </div>
 
+        <div v-if="selectedAccount" class="detail-backdrop" @click="closeAccountDetail">
+            <div class="detail-modal" @click.stop>
+                <div class="detail-head">
+                    <div>
+                        <p class="text-muted small mb-1">
+                            {{ selectedAccount.type === "staff" ? "Nhân viên" : "Khách hàng" }}
+                        </p>
+                        <h5 class="mb-0">
+                            {{ selectedAccount.data.fullName || selectedAccount.data.email }}
+                        </h5>
+                    </div>
+                    <button type="button" class="btn-close" @click="closeAccountDetail"></button>
+                </div>
+
+                <div class="detail-grid mt-3">
+                    <div v-for="item in accountDetailRows" :key="item.label" class="detail-item">
+                        <span>{{ item.label }}</span>
+                        <strong>{{ item.value }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { computed, ref, onMounted } from "vue";
 import api from "@/api";
 import { getApiErrorMessage, showCinemaAlert, showCinemaConfirm, showCinemaToast } from "@/utils/cinemaAlert";
 
@@ -173,6 +203,81 @@ const loadingUsers = ref(true);
 const loadingStaffs = ref(true);
 const notifiedEmptyUsers = ref(false);
 const notifiedEmptyStaffs = ref(false);
+const selectedAccount = ref(null);
+
+const formatEmpty = (value) => {
+    if (value === null || value === undefined || value === "") return "-";
+    return value;
+};
+
+const formatRole = (role) => {
+    if (role === "CUSTOMER") return "Khách hàng";
+    if (role === "STAFF") return "Nhân viên";
+    if (role === "ADMIN") return "Quản trị viên";
+    return formatEmpty(role);
+};
+
+const formatGender = (gender) => {
+    if (gender === "MALE") return "Nam";
+    if (gender === "FEMALE") return "Nữ";
+    return formatEmpty(gender);
+};
+
+const formatDate = (value) => {
+    if (!value) return "-";
+    return new Date(value).toLocaleDateString("vi-VN");
+};
+
+const formatCurrency = (value) => {
+    if (value === null || value === undefined || value === "") return "-";
+    return new Intl.NumberFormat("vi-VN", {
+        style: "currency",
+        currency: "VND",
+        maximumFractionDigits: 0,
+    }).format(Number(value || 0));
+};
+
+const openAccountDetail = (data, type) => {
+    selectedAccount.value = { data, type };
+};
+
+const closeAccountDetail = () => {
+    selectedAccount.value = null;
+};
+
+const accountDetailRows = computed(() => {
+    if (!selectedAccount.value) return [];
+    const { data, type } = selectedAccount.value;
+    const commonRows = [
+        { label: "Mã người dùng", value: formatEmpty(data.userId) },
+        { label: "Họ tên", value: formatEmpty(data.fullName) },
+        { label: "Email", value: formatEmpty(data.email) },
+        { label: "Số điện thoại", value: formatEmpty(data.phone || data.userPhone) },
+        { label: "Vai trò", value: formatRole(data.role) },
+        { label: "Trạng thái tài khoản", value: data.isActive ? "Hoạt động" : "Bị khóa" },
+    ];
+
+    if (type === "staff") {
+        return [
+            ...commonRows,
+            { label: "Mã nhân viên", value: formatEmpty(data.staffId) },
+            { label: "CCCD", value: formatEmpty(data.cccd) },
+            { label: "Giới tính", value: formatGender(data.gender) },
+            { label: "Chức vụ", value: formatEmpty(data.position) },
+            { label: "Lương", value: formatCurrency(data.salary) },
+            { label: "Ngày vào làm", value: formatDate(data.hireDate || data.createdAt) },
+            { label: "Trạng thái nhân viên", value: formatEmpty(data.staffStatus) },
+        ];
+    }
+
+    return [
+        ...commonRows,
+        { label: "Mã khách hàng", value: formatEmpty(data.customerId) },
+        { label: "Giới tính", value: formatGender(data.gender) },
+        { label: "Địa chỉ", value: formatEmpty(data.address) },
+        { label: "Điểm thành viên", value: formatEmpty(data.loyaltyPoints) },
+    ];
+});
 
 const confirmAction = async (message) => {
     return showCinemaConfirm({
@@ -237,7 +342,7 @@ const fetchStaffs = async () => {
 // Khóa tài khoản khách hàng
 const lockUser = (userId) => {
     const user = customers.value.find((u) => u.userId === userId);
-    const message = `Bạn có chắc chắn muốn khóa tài khoản "${user.username}" không?`;
+    const message = `Bạn có chắc chắn muốn khóa tài khoản "${user.email || user.userEmail}" không?`;
     confirmAction(message).then(async (confirmed) => {
         if (!confirmed) return;
         try {
@@ -258,7 +363,7 @@ const lockUser = (userId) => {
 // Mở khóa tài khoản khách hàng
 const unlockUser = (userId) => {
     const user = customers.value.find((u) => u.userId === userId);
-    const message = `Bạn có chắc chắn muốn mở khóa tài khoản "${user.username}" không?`;
+    const message = `Bạn có chắc chắn muốn mở khóa tài khoản "${user.email}" không?`;
     confirmAction(message).then(async (confirmed) => {
         if (!confirmed) return;
         try {
@@ -277,8 +382,8 @@ const unlockUser = (userId) => {
 };
 
 // Xóa tài khoản khách hàng
-const deleteUser = (userId, username) => {
-    const message = `Bạn có chắc chắn muốn xóa tài khoản "${username}" không? Hành động này không thể hoàn tác.`;
+const deleteUser = (userId, email) => {
+    const message = `Bạn có chắc chắn muốn xóa tài khoản "${email}" không? Hành động này không thể hoàn tác.`;
     confirmAction(message).then(async (confirmed) => {
         if (!confirmed) return;
         try {
@@ -301,8 +406,8 @@ const deleteUser = (userId, username) => {
 };
 
 // Khóa tài khoản nhân viên
-const lockStaff = (username, userId) => {
-    const message = `Bạn có chắc chắn muốn khóa tài khoản nhân viên "${username}" không?`;
+const lockStaff = (email, userId) => {
+    const message = `Bạn có chắc chắn muốn khóa tài khoản nhân viên "${email}" không?`;
     confirmAction(message).then(async (confirmed) => {
         if (!confirmed) return;
         try {
@@ -323,8 +428,8 @@ const lockStaff = (username, userId) => {
 };
 
 // Mở khóa tài khoản nhân viên
-const unlockStaff = (username, userId) => {
-    const message = `Bạn có chắc chắn muốn mở khóa tài khoản nhân viên "${username}" không?`;
+const unlockStaff = (email, userId) => {
+    const message = `Bạn có chắc chắn muốn mở khóa tài khoản nhân viên "${email}" không?`;
     confirmAction(message).then(async (confirmed) => {
         if (!confirmed) return;
         try {
@@ -345,8 +450,8 @@ const unlockStaff = (username, userId) => {
 };
 
 // Xóa tài khoản nhân viên
-const deleteStaff = (username, userId) => {
-    const message = `Bạn có chắc chắn muốn xóa tài khoản nhân viên "${username}" không? Hành động này không thể hoàn tác.`;
+const deleteStaff = (email, userId) => {
+    const message = `Bạn có chắc chắn muốn xóa tài khoản nhân viên "${email}" không? Hành động này không thể hoàn tác.`;
     confirmAction(message).then(async (confirmed) => {
         if (!confirmed) return;
         try {
@@ -412,5 +517,67 @@ onMounted(async () => {
 .btn-sm {
     padding: 0.35rem 0.65rem;
     font-size: 0.85rem;
+}
+
+.detail-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1050;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    background: rgba(32, 24, 20, 0.45);
+}
+
+.detail-modal {
+    width: min(720px, 100%);
+    max-height: calc(100vh - 36px);
+    overflow: auto;
+    border-radius: 12px;
+    background: #fff;
+    padding: 18px;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.22);
+}
+
+.detail-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    border-bottom: 1px solid #eee2dc;
+    padding-bottom: 12px;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.detail-item {
+    border: 1px solid #eee2dc;
+    border-radius: 8px;
+    padding: 10px 12px;
+    background: #fffdfb;
+}
+
+.detail-item span {
+    display: block;
+    color: #7c716b;
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+
+.detail-item strong {
+    color: #3f3732;
+    font-size: 14px;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 576px) {
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
 }
 </style>

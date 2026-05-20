@@ -39,7 +39,7 @@
             <div class="row g-0 mb-3">
                 <div class="col-6">
                     <div class="bg-white rounded-start p-3">
-                        <p style="font-size: 11px; color: #888; margin-bottom: 5px">Date</p>
+                        <p style="font-size: 11px; color: #888; margin-bottom: 5px">Ngày</p>
                         <p class="fw-bold" style="font-size: 16px; color: #1a1a1a; margin-bottom: 0">
                             {{ ticket.date }}
                         </p>
@@ -47,7 +47,7 @@
                 </div>
                 <div class="col-6">
                     <div class="bg-white rounded-end p-3">
-                        <p style="font-size: 11px; color: #888; margin-bottom: 5px">Time</p>
+                        <p style="font-size: 11px; color: #888; margin-bottom: 5px">Giờ</p>
                         <p
                             class="fw-bold"
                             style="font-size: 16px; color: #1a1a1a; margin-bottom: 0; white-space: nowrap"
@@ -73,20 +73,20 @@
 
             <!-- Movie Details Card -->
             <div class="bg-white rounded p-3 mb-3">
-                <p style="font-size: 10px; color: #888; margin-bottom: 5px; text-transform: uppercase">Movie</p>
+                <p style="font-size: 10px; color: #888; margin-bottom: 5px; text-transform: uppercase">Phim</p>
                 <h3 class="fw-bold mb-3" style="font-size: 18px; color: #1a1a1a">
                     {{ ticket.movieName }}
                 </h3>
 
                 <div class="row g-3">
                     <div class="col-6">
-                        <p style="font-size: 10px; color: #888; margin-bottom: 5px; text-transform: uppercase">Room</p>
+                        <p style="font-size: 10px; color: #888; margin-bottom: 5px; text-transform: uppercase">Phòng</p>
                         <p class="fw-bold" style="font-size: 14px; color: #1a1a1a; margin-bottom: 0">
                             {{ ticket.room }}
                         </p>
                     </div>
                     <div class="col-6">
-                        <p style="font-size: 10px; color: #888; margin-bottom: 5px; text-transform: uppercase">Seat</p>
+                        <p style="font-size: 10px; color: #888; margin-bottom: 5px; text-transform: uppercase">Ghế</p>
                         <p class="fw-bold" style="font-size: 14px; color: #1a1a1a; margin-bottom: 0">
                             {{ ticket.seat }}
                         </p>

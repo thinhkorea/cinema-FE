@@ -360,9 +360,9 @@
                                                 style="width: 120px"
                                                 v-model="warehouseAdjustments[snack.snackId].operation"
                                             >
-                                                <option value="SET">Set</option>
-                                                <option value="ADD">Add</option>
-                                                <option value="SUBTRACT">Subtract</option>
+                                                <option value="SET">Đặt lại</option>
+                                                <option value="ADD">Cộng thêm</option>
+                                                <option value="SUBTRACT">Trừ bớt</option>
                                             </select>
                                             <input
                                                 type="number"
@@ -417,6 +417,122 @@
                                 <tr v-if="!snackWarehouseStocks.length">
                                     <td colspan="5" class="text-center text-muted py-3">
                                         Chưa có snack nào được theo dõi kho thành phẩm.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12" v-show="activeSection === 'supplies'">
+                <div class="panel">
+                    <div class="panel-head d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0">Vật tư vận hành</h6>
+                            <small class="text-muted">
+                                Ly, nắp, ống hút, khăn giấy và các vật tư không nằm trong công thức món.
+                            </small>
+                        </div>
+                        <button class="btn btn-sm btn-primary" @click="openCreateSupply">+ Thêm vật tư</button>
+                    </div>
+                    <div v-if="lowStockSupplies.length" class="alert alert-warning py-2 mt-3 mb-0">
+                        Có {{ lowStockSupplies.length }} vật tư đang chạm mức cảnh báo tồn kho.
+                    </div>
+                    <div class="table-responsive mt-2">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Vật tư</th>
+                                    <th>Đơn vị</th>
+                                    <th>Tồn kho</th>
+                                    <th>Cảnh báo</th>
+                                    <th>Trạng thái</th>
+                                    <th class="text-end">Điều chỉnh</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="supply in supplies" :key="`supply-${supply.supplyId}`">
+                                    <td>{{ supply.supplyName }}</td>
+                                    <td>{{ supply.unit }}</td>
+                                    <td>
+                                        <span
+                                            class="badge"
+                                            :class="isLowStockSupply(supply) ? 'bg-warning text-dark' : 'bg-success'"
+                                        >
+                                            {{ formatQty(supply.stock) }}
+                                        </span>
+                                    </td>
+                                    <td>{{ formatQty(supply.reorderLevel) }}</td>
+                                    <td>
+                                        <span class="badge" :class="supply.active ? 'bg-primary' : 'bg-secondary'">
+                                            {{ supply.active ? "Đang dùng" : "Ngừng" }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="d-flex flex-wrap gap-2 justify-content-end">
+                                            <select
+                                                class="form-select form-select-sm"
+                                                style="width: 120px"
+                                                v-model="supplyAdjustments[supply.supplyId].operation"
+                                            >
+                                                <option value="SET">Đặt lại</option>
+                                                <option value="ADD">Cộng thêm</option>
+                                                <option value="SUBTRACT">Trừ bớt</option>
+                                            </select>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                step="0.01"
+                                                class="form-control form-control-sm"
+                                                style="width: 110px"
+                                                placeholder="Số lượng"
+                                                v-model.number="supplyAdjustments[supply.supplyId].quantity"
+                                            />
+                                            <input
+                                                type="text"
+                                                class="form-control form-control-sm"
+                                                style="width: 170px"
+                                                placeholder="Ghi chú"
+                                                v-model="supplyAdjustments[supply.supplyId].note"
+                                            />
+                                            <button
+                                                class="btn btn-sm btn-outline-primary"
+                                                :disabled="savingSupplyStock[supply.supplyId]"
+                                                @click="updateSupplyStock(supply)"
+                                            >
+                                                <span
+                                                    v-if="savingSupplyStock[supply.supplyId]"
+                                                    class="spinner-border spinner-border-sm me-1"
+                                                ></span>
+                                                Cập nhật
+                                            </button>
+                                            <button
+                                                class="btn btn-sm btn-outline-secondary"
+                                                @click="viewSupplyMovements(supply)"
+                                            >
+                                                Lịch sử
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-dark" @click="openEditSupply(supply)">
+                                                Chi tiết
+                                            </button>
+                                            <button
+                                                class="btn btn-sm btn-outline-danger"
+                                                :disabled="!!deletingSupplyIds[supply.supplyId]"
+                                                @click="deleteSupply(supply)"
+                                            >
+                                                <span
+                                                    v-if="deletingSupplyIds[supply.supplyId]"
+                                                    class="spinner-border spinner-border-sm me-1"
+                                                ></span>
+                                                Xóa
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr v-if="!supplies.length">
+                                    <td colspan="6" class="text-center text-muted py-3">
+                                        Chưa có vật tư nào. Bấm thêm vật tư để bắt đầu theo dõi.
                                     </td>
                                 </tr>
                             </tbody>
@@ -709,6 +825,74 @@
             </div>
         </div>
 
+        <div class="modal fade" id="supplyModal" tabindex="-1" ref="supplyModalEl" aria-hidden="true">
+            <div class="modal-dialog">
+                <form class="modal-content" @submit.prevent="submitSupply">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            {{ supplyForm.supplyId ? "Sửa vật tư" : "Thêm vật tư" }}
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Tên vật tư</label>
+                            <input
+                                class="form-control"
+                                v-model.trim="supplyForm.supplyName"
+                                placeholder="Ví dụ: Ly giấy 32oz"
+                                required
+                            />
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Đơn vị</label>
+                                <input class="form-control" v-model.trim="supplyForm.unit" required />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Tồn kho</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    class="form-control"
+                                    v-model.number="supplyForm.stock"
+                                />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Mức cảnh báo</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    class="form-control"
+                                    v-model.number="supplyForm.reorderLevel"
+                                />
+                            </div>
+                            <div class="col-md-6 d-flex align-items-end">
+                                <div class="form-check">
+                                    <input
+                                        class="form-check-input"
+                                        type="checkbox"
+                                        id="supplyActiveCheck"
+                                        v-model="supplyForm.active"
+                                    />
+                                    <label class="form-check-label" for="supplyActiveCheck">Đang sử dụng</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                        <button class="btn btn-primary" type="submit" :disabled="savingSupply">
+                            <span v-if="savingSupply" class="spinner-border spinner-border-sm me-1"></span>
+                            Lưu
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <div class="modal fade" id="batchModal" tabindex="-1" ref="batchModalEl" aria-hidden="true">
             <div class="modal-dialog">
                 <form class="modal-content" @submit.prevent="submitBatch">
@@ -946,6 +1130,58 @@
                 </div>
             </div>
         </div>
+
+        <div class="modal fade" id="supplyMovementModal" tabindex="-1" ref="supplyMovementModalEl" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Lịch sử tồn kho: {{ selectedSupply?.supplyName }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div v-if="loadingSupplyMovements" class="text-center text-muted py-3">
+                            Đang tải lịch sử tồn kho...
+                        </div>
+                        <div v-else-if="supplyMovementError" class="alert alert-danger py-2">
+                            {{ supplyMovementError }}
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Thời gian</th>
+                                        <th>Hành động</th>
+                                        <th>Biến động</th>
+                                        <th>Trước</th>
+                                        <th>Sau</th>
+                                        <th>Người thực hiện</th>
+                                        <th>Ghi chú</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="m in supplyMovements" :key="m.movementId">
+                                        <td>{{ formatDateTime(m.createdAt) }}</td>
+                                        <td>{{ m.action }}</td>
+                                        <td :class="m.quantityChange >= 0 ? 'text-success' : 'text-danger'">
+                                            {{ m.quantityChange >= 0 ? "+" : "" }}{{ formatQty(m.quantityChange) }}
+                                        </td>
+                                        <td>{{ formatQty(m.quantityBefore) }}</td>
+                                        <td>{{ formatQty(m.quantityAfter) }}</td>
+                                        <td>{{ m.performedBy }}</td>
+                                        <td>{{ m.note || "-" }}</td>
+                                    </tr>
+                                    <tr v-if="!loadingSupplyMovements && !supplyMovements.length">
+                                        <td colspan="7" class="text-center text-muted py-3">
+                                            Chưa có lịch sử tồn kho cho vật tư này.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -986,6 +1222,8 @@ const lowStockIngredients = ref([]);
 const expiringBatches = ref([]);
 const expiredBatches = ref([]);
 const snacks = ref([]);
+const supplies = ref([]);
+const lowStockSupplies = ref([]);
 const recipeSnacks = computed(() => {
     return snacks.value.filter(
         (sn) => sn.category === "SNACK" && sn.snackName && sn.snackName.toLowerCase().includes("bắp"),
@@ -993,12 +1231,19 @@ const recipeSnacks = computed(() => {
 });
 const snackWarehouseStocks = ref([]);
 const deletingSnackIds = ref({});
+const deletingSupplyIds = ref({});
 const selectedSnackWarehouse = ref(null);
+const selectedSupply = ref(null);
 const snackWarehouseMovements = ref([]);
+const supplyMovements = ref([]);
 const loadingSnackWarehouseMovements = ref(false);
+const loadingSupplyMovements = ref(false);
 const snackWarehouseMovementError = ref("");
+const supplyMovementError = ref("");
 const warehouseAdjustments = ref({});
 const savingWarehouse = ref({});
+const supplyAdjustments = ref({});
+const savingSupplyStock = ref({});
 const uploadingSnackImage = ref(false);
 const snackImageLoading = ref(false);
 const snackImageError = ref(false);
@@ -1021,6 +1266,12 @@ const sectionTabs = [
         label: "Tồn kho bắp nước",
         description: "Bắp nước thành phẩm",
         color: "#ff8758",
+    },
+    {
+        key: "supplies",
+        label: "Vật tư",
+        description: "Ly, nắp, ống hút...",
+        color: "#5aa9e6",
     },
     {
         key: "ingredients",
@@ -1149,6 +1400,7 @@ const savingIngredient = ref(false);
 const savingSnack = ref(false);
 const savingBatch = ref(false);
 const savingConsume = ref(false);
+const savingSupply = ref(false);
 const discardingExpiredAll = ref(false);
 const discardingBatchIds = ref({});
 
@@ -1175,6 +1427,15 @@ const snackForm = ref({
     recipeInstructions: "",
 });
 
+const supplyForm = ref({
+    supplyId: null,
+    supplyName: "",
+    unit: "",
+    stock: 0,
+    reorderLevel: 10,
+    active: true,
+});
+
 const batchForm = ref({
     quantity: null,
     unitCost: null,
@@ -1193,18 +1454,22 @@ const consumeForm = ref({
 const ingredientModalEl = ref(null);
 const snackModalEl = ref(null);
 const snackImageInputEl = ref(null);
+const supplyModalEl = ref(null);
 const batchModalEl = ref(null);
 const batchesListModalEl = ref(null);
 const consumeModalEl = ref(null);
 const movementModalEl = ref(null);
 const snackMovementModalEl = ref(null);
+const supplyMovementModalEl = ref(null);
 let ingredientModal = null;
 let snackModal = null;
+let supplyModal = null;
 let batchModal = null;
 let batchesListModal = null;
 let consumeModal = null;
 let movementModal = null;
 let snackMovementModal = null;
+let supplyMovementModal = null;
 
 const toNumber = (val) => {
     const parsed = Number(val);
@@ -1219,6 +1484,10 @@ const formatQty = (val) => {
 const formatDate = (val) => {
     if (!val) return "-";
     return new Date(val).toLocaleDateString("vi-VN");
+};
+
+const isLowStockSupply = (supply) => {
+    return toNumber(supply?.stock) <= toNumber(supply?.reorderLevel);
 };
 
 const getIngredientById = (ingredientId) => {
@@ -1262,13 +1531,16 @@ const formatDateTime = (val) => {
 
 const loadAll = async () => {
     try {
-        const [ingRes, lowRes, expRes, expiredRes, snackRes, snackWarehouseRes] = await Promise.all([
+        const [ingRes, lowRes, expRes, expiredRes, snackRes, snackWarehouseRes, supplyRes, lowSupplyRes] =
+            await Promise.all([
             api.get("/admin/inventory/ingredients"),
             api.get(`/admin/inventory/ingredients/low-stock?threshold=${lowStockThreshold}`),
             api.get(`/admin/inventory/ingredients/expiring-batches?days=${expiringDays}`),
             api.get("/admin/inventory/ingredients/expired-batches"),
             api.get("/snacks/admin/all"),
             api.get("/snacks/admin/warehouse-stocks"),
+            api.get("/admin/supplies"),
+            api.get("/admin/supplies/low-stock"),
         ]);
 
         ingredients.value = ingRes.data || [];
@@ -1277,11 +1549,21 @@ const loadAll = async () => {
         expiredBatches.value = expiredRes.data || [];
         snacks.value = snackRes.data || [];
         snackWarehouseStocks.value = snackWarehouseRes.data || [];
+        supplies.value = supplyRes.data || [];
+        lowStockSupplies.value = lowSupplyRes.data || [];
         warehouseAdjustments.value = snackWarehouseStocks.value.reduce((acc, item) => {
             acc[item.snackId] = {
                 operation: "SET",
                 quantity: null,
                 reorderLevel: toNumber(item.warehouseReorderLevel),
+                note: "",
+            };
+            return acc;
+        }, {});
+        supplyAdjustments.value = supplies.value.reduce((acc, item) => {
+            acc[item.supplyId] = {
+                operation: "SET",
+                quantity: null,
                 note: "",
             };
             return acc;
@@ -1292,6 +1574,86 @@ const loadAll = async () => {
             title: "Lỗi",
             text: err?.response?.data?.error || "Không thể tải dữ liệu inventory.",
         });
+    }
+};
+
+const updateSupplyStock = async (supply) => {
+    const draft = supplyAdjustments.value?.[supply.supplyId];
+    if (!draft) {
+        await showAlert({ icon: "warning", title: "Thiếu dữ liệu", text: "Không tìm thấy dữ liệu cập nhật." });
+        return;
+    }
+    if (draft.quantity === null || draft.quantity === "" || Number.isNaN(Number(draft.quantity))) {
+        await showAlert({ icon: "warning", title: "Thiếu số lượng", text: "Vui lòng nhập số lượng vật tư." });
+        return;
+    }
+    if (Number(draft.quantity) < 0) {
+        await showAlert({ icon: "warning", title: "Số lượng không hợp lệ", text: "Số lượng phải >= 0." });
+        return;
+    }
+
+    savingSupplyStock.value = { ...savingSupplyStock.value, [supply.supplyId]: true };
+    try {
+        await api.patch(`/admin/supplies/${supply.supplyId}/stock`, {
+            operation: draft.operation,
+            quantity: Number(draft.quantity),
+            note: draft.note,
+        });
+        await loadAll();
+        await showAlert({ icon: "success", title: "Hoàn tất", text: "Đã cập nhật tồn kho vật tư." });
+    } catch (err) {
+        await showAlert({
+            icon: "error",
+            title: "Lỗi",
+            text: err?.response?.data?.error || "Không thể cập nhật tồn kho vật tư.",
+        });
+    } finally {
+        savingSupplyStock.value = { ...savingSupplyStock.value, [supply.supplyId]: false };
+    }
+};
+
+const viewSupplyMovements = async (supply) => {
+    selectedSupply.value = supply;
+    supplyMovements.value = [];
+    supplyMovementError.value = "";
+
+    if (!supplyMovementModal && supplyMovementModalEl.value) {
+        supplyMovementModal = new Modal(supplyMovementModalEl.value);
+    }
+    supplyMovementModal?.show();
+
+    loadingSupplyMovements.value = true;
+    try {
+        const res = await api.get(`/admin/supplies/${supply.supplyId}/movements`);
+        supplyMovements.value = res.data || [];
+    } catch (err) {
+        supplyMovementError.value = err?.response?.data?.error || "Không thể tải lịch sử tồn kho vật tư.";
+        await showAlert({
+            icon: "error",
+            title: "Lỗi",
+            text: supplyMovementError.value,
+        });
+    } finally {
+        loadingSupplyMovements.value = false;
+    }
+};
+
+const deleteSupply = async (supply) => {
+    if (!supply || !supply.supplyId) return;
+    const ok = await showConfirm(
+        `Bạn có chắc muốn xóa vật tư "${supply.supplyName}"? Lịch sử tồn kho của vật tư này cũng sẽ bị xóa.`,
+    );
+    if (!ok) return;
+
+    deletingSupplyIds.value = { ...deletingSupplyIds.value, [supply.supplyId]: true };
+    try {
+        await api.delete(`/admin/supplies/${supply.supplyId}`);
+        await loadAll();
+        await showAlert({ icon: "success", title: "Đã xóa", text: "Đã xóa vật tư." });
+    } catch (err) {
+        await showAlert({ icon: "error", title: "Lỗi", text: err?.response?.data?.error || "Không thể xóa vật tư." });
+    } finally {
+        deletingSupplyIds.value = { ...deletingSupplyIds.value, [supply.supplyId]: false };
     }
 };
 
@@ -1407,6 +1769,76 @@ const submitIngredient = async () => {
         });
     } finally {
         savingIngredient.value = false;
+    }
+};
+
+const openCreateSupply = () => {
+    supplyForm.value = {
+        supplyId: null,
+        supplyName: "",
+        unit: "",
+        stock: 0,
+        reorderLevel: 10,
+        active: true,
+    };
+
+    if (!supplyModal && supplyModalEl.value) {
+        supplyModal = new Modal(supplyModalEl.value);
+    }
+    supplyModal?.show();
+};
+
+const openEditSupply = (supply) => {
+    supplyForm.value = {
+        supplyId: supply.supplyId,
+        supplyName: supply.supplyName || "",
+        unit: supply.unit || "",
+        stock: toNumber(supply.stock),
+        reorderLevel: toNumber(supply.reorderLevel),
+        active: supply.active !== false,
+    };
+
+    if (!supplyModal && supplyModalEl.value) {
+        supplyModal = new Modal(supplyModalEl.value);
+    }
+    supplyModal?.show();
+};
+
+const submitSupply = async () => {
+    if (!supplyForm.value.supplyName || !supplyForm.value.unit) {
+        await showAlert({ icon: "warning", title: "Thiếu thông tin", text: "Vui lòng nhập tên và đơn vị vật tư." });
+        return;
+    }
+    if (toNumber(supplyForm.value.stock) < 0 || toNumber(supplyForm.value.reorderLevel) < 0) {
+        await showAlert({ icon: "warning", title: "Số lượng không hợp lệ", text: "Tồn kho và cảnh báo phải >= 0." });
+        return;
+    }
+
+    savingSupply.value = true;
+    try {
+        const payload = {
+            supplyName: supplyForm.value.supplyName,
+            unit: supplyForm.value.unit,
+            stock: toNumber(supplyForm.value.stock),
+            reorderLevel: toNumber(supplyForm.value.reorderLevel),
+            active: supplyForm.value.active,
+        };
+        if (supplyForm.value.supplyId) {
+            await api.put(`/admin/supplies/${supplyForm.value.supplyId}`, payload);
+        } else {
+            await api.post("/admin/supplies", payload);
+        }
+        supplyModal?.hide();
+        await loadAll();
+        await showAlert({ icon: "success", title: "Hoàn tất", text: "Đã lưu vật tư." });
+    } catch (err) {
+        await showAlert({
+            icon: "error",
+            title: "Lỗi",
+            text: err?.response?.data?.error || "Không thể lưu vật tư.",
+        });
+    } finally {
+        savingSupply.value = false;
     }
 };
 
@@ -2016,26 +2448,6 @@ onUnmounted(() => {
     min-height: 100%;
 }
 
-.summary-card {
-    border: 1px solid #eee;
-    border-left-width: 4px;
-    border-radius: 12px;
-    padding: 12px 14px;
-    background: #fff;
-}
-
-.summary-title {
-    color: #6a6663;
-    font-size: 13px;
-    margin-bottom: 6px;
-}
-
-.summary-value {
-    font-size: 28px;
-    font-weight: 700;
-    line-height: 1;
-}
-
 .panel {
     border: 1px solid #f0dfd7;
     border-radius: 12px;
@@ -2080,7 +2492,7 @@ onUnmounted(() => {
 
 .section-tabs {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
     gap: 10px;
 }
 

@@ -62,12 +62,12 @@
                                     </li>
                                     <li v-if="auth.isAdmin">
                                         <button class="dropdown-item w-100 text-start" @click="goDashboard">
-                                            <i class="bi bi-speedometer2 me-2"></i> Admin Dashboard
+                                            <i class="bi bi-speedometer2 me-2"></i> Trang quản trị
                                         </button>
                                     </li>
                                     <li v-if="auth.isStaff">
                                         <button class="dropdown-item w-100 text-start" @click="goDashboard">
-                                            <i class="bi bi-ticket-detailed me-2"></i> Staff Panel
+                                            <i class="bi bi-ticket-detailed me-2"></i> Trang nhân viên
                                         </button>
                                     </li>
                                 </ul>

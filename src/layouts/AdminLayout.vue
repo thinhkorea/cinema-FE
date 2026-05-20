@@ -1,7 +1,7 @@
 <template>
     <div class="admin-shell">
         <button class="btn btn-primary admin-toggle d-lg-none" @click="toggleSidebar">
-            <i class="bi bi-list me-1"></i> Menu
+            <i class="bi bi-list me-1"></i> Danh mục
         </button>
 
         <div v-if="showSidebar" class="sidebar-backdrop d-lg-none" @click="toggleSidebar"></div>
@@ -9,8 +9,8 @@
         <div class="admin-layout">
             <aside class="admin-sidebar" :class="{ show: showSidebar }">
                 <div class="sidebar-brand">
-                    <p class="brand-kicker mb-1">Cinema Management</p>
-                    <h5 class="mb-0 d-flex align-items-center">Admin Panel</h5>
+                    <p class="brand-kicker mb-1">Quản lý rạp phim</p>
+                    <h5 class="mb-0 d-flex align-items-center">Trang quản trị</h5>
                 </div>
 
                 <ul class="nav flex-column admin-nav">
@@ -60,16 +60,16 @@ const route = useRoute();
 const auth = useAuthStore();
 
 const links = [
-    { label: "Dashboard", path: "/admin/dashboard", icon: "bi bi-speedometer2" },
-    { label: "Movies", path: "/admin/movies", icon: "bi bi-film" },
-    { label: "Rooms", path: "/admin/rooms", icon: "bi bi-door-open" },
-    { label: "Showtimes", path: "/admin/showtimes", icon: "bi bi-clock" },
-    { label: "Bookings", path: "/admin/bookings", icon: "bi bi-ticket" },
-    { label: "Ingredients", path: "/admin/inventory", icon: "bi bi-box-seam" },
-    { label: "Revenue", path: "/admin/revenue", icon: "bi bi-graph-up" },
-    { label: "Register Staff", path: "/admin/register-staff", icon: "bi bi-person-plus" },
-    { label: "Account", path: "/admin/users", icon: "bi bi-people" },
-    { label: "Vouchers", path: "/admin/vouchers", icon: "bi bi-ticket-perforated" },
+    { label: "Tổng quan", path: "/admin/dashboard", icon: "bi bi-speedometer2" },
+    { label: "Phim", path: "/admin/movies", icon: "bi bi-film" },
+    { label: "Phòng chiếu", path: "/admin/rooms", icon: "bi bi-door-open" },
+    { label: "Suất chiếu", path: "/admin/showtimes", icon: "bi bi-clock" },
+    { label: "Đặt vé", path: "/admin/bookings", icon: "bi bi-ticket" },
+    { label: "Kho nguyên liệu", path: "/admin/inventory", icon: "bi bi-box-seam" },
+    { label: "Báo cáo ca", path: "/admin/shift-reports", icon: "bi bi-cash-coin" },
+    { label: "Tạo nhân viên", path: "/admin/register-staff", icon: "bi bi-person-plus" },
+    { label: "Tài khoản", path: "/admin/users", icon: "bi bi-people" },
+    { label: "Voucher", path: "/admin/vouchers", icon: "bi bi-ticket-perforated" },
 ];
 
 const logout = async () => {

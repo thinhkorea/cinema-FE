@@ -1,7 +1,7 @@
 <template>
     <div class="staff-shell">
         <button class="btn btn-primary staff-toggle d-lg-none" @click="toggleSidebar">
-            <i class="bi bi-list me-1"></i> Menu
+            <i class="bi bi-list me-1"></i> Danh mục
         </button>
 
         <div v-if="showSidebar" class="sidebar-backdrop d-lg-none" @click="toggleSidebar"></div>
@@ -10,8 +10,8 @@
             <aside class="staff-sidebar" :class="{ show: showSidebar }">
                 <div>
                     <div class="sidebar-brand">
-                        <p class="brand-kicker mb-1">Cinema Operations</p>
-                        <h5 class="mb-0 d-flex align-items-center">Staff Panel</h5>
+                        <p class="brand-kicker mb-1">Vận hành rạp phim</p>
+                        <h5 class="mb-0 d-flex align-items-center">Trang nhân viên</h5>
                     </div>
 
                     <ul class="nav flex-column staff-nav mt-3">
@@ -68,6 +68,16 @@
                                 <i class="bi bi-journal-text me-2"></i> Công thức bắp
                             </router-link>
                         </li>
+                        <li class="nav-item">
+                            <router-link
+                                to="/staff/shift-close"
+                                class="nav-link"
+                                active-class="active"
+                                @click="closeOnMobile"
+                            >
+                                <i class="bi bi-cash-coin me-2"></i> Kết ca
+                            </router-link>
+                        </li>
                     </ul>
                 </div>
 
@@ -114,6 +124,7 @@ const links = [
     { label: "Vé đã bán", path: "/staff/sold-tickets" },
     { label: "Tra cứu vé", path: "/staff/search-ticket" },
     { label: "Công thức bắp", path: "/staff/recipes" },
+    { label: "Kết ca", path: "/staff/shift-close" },
 ];
 
 const logout = async () => {
@@ -136,7 +147,7 @@ const closeOnMobile = () => {
 
 const activeTitle = computed(() => {
     const active = links.find((item) => route.path.startsWith(item.path));
-    return active ? active.label : "Staff";
+    return active ? active.label : "Nhân viên";
 });
 </script>
 

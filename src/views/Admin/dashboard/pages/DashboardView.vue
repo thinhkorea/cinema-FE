@@ -30,7 +30,7 @@
             <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
           </select>
           <span class="text-success fw-semibold">
-            Tháng hiện tại: {{ currentMonthRevenue.toLocaleString() }}₫
+            Tháng hiện tại: {{ formatCurrency(currentMonthRevenue) }}
           </span>
         </div>
       </h5>
@@ -45,6 +45,35 @@
     </div>
 
     <!-- Top phim & Top nhân viên -->
+    <div class="full-width-section mb-5">
+      <h5 class="mb-4 d-flex align-items-center">
+        <i class="bi bi-clock-history me-2 text-danger"></i> Doanh thu theo khung giờ
+      </h5>
+
+      <div v-if="loadingTimeSlots" class="text-center py-4">
+        <div class="spinner-border text-danger"></div>
+      </div>
+
+      <div v-else class="time-slot-grid">
+        <div v-for="slot in timeSlotRevenue" :key="slot.slot" class="time-slot-card">
+          <div class="time-slot-head">
+            <div>
+              <h6>{{ slot.label }}</h6>
+              <span>{{ slot.timeRange }}</span>
+            </div>
+            <strong>{{ formatCurrency(slot.revenue) }}</strong>
+          </div>
+          <div class="time-slot-bar">
+            <div :style="{ width: `${getTimeSlotPercent(slot.revenue)}%` }"></div>
+          </div>
+          <div class="time-slot-breakdown">
+            <span>Vé: {{ formatCurrency(slot.ticketRevenue) }}</span>
+            <span>Bắp nước: {{ formatCurrency(slot.snackRevenue) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="row g-4">
       <!-- Top phim -->
       <div class="col-lg-6">
@@ -70,7 +99,7 @@
                 <tr v-for="(m, i) in topMovies" :key="i">
                   <td>{{ i + 1 }}</td>
                   <td class="fw-semibold">{{ m.movieTitle }}</td>
-                  <td class="text-success fw-bold">{{ m.revenue.toLocaleString() }}₫</td>
+                  <td class="text-success fw-bold">{{ formatCurrency(m.revenue) }}</td>
                 </tr>
               </tbody>
             </table>
@@ -102,7 +131,7 @@
                 <tr v-for="(s, i) in topStaffs" :key="i">
                   <td>{{ i + 1 }}</td>
                   <td class="fw-semibold">{{ s.staffName }}</td>
-                  <td class="text-primary fw-bold">{{ s.totalRevenue.toLocaleString() }}₫</td>
+                  <td class="text-primary fw-bold">{{ formatCurrency(s.totalRevenue) }}</td>
                 </tr>
               </tbody>
             </table>
@@ -133,10 +162,10 @@ const LineChart = Line
 
 // Các thống kê
 const stats = reactive([
-  { title: 'Movies', value: 0 },
-  { title: 'Rooms', value: 0 },
-  { title: 'Showtimes', value: 0 },
-  { title: 'Bookings', value: 0 }
+  { title: 'Phim', value: 0 },
+  { title: 'Phòng chiếu', value: 0 },
+  { title: 'Suất chiếu', value: 0 },
+  { title: 'Đặt vé', value: 0 }
 ])
 
 // 📊 Biểu đồ doanh thu
@@ -163,13 +192,21 @@ const chartOptions = {
     title: { display: false }
   },
   scales: {
-    y: { beginAtZero: true, ticks: { callback: v => v.toLocaleString() + '₫' } }
+    y: {
+      beginAtZero: true,
+      suggestedMax: 100000,
+      ticks: {
+        precision: 0,
+        callback: value => formatCurrency(value)
+      }
+    }
   }
 }
 
 // 🗓 Năm & doanh thu tháng hiện tại
-const years = ref([2023, 2024, 2025])
-const selectedYear = ref(new Date().getFullYear())
+const currentYear = new Date().getFullYear()
+const years = ref(Array.from({ length: 5 }, (_, index) => currentYear - index))
+const selectedYear = ref(currentYear)
 const currentMonthRevenue = ref(0)
 const loading = ref(true)
 
@@ -180,6 +217,9 @@ const loadingMovies = ref(true)
 // Top nhân viên
 const topStaffs = ref([])
 const loadingStaffs = ref(true)
+
+const timeSlotRevenue = ref([])
+const loadingTimeSlots = ref(true)
 
 // API
 const fetchStats = async () => {
@@ -194,12 +234,24 @@ const fetchRevenue = async () => {
   loading.value = true
   try {
     const { data } = await api.get(`/admin/revenue?year=${selectedYear.value}`)
-    chartData.value.labels = data.map(r => 'Tháng ' + r.month)
-    chartData.value.datasets[0].data = data.map(r => r.revenue)
+    const revenueByMonth = new Map(
+      data.map(row => [Number(row.month), Number(row.revenue || 0)])
+    )
+    const monthlyRows = Array.from({ length: 12 }, (_, index) => {
+      const month = index + 1
+      return {
+        month,
+        revenue: revenueByMonth.get(month) || 0
+      }
+    })
+
+    chartData.value.labels = monthlyRows.map(r => 'Tháng ' + r.month)
+    chartData.value.datasets[0].data = monthlyRows.map(r => r.revenue)
 
     const nowMonth = new Date().getMonth() + 1
-    const current = data.find(r => r.month === nowMonth)
+    const current = monthlyRows.find(r => r.month === nowMonth)
     currentMonthRevenue.value = current ? current.revenue : 0
+    await fetchTimeSlotRevenue()
   } catch (err) {
     console.error('Error loading revenue:', err)
   } finally {
@@ -211,7 +263,10 @@ const fetchTopMovies = async () => {
   loadingMovies.value = true
   try {
     const { data } = await api.get('/admin/revenue/movies')
-    topMovies.value = data
+    topMovies.value = data.map(movie => ({
+      ...movie,
+      revenue: Number(movie.revenue || 0)
+    }))
   } catch (err) {
     console.error('Error loading top movies:', err)
   } finally {
@@ -223,7 +278,10 @@ const fetchTopStaffs = async () => {
   loadingStaffs.value = true
   try {
     const { data } = await api.get('/admin/revenue/staffs')
-    topStaffs.value = data
+    topStaffs.value = data.map(staff => ({
+      ...staff,
+      totalRevenue: Number(staff.totalRevenue || 0)
+    }))
   } catch (err) {
     console.error('Error loading top staffs:', err)
   } finally {
@@ -238,6 +296,32 @@ onMounted(async () => {
   await fetchTopMovies()
   await fetchTopStaffs()
 })
+
+function formatCurrency(value) {
+  return `${Math.round(Number(value || 0)).toLocaleString('vi-VN')}đ`
+}
+
+const fetchTimeSlotRevenue = async () => {
+  loadingTimeSlots.value = true
+  try {
+    const { data } = await api.get(`/admin/revenue/time-slots?year=${selectedYear.value}`)
+    timeSlotRevenue.value = data.map(slot => ({
+      ...slot,
+      revenue: Number(slot.revenue || 0),
+      ticketRevenue: Number(slot.ticketRevenue || 0),
+      snackRevenue: Number(slot.snackRevenue || 0)
+    }))
+  } catch (err) {
+    console.error('Error loading time slot revenue:', err)
+  } finally {
+    loadingTimeSlots.value = false
+  }
+}
+function getTimeSlotPercent(revenue) {
+  const maxRevenue = Math.max(...timeSlotRevenue.value.map(slot => slot.revenue), 0)
+  if (maxRevenue <= 0) return 0
+  return Math.max(4, Math.round((Number(revenue || 0) / maxRevenue) * 100))
+}
 </script>
 
 <style scoped>
@@ -260,9 +344,75 @@ onMounted(async () => {
   height: 520px;
 }
 
+.time-slot-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.time-slot-card {
+  border: 1px solid #eef0f3;
+  border-radius: 8px;
+  padding: 1rem;
+  background: #fff;
+}
+
+.time-slot-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.time-slot-head h6 {
+  margin: 0;
+  font-weight: 700;
+}
+
+.time-slot-head span,
+.time-slot-breakdown {
+  color: #6c757d;
+  font-size: 0.875rem;
+}
+
+.time-slot-head strong {
+  color: #dc3545;
+  white-space: nowrap;
+}
+
+.time-slot-bar {
+  height: 8px;
+  background: #f1f3f5;
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 1rem 0 0.75rem;
+}
+
+.time-slot-bar div {
+  height: 100%;
+  background: #dc3545;
+  border-radius: inherit;
+}
+
+.time-slot-breakdown {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
 @media (max-width: 992px) {
   .chart-wrapper {
     height: 400px;
+  }
+
+  .time-slot-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 576px) {
+  .time-slot-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

@@ -2,7 +2,7 @@
     <div class="container py-4">
         <!-- Header -->
         <div class="d-flex justify-content-end align-items-center mb-3">
-            <button class="btn btn-primary" @click="openModal()">+ Add Room</button>
+            <button class="btn btn-primary" @click="openModal()">+ Thêm phòng</button>
         </div>
 
         <!-- Loading -->
@@ -16,10 +16,10 @@
                 <thead class="table-light">
                     <tr>
                         <th>#</th>
-                        <th>Room Name</th>
-                        <th>Capacity</th>
-                        <th>Type</th>
-                        <th style="width: 160px">Actions</th>
+                        <th>Tên phòng</th>
+                        <th>Sức chứa</th>
+                        <th>Loại phòng</th>
+                        <th style="width: 160px">Hành động</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -40,7 +40,7 @@
                 </tbody>
             </table>
 
-            <p v-if="!rooms.length" class="text-center text-muted mt-3">No rooms found.</p>
+            <p v-if="!rooms.length" class="text-center text-muted mt-3">Chưa có phòng nào.</p>
         </div>
 
         <!-- Modal Add/Edit -->
@@ -49,26 +49,26 @@
                 <div class="modal-content">
                     <form @submit.prevent="saveRoom">
                         <div class="modal-header">
-                            <h5 class="modal-title">{{ form.roomId ? "Edit Room" : "Add Room" }}</h5>
+                            <h5 class="modal-title">{{ form.roomId ? "Sửa phòng" : "Thêm phòng" }}</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body">
                             <div class="mb-3">
-                                <label class="form-label">Room Name</label>
+                                <label class="form-label">Tên phòng</label>
                                 <input v-model="form.roomName" class="form-control" required />
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Capacity</label>
+                                <label class="form-label">Sức chứa</label>
                                 <input type="number" v-model="form.capacity" class="form-control" required />
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Room Type</label>
+                                <label class="form-label">Loại phòng</label>
                                 <input v-model="form.roomType" class="form-control" placeholder="2D, 3D, IMAX..." />
                             </div>
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                            <button type="submit" class="btn btn-primary">Save</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                            <button type="submit" class="btn btn-primary">Lưu</button>
                         </div>
                     </form>
                 </div>
