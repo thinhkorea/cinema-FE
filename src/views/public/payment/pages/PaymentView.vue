@@ -20,8 +20,16 @@
                 </div>
 
                 <div v-else>
+                    <div v-if="!auth.isAuthenticated" class="guest-preview-box">
+                        <h3 class="guest-preview-title">Bạn đang xem trước đơn vé và bắp nước</h3>
+                        <p class="guest-preview-text">
+                            Khách vãng lai có thể xem trước ghế, bắp nước và tổng thanh toán. Đăng nhập để áp dụng
+                            voucher, dùng điểm tích lũy và hoàn tất đặt vé.
+                        </p>
+                        <button @click="goToLogin" class="btn-login-continue">Đăng nhập để tiếp tục</button>
+                    </div>
                     <!-- Loyalty Points Section -->
-                    <div class="loyalty-section">
+                    <div class="loyalty-section" :class="{ disabled: !auth.isAuthenticated }">
                         <h3 class="subsection-title">
                             <i class="bi bi-star-fill"></i>
                             Điểm tích lũy
@@ -45,8 +53,11 @@
                                     :max="maxPointsCanUse"
                                     placeholder="0"
                                     class="points-input"
+                                    :disabled="!auth.isAuthenticated"
                                 />
-                                <button @click="useMaxPoints" class="btn-max">Dùng tối đa</button>
+                                <button @click="useMaxPoints" class="btn-max" :disabled="!auth.isAuthenticated">
+                                    Dùng tối đa
+                                </button>
                             </div>
                             <p v-if="pointsToUse > 0" class="discount-preview">
                                 Giảm giá: <strong>{{ formatCurrency(pointsToUse * 1000) }}</strong>
@@ -55,7 +66,7 @@
                     </div>
 
                     <!-- Voucher Section -->
-                    <div class="voucher-section">
+                    <div class="voucher-section" :class="{ disabled: !auth.isAuthenticated }">
                         <h3 class="subsection-title">
                             <i class="bi bi-ticket-perforated"></i>
                             Voucher giảm giá
@@ -66,12 +77,12 @@
                                 type="text"
                                 placeholder="Nhập mã voucher"
                                 class="voucher-input"
-                                :disabled="voucherApplying"
+                                :disabled="voucherApplying || !auth.isAuthenticated"
                             />
                             <button
                                 @click="applyVoucher()"
                                 class="btn-apply"
-                                :disabled="voucherApplying"
+                                :disabled="voucherApplying || !auth.isAuthenticated"
                                 :aria-busy="voucherApplying"
                             >
                                 Áp dụng
@@ -85,7 +96,7 @@
                                     :key="voucher.code"
                                     class="voucher-pill"
                                     :class="{ selected: voucherApplied?.code === voucher.code }"
-                                    :disabled="voucherApplying"
+                                    :disabled="voucherApplying || !auth.isAuthenticated"
                                     @click="applyVoucher(voucher.code)"
                                 >
                                     <div class="voucher-pill-title">{{ voucher.code }}</div>
@@ -325,6 +336,15 @@ const finalAmount = computed(() => {
     return Math.max(0, totalAfterVoucher.value - discount);
 });
 
+const goToLogin = () => {
+    router.push({
+        path: "/login",
+        query: {
+            redirect: route.fullPath,
+        },
+    });
+};
+
 watch(maxPointsCanUse, (nextMax) => {
     if (pointsToUse.value > nextMax) {
         pointsToUse.value = nextMax;
@@ -370,6 +390,12 @@ const useMaxPoints = () => {
 };
 
 const applyVoucher = async (code) => {
+    if (!auth.isAuthenticated) {
+        voucherMessage.value = "Vui lòng đăng nhập để áp dụng voucher.";
+        voucherMessageTone.value = "error";
+        return;
+    }
+
     if (code) {
         if (voucherApplied.value?.code === code) {
             clearVoucher();
@@ -453,6 +479,17 @@ const normalizeSeatId = (seat) => {
 
 const confirmPayment = async () => {
     if (processing.value) return;
+
+    if (!auth.isAuthenticated) {
+        await showCinemaAlert({
+            icon: "info",
+            title: "Cần đăng nhập để đặt vé",
+            text: "Bạn có thể xem trước vé và bắp nước khi là khách vãng lai. Hãy đăng nhập để thanh toán và hoàn tất đặt vé.",
+            confirmButtonText: "Đăng nhập",
+        });
+        goToLogin();
+        return;
+    }
 
     try {
         processing.value = true;
@@ -666,6 +703,42 @@ const formatShortDate = (dateTime) => {
     color: #666;
 }
 
+.guest-preview-box {
+    background: #fff7e8;
+    border: 1px solid #ffd59c;
+    border-radius: 12px;
+    padding: 1rem 1.1rem;
+    margin-bottom: 1.25rem;
+}
+
+.guest-preview-title {
+    margin: 0 0 0.45rem;
+    color: #b66200;
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.guest-preview-text {
+    margin: 0;
+    color: #7a5a2f;
+    line-height: 1.55;
+}
+
+.btn-login-continue {
+    margin-top: 0.9rem;
+    padding: 0.7rem 1rem;
+    border: none;
+    border-radius: 8px;
+    background: #ff6b35;
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-login-continue:hover {
+    background: #ff5722;
+}
+
 .spinner {
     width: 50px;
     height: 50px;
@@ -688,6 +761,11 @@ const formatShortDate = (dateTime) => {
     border-radius: 8px;
     padding: 1.25rem;
     margin-bottom: 1.25rem;
+}
+
+.loyalty-section.disabled,
+.voucher-section.disabled {
+    opacity: 0.72;
 }
 
 .loyalty-balance-box {

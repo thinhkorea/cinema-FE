@@ -78,7 +78,7 @@
                             <div class="showtimes-section">
                                 <template v-if="getMovieShowtimes(movie.movieId).length > 0">
                                     <div
-                                        v-for="(showtimesGroup, date) in getFirstDateShowtimes(movie.movieId)"
+                                        v-for="(showtimesGroup, date) in getPreviewShowtimeGroups(movie.movieId)"
                                         :key="date"
                                         class="showtime-date-group"
                                     >
@@ -88,22 +88,22 @@
                                         </div>
                                         <div class="showtime-buttons">
                                             <button
-                                                v-for="showtime in showtimesGroup.slice(0, 4)"
+                                                v-for="showtime in showtimesGroup.slice(0, 6)"
                                                 :key="showtime.showtimeId"
                                                 class="showtime-btn"
-                                                @click="goToDetail(movie.movieId)"
+                                                @click="goToSeatMap(movie.movieId, showtime.showtimeId)"
                                             >
                                                 {{ formatTime(showtime.startTime) }}
                                             </button>
-                                            <button
-                                                v-if="showtimesGroup.length > 4"
-                                                class="showtime-btn more-btn"
-                                                @click="goToDetail(movie.movieId)"
-                                            >
-                                                +{{ showtimesGroup.length - 4 }}
-                                            </button>
                                         </div>
                                     </div>
+                                    <button
+                                        v-if="getRemainingShowtimeCount(movie.movieId) > 0"
+                                        class="showtime-btn more-btn align-self-start"
+                                        @click="goToDetail(movie.movieId)"
+                                    >
+                                        +{{ getRemainingShowtimeCount(movie.movieId) }} suất nữa
+                                    </button>
                                     <!-- Nút xem chi tiết chỉ hiển thị khi có suất chiếu -->
                                     <button class="more-showtimes-btn" @click="goToDetail(movie.movieId)">
                                         Xem chi tiết phim
@@ -194,6 +194,19 @@ const goToDetail = (movieId) => {
     router.push(`/booking/${movieId}`);
 };
 
+const goToSeatMap = (movieId, showtimeId) => {
+    router.push(`/booking/${movieId}/seats/${showtimeId}`);
+};
+
+const isUpcomingShowtime = (showtime) => {
+    if (!showtime?.startTime) return false;
+    const startTime = new Date(showtime.startTime);
+    return !isNaN(startTime.getTime()) && startTime >= new Date();
+};
+
+const sortShowtimesByStartTime = (items = []) =>
+    [...items].sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+
 const fetchMoviesAndShowtimes = async () => {
     try {
         // Lấy danh sách phim
@@ -207,7 +220,9 @@ const fetchMoviesAndShowtimes = async () => {
         for (const movie of moviesToProcess) {
             try {
                 const showtimesResponse = await api.get(`/showtimes/movie/${movie.movieId}`);
-                const showtimesArray = showtimesResponse.data || [];
+                const showtimesArray = sortShowtimesByStartTime(
+                    (showtimesResponse.data || []).filter(isUpcomingShowtime),
+                );
 
                 // Debug: Log cấu trúc dữ liệu showtime đầu tiên (chỉ cho phim đầu tiên)
                 if (showtimesArray.length > 0 && movie.movieId <= 482) {
@@ -295,7 +310,7 @@ const getMovieShowtimes = (movieId) => {
     return showtimes.value[movieId] || [];
 };
 
-const getFirstDateShowtimes = (movieId) => {
+const getPreviewShowtimeGroups = (movieId) => {
     const movieShowtimes = getMovieShowtimes(movieId);
     if (movieShowtimes.length === 0) return {};
 
@@ -304,8 +319,17 @@ const getFirstDateShowtimes = (movieId) => {
 
     if (dates.length === 0) return {};
 
-    const firstDate = dates[0];
-    return { [firstDate]: grouped[firstDate] };
+    const previewDates = dates.slice(0, 2);
+    return Object.fromEntries(previewDates.map((date) => [date, grouped[date]]));
+};
+
+const getRemainingShowtimeCount = (movieId) => {
+    const movieShowtimes = getMovieShowtimes(movieId);
+    if (movieShowtimes.length === 0) return 0;
+
+    const grouped = getPreviewShowtimeGroups(movieId);
+    const displayedCount = Object.values(grouped).reduce((sum, group) => sum + group.length, 0);
+    return Math.max(movieShowtimes.length - displayedCount, 0);
 };
 
 const groupShowtimesByDate = (movieShowtimes) => {
@@ -332,7 +356,10 @@ const groupShowtimesByDate = (movieShowtimes) => {
                 console.warn("Invalid startTime in showtime:", startTime);
                 return;
             }
-            dateKey = dateObj.toISOString().split("T")[0]; // YYYY-MM-DD format
+            const year = dateObj.getFullYear();
+            const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+            const day = String(dateObj.getDate()).padStart(2, "0");
+            dateKey = `${year}-${month}-${day}`;
         } catch (error) {
             console.error("Error processing showtime startTime:", startTime, error);
             return;
@@ -342,6 +369,10 @@ const groupShowtimesByDate = (movieShowtimes) => {
             grouped[dateKey] = [];
         }
         grouped[dateKey].push(showtime);
+    });
+
+    Object.keys(grouped).forEach((dateKey) => {
+        grouped[dateKey] = sortShowtimesByStartTime(grouped[dateKey]);
     });
 
     return grouped;

@@ -247,7 +247,9 @@ const calendarDays = computed(() => {
 });
 
 const filteredShowtimes = computed(() =>
-    showtimes.value.filter((s) => toLocalDateStr(s.startTime) === selectedDate.value),
+    [...showtimes.value]
+        .filter((s) => toLocalDateStr(s.startTime) === selectedDate.value)
+        .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()),
 );
 
 onMounted(async () => {
@@ -592,8 +594,7 @@ const goToSeatMap = (showtimeId) => {
 }
 
 .showtime-room {
-    font-size: 0.85rem;
-    color: #777;
+    display: none;
 }
 
 .showtime-button:hover {
@@ -603,8 +604,7 @@ const goToSeatMap = (showtimeId) => {
     box-shadow: 0 8px 20px rgba(255, 107, 53, 0.25);
 }
 
-.showtime-button:hover .showtime-time,
-.showtime-button:hover .showtime-room {
+.showtime-button:hover .showtime-time {
     color: #fff;
 }
 

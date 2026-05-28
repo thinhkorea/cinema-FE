@@ -131,11 +131,12 @@
 
 <script setup>
 import { reactive, ref } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth.store";
 import { getApiErrorMessage, showCinemaAlert } from "@/utils/cinemaAlert";
 
 const router = useRouter();
+const route = useRoute();
 const auth = useAuthStore();
 
 const form = reactive({
@@ -167,12 +168,13 @@ async function handleLogin() {
 
         setTimeout(async () => {
             const role = auth.role;
+            const redirectTarget = route.query.redirect;
             if (role === "ADMIN") {
                 router.push("/admin/dashboard");
             } else if (role === "STAFF") {
                 router.push("/staff/seat-map");
             } else if (role === "CUSTOMER") {
-                router.push("/");
+                router.push(typeof redirectTarget === "string" && redirectTarget ? redirectTarget : "/");
             } else {
                 await showCinemaAlert({
                     icon: "error",

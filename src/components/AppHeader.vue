@@ -21,6 +21,9 @@
                         <router-link to="/movies" class="nav-link">Phim</router-link>
                     </li>
                     <li class="nav-item">
+                        <router-link to="/snack-store" class="nav-link">Bắp nước</router-link>
+                    </li>
+                    <li class="nav-item">
                         <router-link to="/about" class="nav-link">Giới thiệu</router-link>
                     </li>
                     <li class="nav-item">

@@ -4,6 +4,13 @@ import { useAuthStore } from "@/stores/auth.store";
 const routes = [
     { path: "/", component: () => import("@/views/public/home/pages/HomeView.vue"), meta: { public: true } },
     { path: "/movies", component: () => import("@/views/public/movies/pages/MoviesView.vue"), meta: { public: true } },
+    { path: "/snack-store", component: () => import("@/views/public/snack-store/pages/SnackStoreView.vue"), meta: { public: true } },
+    {
+        path: "/snack-store/payment",
+        component: () => import("@/views/public/snack-store/pages/SnackOrderPaymentView.vue"),
+        meta: { requiresAuth: true, requiresCustomer: true },
+    },
+    { path: "/snack-order-result", component: () => import("@/views/public/snack-store/pages/SnackOrderResultView.vue"), meta: { public: true } },
     { path: "/about", component: () => import("@/views/public/about/pages/AboutView.vue"), meta: { public: true } },
     {
         path: "/login",
@@ -39,7 +46,7 @@ const routes = [
     {
         path: "/booking/:movieId/seats/:showtimeId/payment",
         component: () => import("@/views/public/payment/pages/PaymentView.vue"),
-        meta: { requiresAuth: true, requiresCustomer: true },
+        meta: { public: true },
     },
 
     {
