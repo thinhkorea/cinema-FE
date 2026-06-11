@@ -51,9 +51,8 @@
 
 <script setup>
 import { useAuthStore } from "@/stores/auth.store";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import { computed, ref } from "vue";
-import { useRoute } from "vue-router";
 
 const router = useRouter();
 const route = useRoute();
@@ -66,6 +65,7 @@ const links = [
     { label: "Suất chiếu", path: "/admin/showtimes", icon: "bi bi-clock" },
     { label: "Đặt vé", path: "/admin/bookings", icon: "bi bi-ticket" },
     { label: "Kho nguyên liệu", path: "/admin/inventory", icon: "bi bi-box-seam" },
+    { label: "Xếp lịch làm việc", path: "/admin/shift-schedules", icon: "bi bi-calendar2-week" },
     { label: "Báo cáo ca", path: "/admin/shift-reports", icon: "bi bi-cash-coin" },
     { label: "Tạo nhân viên", path: "/admin/register-staff", icon: "bi bi-person-plus" },
     { label: "Tài khoản", path: "/admin/users", icon: "bi bi-people" },

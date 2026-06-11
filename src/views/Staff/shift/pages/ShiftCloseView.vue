@@ -4,7 +4,9 @@
             <div>
                 <p class="section-kicker mb-1">Kết ca</p>
                 <h5 class="mb-1">Đối chiếu tiền trong ca</h5>
-                <p class="section-subtitle mb-0">Tổng hợp tiền vé và phụ phí bắp nước theo ngày làm việc.</p>
+                <p class="section-subtitle mb-0">
+                    Tổng hợp tiền vé và phụ phí bắp nước theo ngày làm việc.
+                </p>
             </div>
             <div class="shift-date-tools">
                 <input v-model="selectedDate" type="date" class="form-control" />
@@ -51,6 +53,21 @@
             <div class="summary-card digital">
                 <span>VNPay / chuyển khoản</span>
                 <strong>{{ formatCurrency(digitalRevenue) }}</strong>
+            </div>
+        </section>
+
+        <section class="summary-grid">
+            <div class="summary-card">
+                <span>Tổng số ca trong ngày</span>
+                <strong>{{ dailyShiftCount }}</strong>
+            </div>
+            <div class="summary-card cash">
+                <span>Tổng giờ làm trong ngày</span>
+                <strong>{{ formatDurationFromSeconds(dailyDurationSeconds) }}</strong>
+            </div>
+            <div class="summary-card digital">
+                <span>Ngày báo cáo</span>
+                <strong>{{ displayDate }}</strong>
             </div>
         </section>
 
@@ -202,6 +219,8 @@ const digitalRevenue = computed(() =>
         0,
     ),
 );
+const dailyShiftCount = computed(() => Number(report.value?.dailyShiftCount || 0));
+const dailyDurationSeconds = computed(() => Number(report.value?.dailyDurationSeconds || 0));
 const cashDifference = computed(() => toNumber(actualCash.value) - expectedCash.value);
 const cashDifferenceClass = computed(() => {
     if (cashDifference.value === 0) return "balanced";
@@ -257,6 +276,15 @@ function formatShiftDuration(startValue, endValue, durationSeconds = null) {
     if (hours > 0) return minutes > 0 ? `${hours} giờ ${minutes} phút` : `${hours} giờ`;
     if (minutes > 0) return seconds > 0 ? `${minutes} phút ${seconds} giây` : `${minutes} phút`;
     return `${seconds} giây`;
+}
+
+function formatDurationFromSeconds(totalSeconds) {
+    const safeSeconds = Number(totalSeconds || 0);
+    if (!safeSeconds) return "0 giờ";
+    const hours = Math.floor(safeSeconds / 3600);
+    const minutes = Math.floor((safeSeconds % 3600) / 60);
+    if (hours > 0) return minutes > 0 ? `${hours} giờ ${minutes} phút` : `${hours} giờ`;
+    return `${minutes} phút`;
 }
 
 async function startShift() {

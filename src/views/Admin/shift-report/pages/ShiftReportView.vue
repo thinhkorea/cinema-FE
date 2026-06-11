@@ -1,16 +1,16 @@
 <template>
     <div class="shift-report-page p-3 p-md-4">
         <section class="shift-report-panel">
-            <div class="panel-head d-flex flex-wrap justify-content-between align-items-center gap-2">
-                <div>
-                    <h5 class="mb-1">Báo cáo ca</h5>
-                    <div class="text-muted small">Thống kê vé nhân viên bán và phụ phí đổi bắp đã thu trong ngày.</div>
-                </div>
+            <div class="panel-head">
+                <div class="eyebrow">Theo ngày</div>
                 <div class="shift-report-controls">
-                    <input v-model="selectedDate" type="date" class="form-control form-control-sm" />
+                    <label class="control-field">
+                        <span>Ngày báo cáo</span>
+                        <input v-model="selectedDate" type="date" class="form-control form-control-sm" />
+                    </label>
                     <button class="btn btn-sm btn-primary" @click="loadShiftSummary" :disabled="loading">
                         <span v-if="loading" class="spinner-border spinner-border-sm me-1"></span>
-                        Xem
+                        Xem báo cáo
                     </button>
                 </div>
             </div>
@@ -64,7 +64,7 @@ function formatDateInput(date = new Date()) {
 }
 
 const selectedDate = ref(formatDateInput(new Date()));
-const shiftSummary = ref({ revenues: [] });
+const shiftSummary = ref({ revenues: [], shifts: [] });
 const loading = ref(false);
 const error = ref("");
 
@@ -85,13 +85,13 @@ const formatDateTime = (value) => {
 const shiftRows = computed(() => shiftSummary.value?.shifts || []);
 const shiftRevenueRows = computed(() => shiftSummary.value?.revenues || []);
 const shiftRevenueTotal = computed(() =>
-    shiftRevenueRows.value.reduce((sum, row) => sum + toNumber(row.totalRevenue), 0),
+    shiftRevenueRows.value.reduce((sum, row) => sum + toNumber(row.totalRevenue), 0)
 );
 const shiftTicketTotal = computed(() =>
     shiftRevenueRows.value.reduce(
         (sum, row) => sum + toNumber(row.ticketCashRevenue) + toNumber(row.ticketVnpayRevenue),
-        0,
-    ),
+        0
+    )
 );
 const shiftPopcornTotal = computed(() =>
     shiftRevenueRows.value.reduce(
@@ -100,8 +100,8 @@ const shiftPopcornTotal = computed(() =>
             toNumber(row.popcornCashRevenue) +
             toNumber(row.popcornVnpayRevenue) +
             toNumber(row.popcornBankRevenue),
-        0,
-    ),
+        0
+    )
 );
 
 const loadShiftSummary = async () => {
@@ -109,9 +109,9 @@ const loadShiftSummary = async () => {
     error.value = "";
     try {
         const res = await api.get(`/admin/reports/shift-summary?date=${selectedDate.value}`);
-        shiftSummary.value = res.data || { revenues: [] };
+        shiftSummary.value = res.data || { revenues: [], shifts: [] };
     } catch (err) {
-        shiftSummary.value = { revenues: [] };
+        shiftSummary.value = { revenues: [], shifts: [] };
         error.value = err?.response?.data?.error || "Không thể tải báo cáo ca.";
     } finally {
         loading.value = false;
@@ -130,14 +130,28 @@ onMounted(loadShiftSummary);
 
 .shift-report-panel {
     border: 1px solid #f0dfd7;
-    border-radius: 12px;
+    border-radius: 16px;
     background: #fff;
-    padding: 12px;
+    padding: 16px;
 }
 
 .panel-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 12px;
     border-bottom: 1px solid #f3e9e5;
-    padding-bottom: 10px;
+}
+
+.eyebrow {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #ff6b35;
+    margin-bottom: 4px;
 }
 
 .section-title {
@@ -147,18 +161,33 @@ onMounted(loadShiftSummary);
 
 .shift-report-controls {
     display: flex;
-    align-items: center;
+    align-items: end;
     gap: 8px;
+    flex-wrap: wrap;
 }
 
-.shift-report-controls .form-control {
-    min-width: 150px;
+.control-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.88rem;
+    color: #6d5b54;
+    min-width: 180px;
 }
 
 @media (max-width: 576px) {
+    .shift-report-panel {
+        padding: 12px;
+    }
+
     .shift-report-controls {
-        align-items: stretch;
+        align-items: end;
         flex-direction: column;
+        width: 100%;
+    }
+
+    .control-field,
+    .shift-report-controls .btn {
         width: 100%;
     }
 }
