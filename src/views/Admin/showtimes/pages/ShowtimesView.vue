@@ -1,7 +1,12 @@
 <template>
     <div class="container py-4">
         <div class="d-flex justify-content-end align-items-center gap-2 mb-3">
-            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#bulkShowtimeModal" @click="openBulkCreate">
+            <button
+                class="btn btn-outline-primary"
+                data-bs-toggle="modal"
+                data-bs-target="#bulkShowtimeModal"
+                @click="openBulkCreate"
+            >
                 Tạo hàng loạt
             </button>
             <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#showtimeModal" @click="openCreate">
@@ -12,42 +17,46 @@
         <div class="card shadow-sm">
             <div class="card-body border-bottom">
                 <div class="row g-3">
-                    <div class="col-md-3">
+                    <div class="col-xl-3 col-lg-4 col-md-6">
                         <label class="form-label">Từ khóa</label>
-                        <input v-model.trim="filterForm.keyword" type="text" class="form-control" placeholder="Tên phim hoặc phòng" />
+                        <input
+                            v-model.trim="filterForm.keyword"
+                            type="text"
+                            class="form-control"
+                            placeholder="Tên phim hoặc phòng"
+                        />
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-xl-2 col-lg-2 col-md-6">
                         <label class="form-label">Phim</label>
                         <select v-model="filterForm.movieId" class="form-select">
                             <option value="">Tất cả</option>
-                            <option v-for="movie in movies" :key="`filter-movie-${movie.movieId}`" :value="String(movie.movieId)">
+                            <option
+                                v-for="movie in movies"
+                                :key="`filter-movie-${movie.movieId}`"
+                                :value="String(movie.movieId)"
+                            >
                                 {{ movie.title }}
                             </option>
                         </select>
                     </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Phòng</label>
-                        <select v-model="filterForm.roomId" class="form-select">
-                            <option value="">Tất cả</option>
-                            <option v-for="room in rooms" :key="`filter-room-${room.roomId}`" :value="String(room.roomId)">
-                                {{ room.roomName }}
-                            </option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
+                    <div class="col-xl-2 col-lg-2 col-md-6">
                         <label class="form-label">Ngày chiếu</label>
                         <input v-model="filterForm.showDate" type="date" class="form-control" />
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-xl-2 col-lg-2 col-md-6">
                         <label class="form-label">Buổi chiếu</label>
                         <select v-model="filterForm.session" class="form-select">
                             <option value="">Tất cả</option>
-                            <option v-for="session in SESSION_OPTIONS" :key="`filter-session-${session.value}`" :value="session.value">
+                            <option
+                                v-for="session in SESSION_OPTIONS"
+                                :key="`filter-session-${session.value}`"
+                                :value="session.value"
+                            >
                                 {{ session.shortLabel || session.label }}
                             </option>
                         </select>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-xl-2 col-lg-2 col-md-6">
                         <label class="form-label">Trạng thái</label>
                         <select v-model="filterForm.progress" class="form-select">
                             <option value="">Tất cả</option>
@@ -56,15 +65,21 @@
                             <option value="finished">Đã chiếu</option>
                         </select>
                     </div>
-                    <div class="col-md-1 d-flex align-items-end">
+                    <div class="col-xl-1 col-lg-2 col-md-6 d-flex align-items-end">
                         <button class="btn btn-outline-secondary w-100" type="button" @click="resetFilters">Xóa</button>
                     </div>
                 </div>
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3">
-                    <small class="text-muted">Hiển thị {{ paginatedShowtimes.length }} / {{ filteredShowtimes.length }} suất chiếu đã lọc</small>
+                    <small class="text-muted"
+                        >Hiển thị {{ paginatedShowtimes.length }} / {{ filteredShowtimes.length }} suất chiếu đã
+                        lọc</small
+                    >
                     <div class="d-flex align-items-center gap-2">
                         <label class="form-label mb-0">Mỗi trang</label>
-                        <select v-model.number="pagination.pageSize" class="form-select form-select-sm page-size-select">
+                        <select
+                            v-model.number="pagination.pageSize"
+                            class="form-select form-select-sm page-size-select"
+                        >
                             <option :value="5">5</option>
                             <option :value="10">10</option>
                             <option :value="20">20</option>
@@ -103,7 +118,9 @@
                                 >
                                     Sửa
                                 </button>
-                                <button class="btn btn-sm btn-outline-danger" @click="remove(st.showtimeId)">Xóa</button>
+                                <button class="btn btn-sm btn-outline-danger" @click="remove(st.showtimeId)">
+                                    Xóa
+                                </button>
                             </td>
                         </tr>
                     </tbody>
@@ -118,7 +135,12 @@
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
                     <small class="text-muted">Trang {{ pagination.currentPage }} / {{ totalPages }}</small>
                     <div class="btn-group" role="group" aria-label="Pagination">
-                        <button class="btn btn-outline-secondary btn-sm" type="button" :disabled="pagination.currentPage === 1" @click="goToPage(pagination.currentPage - 1)">
+                        <button
+                            class="btn btn-outline-secondary btn-sm"
+                            type="button"
+                            :disabled="pagination.currentPage === 1"
+                            @click="goToPage(pagination.currentPage - 1)"
+                        >
                             Trước
                         </button>
                         <button
@@ -131,7 +153,12 @@
                         >
                             {{ page }}
                         </button>
-                        <button class="btn btn-outline-secondary btn-sm" type="button" :disabled="pagination.currentPage === totalPages" @click="goToPage(pagination.currentPage + 1)">
+                        <button
+                            class="btn btn-outline-secondary btn-sm"
+                            type="button"
+                            :disabled="pagination.currentPage === totalPages"
+                            @click="goToPage(pagination.currentPage + 1)"
+                        >
                             Sau
                         </button>
                     </div>
@@ -143,7 +170,8 @@
             <div class="modal-dialog">
                 <form class="modal-content" @submit.prevent="save">
                     <div class="modal-header">
-                        <h5 class="modal-title">{{ form.showtimeId ? "Sửa suất chiếu" : "Thêm suất chiếu" }}</h5>
+                        <h5 v-if="form.showtimeId" class="modal-title">Sửa suất chiếu</h5>
+                        <h5 v-else class="modal-title">Thêm suất chiếu</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
 
@@ -158,7 +186,7 @@
                                     </option>
                                 </optgroup>
                             </select>
-                            <small class="text-muted">Chỉ hiển thị phim Đang chiếu hoặc Suất đặc biệt</small>
+                            <small class="text-muted">Chỉ hiển thị phim đang chiếu hoặc Suất đặc biệt</small>
                         </div>
 
                         <div class="mb-3">
@@ -185,19 +213,33 @@
 
                         <div class="mb-3">
                             <label class="form-label">Thời gian kết thúc</label>
-                            <input v-model="form.endTime" type="datetime-local" class="form-control" :class="{ 'is-invalid': scheduleError }" readonly />
+                            <input
+                                v-model="form.endTime"
+                                type="datetime-local"
+                                class="form-control"
+                                :class="{ 'is-invalid': scheduleError }"
+                                readonly
+                            />
                             <div v-if="scheduleError" class="invalid-feedback">{{ scheduleError }}</div>
-                            <small class="text-muted">Tự tính dựa theo thời lượng phim. Phòng cần nghỉ 10 phút trước suất kế tiếp.</small>
+                            <small class="text-muted"
+                                >Tự tính dựa theo thời lượng phim. Phòng cần nghỉ 10 phút trước suất kế tiếp.</small
+                            >
                         </div>
 
                         <div class="mb-3">
-                            <small class="text-muted">Giá vé sẽ tự set theo ngày chiếu: Thứ 2-5 = 65.000đ, Thứ 6-CN = 80.000đ.</small>
+                            <small class="text-muted"
+                                >Giá vé sẽ được tính theo ngày chiếu: Thứ 2-5 = 65.000đ, Thứ 6-CN = 80.000đ.</small
+                            >
                         </div>
                     </div>
 
                     <div class="modal-footer">
                         <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Hủy</button>
-                        <button class="btn btn-primary" type="submit" :disabled="saving || !!timeError || !!scheduleError">
+                        <button
+                            class="btn btn-primary"
+                            type="submit"
+                            :disabled="saving || !!timeError || !!scheduleError"
+                        >
                             <span v-if="saving" class="spinner-border spinner-border-sm me-2"></span>Lưu
                         </button>
                     </div>
@@ -219,8 +261,16 @@
                                 <label class="form-label">Phim</label>
                                 <select v-model="bulkForm.movieId" class="form-select" required>
                                     <option disabled value="">Chọn phim</option>
-                                    <optgroup v-for="group in movieSelectGroups" :key="`bulk-${group.key}`" :label="group.label">
-                                        <option v-for="m in group.movies" :key="`bulk-movie-${m.movieId}`" :value="m.movieId">
+                                    <optgroup
+                                        v-for="group in movieSelectGroups"
+                                        :key="`bulk-${group.key}`"
+                                        :label="group.label"
+                                    >
+                                        <option
+                                            v-for="m in group.movies"
+                                            :key="`bulk-movie-${m.movieId}`"
+                                            :value="m.movieId"
+                                        >
                                             {{ m.title }} ({{ m.duration }} phút)
                                         </option>
                                     </optgroup>
@@ -244,7 +294,13 @@
 
                             <div class="col-md-6">
                                 <label class="form-label">Ngày chiếu</label>
-                                <input v-model="bulkForm.showDate" :min="todayDate" type="date" class="form-control" required />
+                                <input
+                                    v-model="bulkForm.showDate"
+                                    :min="todayDate"
+                                    type="date"
+                                    class="form-control"
+                                    required
+                                />
                             </div>
 
                             <div class="col-md-6">
@@ -256,7 +312,10 @@
                                     class="form-control"
                                     placeholder="Để trống để tạo tất cả"
                                 />
-                                <small class="text-muted">Nếu nhập, hệ thống chỉ tạo tối đa số suất này.</small>
+                                <small class="text-muted"
+                                    >Nếu nhập, hệ thống chỉ tạo tối đa
+                                    số suất này.</small
+                                >
                             </div>
                         </div>
 
@@ -264,15 +323,23 @@
                             <label class="form-label d-block">Buổi chiếu</label>
                             <div class="bulk-slot-grid">
                                 <label v-for="session in SESSION_OPTIONS" :key="session.value" class="bulk-slot-item">
-                                    <input v-model="bulkForm.sessions" class="form-check-input me-2" type="checkbox" :value="session.value" />
+                                    <input
+                                        class="form-check-input me-2"
+                                        type="radio"
+                                        name="bulk-session"
+                                        :checked="bulkForm.sessions[0] === session.value"
+                                        @change="selectBulkSession(session.value)"
+                                    />
                                     <span>{{ session.label }}</span>
                                 </label>
                             </div>
                             <small class="text-muted d-block mt-2">
-                                Mỗi buổi có khung giờ cố định, hệ thống sẽ tự tính giờ chiếu phù hợp trong buổi đó và tự bỏ qua suất bị trùng lịch hoặc giờ đã qua.
+                                Mỗi buổi có khung giờ cố định, hệ thống sẽ tự tính giờ chiếu phù hợp trong buổi đó và tự
+                                bỏ qua suất bị trùng lịch hoặc giờ đã qua.
                             </small>
                             <small class="text-muted d-block mt-1">
-                                Nếu số suất mong muốn lớn hơn số buổi đã chọn, hệ thống sẽ tự thêm các giờ phù hợp trong các buổi đó trước khi mở rộng tiếp.
+                                Nếu số suất mong muốn nhiều hơn số buổi đã chọn, hệ thống sẽ tự thêm các giờ phù hợp
+                                trong các buổi đó trước khi mở rộng tiếp.
                             </small>
                         </div>
 
@@ -282,8 +349,14 @@
                                     <div class="fw-semibold">Xem trước kết quả tạo suất</div>
                                     <small class="text-muted">Ước tính số suất hợp lệ trước khi tạo thật.</small>
                                 </div>
-                                <button type="button" class="btn btn-outline-primary" :disabled="previewingBulk || !!bulkValidationError" @click="previewBulk">
-                                    <span v-if="previewingBulk" class="spinner-border spinner-border-sm me-2"></span>Xem trước
+                                <button
+                                    type="button"
+                                    class="btn btn-outline-primary"
+                                    :disabled="previewingBulk || !!bulkValidationError"
+                                    @click="previewBulk"
+                                >
+                                    <span v-if="previewingBulk" class="spinner-border spinner-border-sm me-2"></span>Xem
+                                    trước
                                 </button>
                             </div>
 
@@ -310,7 +383,10 @@
                                 </div>
 
                                 <div v-if="bulkPreview.limitReached" class="alert alert-info mt-3 mb-0">
-                                    Đã chạm giới hạn {{ bulkPreview.limitApplied }} suất. Còn {{ bulkPreview.remainingCreatableCount }} suất hợp lệ nếu muốn nâng giới hạn.
+                                    Đã chạm giới hạn
+                                    {{ bulkPreview.limitApplied }} suất. Còn
+                                    {{ bulkPreview.remainingCreatableCount }} suất hợp lệ nếu
+                                    muốn nâng giới hạn.
                                 </div>
 
                                 <div v-if="previewShowtimeDetails.length" class="mt-3">
@@ -327,7 +403,10 @@
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                <tr v-for="(item, index) in previewShowtimeDetails" :key="`${item.roomId}-${item.startTime}-${index}`">
+                                                <tr
+                                                    v-for="(item, index) in previewShowtimeDetails"
+                                                    :key="`${item.roomId}-${item.startTime}-${index}`"
+                                                >
                                                     <td>{{ index + 1 }}</td>
                                                     <td>{{ resolveRoomName(item.roomId) }}</td>
                                                     <td>{{ formatTime(item.startTime) }}</td>
@@ -337,15 +416,25 @@
                                             </tbody>
                                         </table>
                                     </div>
-                                    <small v-if="bulkPreview.createdShowtimes?.length > previewShowtimeDetails.length" class="text-muted d-block mt-2">
-                                        Đang hiển thị {{ previewShowtimeDetails.length }} / {{ bulkPreview.createdShowtimes.length }} suất dự kiến đầu tiên.
+                                    <small
+                                        v-if="bulkPreview.createdShowtimes?.length > previewShowtimeDetails.length"
+                                        class="text-muted d-block mt-2"
+                                    >
+                                        Đang hiển thị {{ previewShowtimeDetails.length }} /
+                                        {{ bulkPreview.createdShowtimes.length }} suất dự kiến
+                                        đầu tiên.
                                     </small>
                                 </div>
 
                                 <div v-if="previewSkippedMessages.length" class="mt-3">
-                                    <div class="fw-semibold mb-2">Một số suất bị bỏ qua</div>
+                                    <div class="fw-semibold mb-2">
+                                        Một số suất bị bỏ qua
+                                    </div>
                                     <ul class="preview-skipped-list mb-0">
-                                        <li v-for="(message, index) in previewSkippedMessages" :key="`${index}-${message}`">
+                                        <li
+                                            v-for="(message, index) in previewSkippedMessages"
+                                            :key="`${index}-${message}`"
+                                        >
                                             {{ message }}
                                         </li>
                                     </ul>
@@ -361,7 +450,8 @@
                     <div class="modal-footer">
                         <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Hủy</button>
                         <button class="btn btn-primary" type="submit" :disabled="savingBulk || !!bulkValidationError">
-                            <span v-if="savingBulk" class="spinner-border spinner-border-sm me-2"></span>Tạo suất
+                            <span v-if="savingBulk" class="spinner-border spinner-border-sm me-2"></span>Tạo
+                            suất
                         </button>
                     </div>
                 </form>
@@ -434,7 +524,7 @@ const bulkForm = reactive({
     movieId: "",
     roomIds: [],
     showDate: "",
-    sessions: ["morning", "afternoon", "evening"],
+    sessions: ["evening"],
     maxCreatedCount: null,
 });
 
@@ -459,7 +549,7 @@ const availableMovies = computed(() =>
     movies.value.filter((movie) => {
         if (movie.movieId === selectedMovieId.value) return true;
         return ALLOWED_MOVIE_STATUSES.includes(movie.status);
-    })
+    }),
 );
 
 const movieSelectGroups = computed(() => {
@@ -482,34 +572,64 @@ const movieSelectGroups = computed(() => {
 const filteredShowtimes = computed(() => {
     const keyword = filterForm.keyword.trim().toLowerCase();
 
-    return showtimes.value.filter((showtime) => {
-        if (filterForm.movieId && String(showtime.movie?.movieId) !== filterForm.movieId) {
-            return false;
-        }
-        if (filterForm.roomId && String(showtime.room?.roomId) !== filterForm.roomId) {
-            return false;
-        }
-        if (filterForm.showDate && !showtime.startTime?.startsWith(filterForm.showDate)) {
-            return false;
-        }
-        if (filterForm.session && getSessionKey(showtime.startTime) !== filterForm.session) {
-            return false;
-        }
-        if (filterForm.progress) {
-            const progress = getShowtimeProgress(showtime.startTime, showtime.endTime);
-            if (progress !== filterForm.progress) {
+    return showtimes.value
+        .filter((showtime) => {
+            if (filterForm.movieId && String(showtime.movie?.movieId) !== filterForm.movieId) {
                 return false;
             }
-        }
-        if (keyword) {
-            const movieTitle = showtime.movie?.title?.toLowerCase() || "";
-            const roomName = showtime.room?.roomName?.toLowerCase() || "";
-            if (!movieTitle.includes(keyword) && !roomName.includes(keyword)) {
+            if (filterForm.roomId && String(showtime.room?.roomId) !== filterForm.roomId) {
                 return false;
             }
-        }
-        return true;
-    });
+            if (filterForm.showDate && !showtime.startTime?.startsWith(filterForm.showDate)) {
+                return false;
+            }
+            if (filterForm.session && getSessionKey(showtime.startTime) !== filterForm.session) {
+                return false;
+            }
+            if (filterForm.progress) {
+                const progress = getShowtimeProgress(showtime.startTime, showtime.endTime);
+                if (progress !== filterForm.progress) {
+                    return false;
+                }
+            }
+            if (keyword) {
+                const movieTitle = showtime.movie?.title?.toLowerCase() || "";
+                const roomName = showtime.room?.roomName?.toLowerCase() || "";
+                if (!movieTitle.includes(keyword) && !roomName.includes(keyword)) {
+                    return false;
+                }
+            }
+            return true;
+        })
+        .slice()
+        .sort((left, right) => {
+            const leftStart = left.startTime ? new Date(left.startTime).getTime() : 0;
+            const rightStart = right.startTime ? new Date(right.startTime).getTime() : 0;
+            const leftEnd = left.endTime ? new Date(left.endTime).getTime() : leftStart;
+            const rightEnd = right.endTime ? new Date(right.endTime).getTime() : rightStart;
+            const now = Date.now();
+            const leftIsActive = leftEnd >= now;
+            const rightIsActive = rightEnd >= now;
+
+            if (leftIsActive !== rightIsActive) {
+                return leftIsActive ? -1 : 1;
+            }
+
+            if (leftStart !== rightStart) {
+                return rightStart - leftStart;
+            }
+
+            const leftMovieTitle = left.movie?.title || "";
+            const rightMovieTitle = right.movie?.title || "";
+            const movieCompare = leftMovieTitle.localeCompare(rightMovieTitle, "vi");
+            if (movieCompare !== 0) {
+                return movieCompare;
+            }
+
+            const leftRoomName = left.room?.roomName || "";
+            const rightRoomName = right.room?.roomName || "";
+            return leftRoomName.localeCompare(rightRoomName, "vi");
+        });
 });
 
 const totalPages = computed(() => Math.max(1, Math.ceil(filteredShowtimes.value.length / pagination.pageSize)));
@@ -655,10 +775,14 @@ const openBulkCreate = () => {
         movieId: "",
         roomIds: [],
         showDate: todayDate,
-        sessions: ["morning", "afternoon", "evening"],
+        sessions: ["evening"],
         maxCreatedCount: null,
     });
     bulkPreview.value = null;
+};
+
+const selectBulkSession = (sessionValue) => {
+    bulkForm.sessions = sessionValue ? [sessionValue] : [];
 };
 
 const buildBulkPayload = () => ({
@@ -689,7 +813,10 @@ const previewBulk = async () => {
         await showCinemaAlert({
             icon: "error",
             title: "Không thể xem trước",
-            text: getApiErrorMessage(err, "Vui lòng kiểm tra lại dữ liệu tạo hàng loạt."),
+            text: getApiErrorMessage(
+                err,
+                "Vui lòng kiểm tra lại dữ liệu tạo hàng loạt.",
+            ),
         });
     } finally {
         previewingBulk.value = false;
@@ -766,7 +893,10 @@ const saveBulk = async () => {
         await showCinemaAlert({
             icon: "error",
             title: "Không thể tạo hàng loạt",
-            text: getApiErrorMessage(err, "Vui lòng kiểm tra lại dữ liệu tạo hàng loạt."),
+            text: getApiErrorMessage(
+                err,
+                "Vui lòng kiểm tra lại dữ liệu tạo hàng loạt.",
+            ),
         });
     } finally {
         savingBulk.value = false;
@@ -823,7 +953,7 @@ watch(
     () => {
         bulkPreview.value = null;
     },
-    { deep: true }
+    { deep: true },
 );
 
 watch(
@@ -844,7 +974,7 @@ watch(
         }
         pagination.currentPage = 1;
     },
-    { deep: true }
+    { deep: true },
 );
 
 onMounted(async () => {
