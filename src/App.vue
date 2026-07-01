@@ -1,5 +1,6 @@
 <template>
     <RouterView />
+    <CinemaChatbot />
 </template>
 
 <script setup>
@@ -7,6 +8,7 @@ import { onMounted, onUnmounted } from "vue";
 import { useAuthStore } from "@/stores/auth.store";
 import { useRouter } from "vue-router";
 import { showCinemaToast } from "@/utils/cinemaAlert";
+import CinemaChatbot from "@/components/CinemaChatbot.vue";
 
 const auth = useAuthStore();
 const router = useRouter();

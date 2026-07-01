@@ -82,6 +82,7 @@ const routes = [
             { path: "showtimes", component: () => import("@/views/Admin/showtimes/pages/ShowtimesView.vue") },
             { path: "bookings", component: () => import("@/views/Admin/bookings/pages/BookingsView.vue") },
             { path: "inventory", component: () => import("@/views/Admin/inventory/pages/InventoryManagementView.vue") },
+            { path: "shift-schedules", component: () => import("@/views/Admin/shift-report/pages/ShiftScheduleView.vue") },
             { path: "shift-reports", component: () => import("@/views/Admin/shift-report/pages/ShiftReportView.vue") },
             { path: "register-staff", component: () => import("@/views/Admin/staff/pages/RegisterStaffView.vue") },
             { path: "users", component: () => import("@/views/Admin/users/pages/UsersView.vue") },

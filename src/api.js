@@ -57,6 +57,11 @@ async function refreshAccessToken() {
 }
 
 api.interceptors.request.use((config) => {
+    if (config.skipAuth) {
+        delete config.skipAuth;
+        return config;
+    }
+
     try {
         const auth = useAuthStore();
         const token = auth?.token || localStorage.getItem("accessToken") || localStorage.getItem("token");
