@@ -103,6 +103,10 @@
                                     <div class="voucher-pill-sub">
                                         Giảm {{ formatCurrency(voucher.discountAmount) }}
                                         <span v-if="voucher.newMemberOnly" class="voucher-badge">New</span>
+                                        <span v-if="voucher.requiredTotalSpent" class="voucher-badge points">
+                                            Đã tiêu {{ formatCurrency(voucher.requiredTotalSpent) }} trong
+                                            {{ formatWindowYears(voucher.spendingWindowDays) }}
+                                        </span>
                                     </div>
                                 </button>
                             </div>
@@ -580,6 +584,19 @@ const formatCurrency = (amount) => {
     }).format(amount);
 };
 
+const formatWindowDays = (days) => {
+    const value = Number(days || 365);
+    return `${value} ngày`;
+};
+
+const formatWindowYears = (days) => {
+    const years = Math.max(1, Math.round(Number(days || 365) / 365));
+    const endYear = new Date().getFullYear();
+    const startYear = endYear - years + 1;
+    if (years === 1) return `năm ${endYear}`;
+    return `từ năm ${startYear} đến năm ${endYear}`;
+};
+
 const formatTime = (dateTime) => {
     if (!dateTime) return "";
     const date = new Date(dateTime);
@@ -937,6 +954,11 @@ const formatShortDate = (dateTime) => {
     border-radius: 8px;
     font-size: 0.7rem;
     font-weight: 600;
+}
+
+.voucher-badge.points {
+    background: #e8f7ed;
+    color: #1f8f3b;
 }
 
 .voucher-empty {

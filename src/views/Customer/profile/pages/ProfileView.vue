@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div class="profile-page">
         <!-- Back Button -->
         <div class="container pt-4">
@@ -27,9 +27,10 @@
             </div>
 
             <!-- Profile Content -->
-            <div v-else class="row g-4">
+            <div v-else class="profile-content">
+                <div class="profile-summary-grid">
                 <!-- Loyalty Points Card -->
-                <div class="col-lg-4 col-md-6">
+                <div>
                     <div class="loyalty-card h-100">
                         <div class="loyalty-header">
                             <div class="loyalty-icon">
@@ -62,16 +63,60 @@
                                     <span>Tích: 20.000đ = 1 điểm</span>
                                     <br />
                                     <i class="bi bi-info-circle me-2"></i>
-                                    <span>Đổi: 1 điểm = 1. 000đ</span>
+                                    <span>Đổi: 1 điểm = 1.000đ</span>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
+                <!-- Spending Milestone Card -->
+                <div>
+                    <div class="spending-card h-100">
+                        <div class="spending-header">
+                            <div class="spending-icon">
+                                <i class="bi bi-wallet2"></i>
+                            </div>
+                        </div>
+
+                        <div class="spending-body">
+                            <h6 class="spending-title">MỨC CHI TIÊU</h6>
+                            <div class="spending-display">
+                                <div class="spending-number">{{ formatCurrency(totalSpent) }}</div>
+                                <div class="spending-label">
+                                    đã thanh toán trong {{ formatWindowYears(profileSpendingWindowDays, profile.spendingYear) }}
+                                </div>
+                            </div>
+
+                            <div class="spending-info">
+                                <div class="info-row">
+                                    <span class="info-label">Mốc tiếp theo:</span>
+                                    <span class="info-value">
+                                        {{ nextSpendMilestone ? formatCurrency(nextSpendMilestone) : "Đã đạt mốc cao nhất" }}
+                                    </span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="info-label">Còn thiếu:</span>
+                                    <span class="info-value">
+                                        {{ nextSpendMilestone ? formatCurrency(remainingToNextMilestone) : "0đ" }}
+                                    </span>
+                                </div>
+                                <div class="spending-progress">
+                                    <div class="spending-progress-bar" :style="{ width: `${spendingProgress}%` }"></div>
+                                </div>
+                                <div class="exchange-info">
+                                    <i class="bi bi-info-circle me-2"></i>
+                                    <span>Voucher tự xuất hiện khi bạn đạt mốc chi tiêu.</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                </div>
+
                 <!-- Personal Information Card -->
-                <div class="col-lg-8 col-md-6">
-                    <div class="info-card h-100">
+                <div class="profile-main-grid">
+                    <div class="info-card">
                         <div class="card-header">
                             <i class="bi bi-person-gear me-2"></i>
                             <span>Thông tin cá nhân</span>
@@ -152,6 +197,76 @@
                             </div>
                         </form>
                     </div>
+
+                    <div class="voucher-card">
+                        <div class="card-header">
+                            <i class="bi bi-ticket-perforated me-2"></i>
+                            <span>Voucher của bạn</span>
+                        </div>
+
+                        <div class="voucher-card-body">
+                            <div v-if="voucherLoading" class="voucher-loading">Đang tải voucher...</div>
+                            <div v-else-if="voucherGroups.length" class="voucher-groups">
+                                <div v-for="group in voucherGroups" :key="group.key" class="voucher-group">
+                                    <div class="voucher-section-title">{{ group.title }}</div>
+                                    <div class="my-voucher-list">
+                                        <div
+                                            v-for="voucher in group.vouchers"
+                                            :key="voucher.code"
+                                            class="my-voucher-item"
+                                            :class="{ locked: !voucher.eligible }"
+                                        >
+                                            <div class="my-voucher-main">
+                                                <div>
+                                                    <div class="my-voucher-code">{{ voucher.code }}</div>
+                                                    <div class="my-voucher-name">{{ voucher.name }}</div>
+                                                </div>
+                                                <span
+                                                    class="my-voucher-status"
+                                                    :class="{ eligible: voucher.claimed }"
+                                                >
+                                                    {{ getVoucherStatusText(voucher) }}
+                                                </span>
+                                            </div>
+
+                                            <div class="my-voucher-desc">
+                                                {{ formatVoucherValue(voucher) }}
+                                                <span v-if="voucher.minOrder">
+                                                    - Đơn từ {{ formatCurrency(voucher.minOrder) }}
+                                                </span>
+                                            </div>
+
+                                            <div v-if="voucher.requiredTotalSpent" class="my-voucher-progress">
+                                                <div class="progress-text">
+                                                    <span>
+                                                        Đã tiêu {{ formatCurrency(voucher.currentTotalSpent) }} /
+                                                        {{ formatCurrency(voucher.requiredTotalSpent) }}
+                                                    </span>
+                                                    <strong>{{ formatWindowYears(voucher.spendingWindowDays, profile.spendingYear) }}</strong>
+                                                </div>
+                                                <div class="spending-progress slim">
+                                                    <div
+                                                        class="spending-progress-bar"
+                                                        :style="{ width: `${getVoucherProgress(voucher)}%` }"
+                                                    ></div>
+                                                </div>
+                                        <div v-if="!voucher.eligible" class="voucher-remaining">
+                                            Còn thiếu {{ formatCurrency(voucher.remainingAmount) }}
+                                        </div>
+                                    </div>
+
+                                    <div v-if="voucher.reason" class="my-voucher-reason">
+                                        {{ voucher.reason }}
+                                    </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div v-else class="voucher-empty-state">
+                                Chưa có voucher nào khả dụng. Khi đạt mốc chi tiêu, voucher sẽ tự xuất hiện tại đây.
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -159,7 +274,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { computed, ref, onMounted } from "vue";
 import { useAuthStore } from "@/stores/auth.store";
 import api from "@/api";
 import { useRouter } from "vue-router";
@@ -171,6 +286,72 @@ const profile = ref({ user: {} });
 const loading = ref(true);
 const loyalty = ref({ availablePoints: 0, transactions: [] });
 const nextExpiryDate = ref("");
+const myVouchers = ref([]);
+const voucherLoading = ref(false);
+const fallbackSpendMilestones = [500000, 1000000, 2000000];
+
+const totalSpent = computed(() => Number(profile.value.totalSpent || 0));
+const profileSpendingWindowDays = computed(() => Number(profile.value.spendingWindowDays || 365));
+const getMilestoneAmount = (voucher) => Number(voucher.requiredTotalSpent || 0);
+const spendingVouchers = computed(() => myVouchers.value.filter((voucher) => getMilestoneAmount(voucher) > 0));
+const ownedSpendingVouchers = computed(() => spendingVouchers.value.filter((voucher) => voucher.claimed && voucher.eligible));
+const highestOwnedMilestone = computed(() => {
+    return ownedSpendingVouchers.value.reduce((highest, voucher) => {
+        return Math.max(highest, getMilestoneAmount(voucher));
+    }, 0);
+});
+const ownedVouchers = computed(() =>
+    myVouchers.value.filter((voucher) => {
+        if (!voucher.claimed || !voucher.eligible) return false;
+        const milestone = getMilestoneAmount(voucher);
+        return !milestone || milestone === highestOwnedMilestone.value;
+    }),
+);
+const allUpcomingSpendingVouchers = computed(() =>
+    spendingVouchers.value.filter((voucher) => !voucher.claimed),
+);
+const nextUpcomingMilestone = computed(() => {
+    return allUpcomingSpendingVouchers.value.reduce((next, voucher) => {
+        const milestone = getMilestoneAmount(voucher);
+        if (!milestone) return next;
+        return next === null || milestone < next ? milestone : next;
+    }, null);
+});
+const upcomingSpendingVouchers = computed(() =>
+    allUpcomingSpendingVouchers.value.filter((voucher) => getMilestoneAmount(voucher) === nextUpcomingMilestone.value),
+);
+const voucherGroups = computed(() =>
+    [
+        { key: "owned", title: "Voucher đã có", vouchers: ownedVouchers.value },
+        { key: "upcoming", title: "Sắp nhận theo mốc chi tiêu", vouchers: upcomingSpendingVouchers.value },
+    ].filter((group) => group.vouchers.length),
+);
+const spendMilestones = computed(() => {
+    const milestones = spendingVouchers.value
+        .filter((voucher) => {
+            return (
+                voucher.requiredTotalSpent &&
+                Number(voucher.spendingWindowDays || 365) === profileSpendingWindowDays.value
+            );
+        })
+        .map((voucher) => Number(voucher.requiredTotalSpent))
+        .filter((value) => value > 0);
+
+    const unique = [...new Set(milestones)].sort((a, b) => a - b);
+    return unique.length ? unique : fallbackSpendMilestones;
+});
+const nextSpendMilestone = computed(() => spendMilestones.value.find((milestone) => totalSpent.value < milestone) || null);
+const remainingToNextMilestone = computed(() => {
+    return nextSpendMilestone.value ? Math.max(0, nextSpendMilestone.value - totalSpent.value) : 0;
+});
+const spendingProgress = computed(() => {
+    if (!nextSpendMilestone.value) return 100;
+    const previousMilestone =
+        [...spendMilestones.value].reverse().find((milestone) => milestone < nextSpendMilestone.value) || 0;
+    const span = nextSpendMilestone.value - previousMilestone;
+    const progress = ((totalSpent.value - previousMilestone) / span) * 100;
+    return Math.min(100, Math.max(0, progress));
+});
 
 const goHome = () => router.push("/");
 
@@ -193,7 +374,7 @@ onMounted(async () => {
         profile.value.user = profile.value.user || {};
         profile.value.user.email = profile.value.user.email || profile.value.email || "";
         profile.value.user.phone = profile.value.user.phone || profile.value.phone || "";
-        await loadLoyalty();
+        await Promise.all([loadLoyalty(), loadMyVouchers()]);
     } catch (err) {
         console.error(err);
         await showCinemaAlert({
@@ -230,6 +411,56 @@ const getNearestExpiryDate = (transactions) => {
 
 const formatDate = (date) => {
     return new Date(date).toLocaleDateString("vi-VN");
+};
+
+const loadMyVouchers = async () => {
+    try {
+        voucherLoading.value = true;
+        const { data } = await api.get("/vouchers/my");
+        myVouchers.value = Array.isArray(data) ? data : [];
+    } catch (err) {
+        console.error("Voucher load failed:", err);
+        myVouchers.value = [];
+    } finally {
+        voucherLoading.value = false;
+    }
+};
+
+const formatCurrency = (amount) => {
+    return new Intl.NumberFormat("vi-VN", {
+        style: "currency",
+        currency: "VND",
+        maximumFractionDigits: 0,
+    }).format(amount || 0);
+};
+
+const formatWindowYears = (days, year = new Date().getFullYear()) => {
+    const endYear = Number(year || new Date().getFullYear());
+    const years = Math.max(1, Math.round(Number(days || 365) / 365));
+    const startYear = endYear - years + 1;
+    if (years === 1) return `năm ${endYear}`;
+    return `từ năm ${startYear} đến năm ${endYear}`;
+};
+
+const formatVoucherValue = (voucher) => {
+    if (voucher.type === "PERCENT") {
+        const maxDiscount = voucher.maxDiscount ? `, tối đa ${formatCurrency(voucher.maxDiscount)}` : "";
+        return `Giảm ${voucher.value || 0}%${maxDiscount}`;
+    }
+
+    return `Giảm ${formatCurrency(voucher.value || 0)}`;
+};
+
+const getVoucherProgress = (voucher) => {
+    const required = Number(voucher.requiredTotalSpent || 0);
+    if (!required) return 100;
+    const current = Number(voucher.currentTotalSpent || 0);
+    return Math.min(100, Math.max(0, (current / required) * 100));
+};
+
+const getVoucherStatusText = (voucher) => {
+    if (voucher.claimed) return "Đã có";
+    return "Sắp nhận";
 };
 
 const updateProfile = async () => {
@@ -358,7 +589,31 @@ const updateProfile = async () => {
 
 /* Profile Content */
 .container {
-    max-width: 1000px;
+    max-width: 1120px;
+}
+
+.profile-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.profile-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem;
+    align-items: stretch;
+}
+
+.profile-summary-grid > div {
+    display: flex;
+}
+
+.profile-main-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem;
+    align-items: start;
 }
 
 .loyalty-card {
@@ -377,6 +632,22 @@ const updateProfile = async () => {
     box-shadow: 0 25px 50px rgba(255, 215, 0, 0.4);
 }
 
+.spending-card {
+    background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 20px 40px rgba(17, 24, 39, 0.3);
+    color: #fff;
+    transition:
+        transform 0.3s ease,
+        box-shadow 0.3s ease;
+}
+
+.spending-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 25px 50px rgba(17, 24, 39, 0.38);
+}
+
 .loyalty-header {
     display: flex;
     justify-content: center;
@@ -385,12 +656,29 @@ const updateProfile = async () => {
     background: rgba(0, 0, 0, 0.1);
 }
 
+.spending-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1.5rem;
+    background: rgba(255, 255, 255, 0.08);
+}
+
 .loyalty-icon i {
     font-size: 3rem;
     color: #000;
 }
 
+.spending-icon i {
+    font-size: 3rem;
+    color: #ffd700;
+}
+
 .loyalty-body {
+    padding: 1.5rem;
+}
+
+.spending-body {
     padding: 1.5rem;
 }
 
@@ -404,7 +692,22 @@ const updateProfile = async () => {
     margin-bottom: 1rem;
 }
 
+.spending-title {
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #fff;
+    opacity: 0.86;
+    letter-spacing: 1px;
+    margin-bottom: 1rem;
+}
+
 .points-display {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.spending-display {
     text-align: center;
     margin-bottom: 2rem;
 }
@@ -417,6 +720,13 @@ const updateProfile = async () => {
     line-height: 1;
 }
 
+.spending-number {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #ffd700;
+    line-height: 1.2;
+}
+
 .points-label {
     font-size: 1rem;
     font-weight: 600;
@@ -426,10 +736,46 @@ const updateProfile = async () => {
     letter-spacing: 1px;
 }
 
+.spending-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #fff;
+    opacity: 0.74;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
 .points-info {
     background: rgba(0, 0, 0, 0.1);
     border-radius: 12px;
     padding: 1.5rem;
+}
+
+.spending-info {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 1.5rem;
+}
+
+.spending-progress {
+    height: 8px;
+    background: rgba(255, 255, 255, 0.18);
+    border-radius: 999px;
+    overflow: hidden;
+    margin: 1rem 0;
+}
+
+.spending-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #ffd700, #ffed4e);
+    border-radius: inherit;
+    transition: width 0.3s ease;
+}
+
+.spending-info .info-label,
+.spending-info .info-value,
+.spending-info .exchange-info {
+    color: #fff;
 }
 
 .info-row {
@@ -465,7 +811,8 @@ const updateProfile = async () => {
 }
 
 /* Information Card */
-.info-card {
+.info-card,
+.voucher-card {
     background: rgba(255, 255, 255, 0.05);
     border-radius: 20px;
     backdrop-filter: blur(20px);
@@ -486,6 +833,142 @@ const updateProfile = async () => {
 
 .card-body {
     padding: 2rem;
+}
+
+.voucher-card-body {
+    padding: 1.25rem;
+}
+
+.voucher-loading,
+.voucher-empty-state {
+    color: #777;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.my-voucher-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+}
+
+.voucher-groups,
+.voucher-group {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.voucher-section-title {
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.78);
+    text-transform: uppercase;
+}
+
+.my-voucher-item {
+    border: 1px solid rgba(255, 215, 0, 0.2);
+    border-radius: 14px;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.my-voucher-item.locked {
+    border-color: rgba(255, 255, 255, 0.16);
+    opacity: 0.88;
+}
+
+.my-voucher-main {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.my-voucher-code {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #ffd700;
+    letter-spacing: 0.04em;
+}
+
+.my-voucher-name {
+    color: #fff;
+    font-weight: 600;
+    margin-top: 0.2rem;
+}
+
+.my-voucher-status {
+    flex: 0 0 auto;
+    border-radius: 999px;
+    padding: 0.25rem 0.65rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #b45309;
+    background: #fef3c7;
+}
+
+.my-voucher-status.eligible {
+    color: #166534;
+    background: #dcfce7;
+}
+
+.my-voucher-status.claimable {
+    color: #9a3412;
+    background: #ffedd5;
+}
+
+.btn-claim-voucher {
+    width: 100%;
+    margin-top: 0.9rem;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(45deg, #ff6b35, #ff8a5f);
+    color: #fff;
+    font-weight: 800;
+    padding: 0.7rem 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-claim-voucher:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(255, 107, 53, 0.24);
+}
+
+.btn-claim-voucher:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.my-voucher-desc,
+.my-voucher-reason,
+.voucher-remaining {
+    margin-top: 0.65rem;
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 0.9rem;
+    line-height: 1.45;
+}
+
+.my-voucher-progress {
+    margin-top: 0.8rem;
+}
+
+.progress-text {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    color: rgba(255, 255, 255, 0.86);
+    font-size: 0.85rem;
+}
+
+.progress-text strong {
+    flex: 0 0 auto;
+}
+
+.spending-progress.slim {
+    height: 7px;
+    margin: 0.55rem 0 0;
 }
 
 /* Form Styling */
@@ -669,41 +1152,148 @@ const updateProfile = async () => {
 }
 
 .loyalty-card,
-.info-card {
+.spending-card,
+.info-card,
+.voucher-card {
     background: #fff;
     border: 1px solid #e6e6e6;
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
     color: #333;
+    border-radius: 18px;
 }
 
-.loyalty-card {
-    background: linear-gradient(180deg, #fff8f4 0%, #fff2ec 100%);
-    box-shadow: 0 10px 24px rgba(255, 107, 53, 0.15);
+.loyalty-card,
+.spending-card {
+    width: 100%;
+    min-height: 238px;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(180deg, #fffaf7 0%, #ffffff 100%);
+    box-shadow: 0 10px 24px rgba(255, 107, 53, 0.12);
 }
 
-.loyalty-header {
+.loyalty-card:hover,
+.spending-card:hover {
+    transform: translateY(-3px);
+    border-color: #ffc4b1;
+    box-shadow: 0 14px 30px rgba(255, 107, 53, 0.16);
+}
+
+.loyalty-header,
+.spending-header {
     background: rgba(255, 107, 53, 0.08);
+    min-height: 64px;
+    padding: 0.8rem 1rem;
 }
 
 .loyalty-icon i,
+.spending-icon i {
+    font-size: 2rem;
+}
+
+.loyalty-icon i,
+.spending-icon i,
 .loyalty-title,
+.spending-title,
 .points-number,
+.spending-number,
 .points-label,
+.spending-label,
 .info-label,
 .info-value,
 .exchange-info {
     color: #333;
 }
 
-.points-info {
+.loyalty-body,
+.spending-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 1rem 1.25rem 1.25rem;
+}
+
+.loyalty-title,
+.spending-title {
+    font-size: 0.78rem;
+    margin-bottom: 0.65rem;
+    letter-spacing: 0.06em;
+}
+
+.points-display,
+.spending-display {
+    min-height: 52px;
+    margin-bottom: 0.85rem;
+}
+
+.points-number {
+    font-size: 2.15rem;
+    text-shadow: none;
+}
+
+.spending-number {
+    font-size: 1.45rem;
+}
+
+.points-label,
+.spending-label {
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+}
+
+.points-info,
+.spending-info {
+    min-height: 96px;
     background: #fff;
     border: 1px solid #ecdcd5;
+    margin-top: auto;
+    padding: 0.9rem 1rem;
+    border-radius: 10px;
+}
+
+.info-row {
+    margin-bottom: 0.35rem;
+}
+
+.info-label,
+.info-value {
+    font-size: 0.86rem;
+}
+
+.exchange-info {
+    font-size: 0.78rem;
+    margin-top: 0.7rem;
+    padding-top: 0.7rem;
+}
+
+.spending-info .info-label,
+.spending-info .info-value,
+.spending-info .exchange-info {
+    color: #333;
+}
+
+.spending-progress {
+    background: #f3dfd7;
+}
+
+.spending-progress-bar {
+    background: linear-gradient(90deg, #ff6b35, #ff8a5f);
 }
 
 .card-header {
     background: #fff6f1;
     border-bottom: 1px solid #f0ddd5;
     color: #ff6b35;
+    padding: 1rem 1.25rem;
+    font-size: 1rem;
+}
+
+.card-body {
+    padding: 1.25rem;
+}
+
+.voucher-card-body {
+    padding: 1rem;
 }
 
 .form-label {
@@ -752,8 +1342,36 @@ const updateProfile = async () => {
     background: linear-gradient(45deg, #ff8a5f, #ff6b35);
 }
 
+.my-voucher-item {
+    background: #fff;
+    border-color: #f0ddd5;
+}
+
+.my-voucher-item.locked {
+    border-color: #ececec;
+    background: #fafafa;
+}
+
+.my-voucher-code {
+    color: #ff6b35;
+}
+
+.voucher-section-title,
+.my-voucher-name,
+.my-voucher-desc,
+.my-voucher-reason,
+.voucher-remaining,
+.progress-text {
+    color: #444;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
+    .profile-summary-grid,
+    .profile-main-grid {
+        grid-template-columns: 1fr;
+    }
+
     .form-grid {
         grid-template-columns: 1fr;
         gap: 1rem;
@@ -789,13 +1407,23 @@ const updateProfile = async () => {
 
 @media (max-width: 480px) {
     .loyalty-card,
-    .info-card {
+    .spending-card,
+    .info-card,
+    .voucher-card {
         margin: 0 1rem;
     }
 
     .card-body,
-    .loyalty-body {
+    .voucher-card-body,
+    .loyalty-body,
+    .spending-body {
         padding: 1.5rem;
+    }
+
+    .my-voucher-main,
+    .progress-text {
+        flex-direction: column;
+        gap: 0.45rem;
     }
 
     .info-row {
@@ -810,3 +1438,5 @@ const updateProfile = async () => {
     }
 }
 </style>
+
+

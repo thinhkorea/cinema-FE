@@ -1,19 +1,28 @@
 <template>
     <RouterView />
-    <CinemaChatbot />
+    <CinemaChatbot v-if="shouldShowChatbot" />
 </template>
 
 <script setup>
-import { onMounted, onUnmounted } from "vue";
+import { computed, onMounted, onUnmounted } from "vue";
 import { useAuthStore } from "@/stores/auth.store";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { showCinemaToast } from "@/utils/cinemaAlert";
 import CinemaChatbot from "@/components/CinemaChatbot.vue";
 
 const auth = useAuthStore();
 const router = useRouter();
+const route = useRoute();
 let checkInterval = null;
 let redirectTimeout = null;
+
+const shouldShowChatbot = computed(() => {
+    return !route.meta.requiresGuest
+        && !route.meta.requiresAdmin
+        && !route.meta.requiresStaff
+        && !route.path.startsWith("/admin")
+        && !route.path.startsWith("/staff");
+});
 
 const handleAccountStatus = (reason) => {
     if (reason === "ACCOUNT_LOCKED") {

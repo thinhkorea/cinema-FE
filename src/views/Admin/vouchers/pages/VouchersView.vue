@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div class="voucher-page">
         <div class="header">
             <div>
@@ -35,8 +35,19 @@
                             <div v-if="voucher.minOrder">
                                 Tối thiểu {{ formatCurrency(voucher.minOrder) }}
                             </div>
-                            <div v-else class="muted">Không yêu cầu</div>
-                            <div v-if="voucher.newMemberOnly" class="badge">New member</div>
+                            <div v-if="voucher.newMemberOnly" class="badge new-member">Chỉ khách mới</div>
+                            <div v-if="voucher.newMemberOnly" class="condition-note">Chưa từng thanh toán</div>
+                            <div v-if="looksLikeNewMemberVoucher(voucher) && !voucher.newMemberOnly" class="badge warning">
+                                Chưa bật điều kiện khách mới
+                            </div>
+                            <div v-if="voucher.requiredTotalSpent" class="badge points">
+                                Đã tiêu từ {{ formatCurrency(voucher.requiredTotalSpent) }} trong
+                                {{ formatWindowYears(voucher.spendingWindowDays) }}
+                            </div>
+                            <div v-if="voucher.requiredTotalSpent" class="badge spend-only">Theo mốc chi tiêu</div>
+                            <div v-if="!voucher.minOrder && !voucher.newMemberOnly && !voucher.requiredTotalSpent" class="muted">
+                                Không yêu cầu
+                            </div>
                         </td>
                         <td>
                             <span :class="['status', voucher.active ? 'active' : 'inactive']">
@@ -63,6 +74,23 @@
                 </div>
                 <div class="voucher-modal-body">
                     <div class="form-grid">
+                        <div class="field-guide full">
+                            <div class="field-guide-title">Giải thích các trường</div>
+                            <ul>
+                                <li><strong>Mã voucher:</strong> mã khách nhập hoặc hệ thống hiển thị khi thanh toán.</li>
+                                <li><strong>Tên, mô tả:</strong> nội dung khách nhìn thấy trong hồ sơ và danh sách ưu đãi.</li>
+                                <li><strong>Loại, giá trị:</strong> chọn giảm theo phần trăm hoặc số tiền cố định.</li>
+                                <li><strong>Giảm tối đa:</strong> giới hạn số tiền giảm khi loại là phần trăm; để trống nếu không giới hạn.</li>
+                                <li><strong>Đơn tối thiểu:</strong> đơn hàng phải đạt số tiền này mới áp dụng được voucher.</li>
+                                <li><strong>Mốc chi tiêu để khách nhận:</strong> tổng tiền khách đã thanh toán đủ mốc này thì voucher tự hiện ở trang thanh toán.</li>
+                                <li><strong>Thời gian tính chi tiêu:</strong> tính theo năm dương lịch; 1 năm là năm hiện tại, 2 năm là năm hiện tại và năm trước.</li>
+                                <li><strong>Giới hạn lượt dùng:</strong> tổng số lần voucher được dùng trên toàn hệ thống.</li>
+                                <li><strong>Giới hạn mỗi user:</strong> số lần một tài khoản được dùng voucher này.</li>
+                                <li><strong>Bắt đầu, kết thúc:</strong> khoảng thời gian voucher có hiệu lực.</li>
+                                <li><strong>Kích hoạt:</strong> tắt/bật voucher mà không cần xóa.</li>
+                                <li><strong>Chỉ khách mới:</strong> chỉ áp dụng cho tài khoản chưa từng có giao dịch thanh toán.</li>
+                            </ul>
+                        </div>
                         <label>
                             Mã voucher
                             <input v-model.trim="form.code" type="text" placeholder="VD: SALE10" />
@@ -95,6 +123,28 @@
                             <input v-model.number="form.minOrder" type="number" min="0" />
                         </label>
                         <label>
+                            Mốc chi tiêu để khách nhận
+                            <input
+                                v-model.number="form.requiredTotalSpent"
+                                type="number"
+                                min="0"
+                                placeholder="Để trống nếu không dùng"
+                            />
+                        </label>
+                        <label>
+                            Thời gian tính chi tiêu (số năm)
+                            <input
+                                v-model.number="form.spendingWindowYears"
+                                type="number"
+                                min="1"
+                                placeholder="1"
+                                :disabled="!form.requiredTotalSpent"
+                            />
+                        </label>
+                        <p class="condition-help full">
+                            Nhập mốc chi tiêu nếu muốn khách đạt mốc thì tự mở voucher ở trang thanh toán.
+                        </p>
+                        <label>
                             Giới hạn lượt dùng
                             <input v-model.number="form.usageLimit" type="number" min="0" />
                         </label>
@@ -116,7 +166,10 @@
                         </label>
                         <label class="inline">
                             <input v-model="form.newMemberOnly" type="checkbox" />
-                            Chỉ khách mới
+                            <span>
+                                Chỉ khách mới
+                                <small>Khách chưa từng thanh toán vé.</small>
+                            </span>
                         </label>
                     </div>
                 </div>
@@ -141,6 +194,7 @@ const loading = ref(false);
 const modalOpen = ref(false);
 const isEditing = ref(false);
 const editingId = ref(null);
+const DAYS_PER_YEAR = 365;
 
 const emptyForm = () => ({
     code: "",
@@ -150,6 +204,8 @@ const emptyForm = () => ({
     value: 0,
     maxDiscount: null,
     minOrder: null,
+    requiredTotalSpent: null,
+    spendingWindowYears: 1,
     usageLimit: null,
     perUserLimit: 1,
     startAt: "",
@@ -192,6 +248,8 @@ const openEdit = (voucher) => {
         value: voucher.value ?? 0,
         maxDiscount: voucher.maxDiscount,
         minOrder: voucher.minOrder,
+        requiredTotalSpent: voucher.requiredTotalSpent,
+        spendingWindowYears: daysToYears(voucher.spendingWindowDays),
         usageLimit: voucher.usageLimit,
         perUserLimit: voucher.perUserLimit ?? 1,
         startAt: toInputDateTime(voucher.startAt),
@@ -219,18 +277,67 @@ const toInputDateTime = (value) => {
     return String(value).slice(0, 16);
 };
 
+const nullableNumber = (value) => {
+    return value === null || value === undefined || value === "" ? null : Number(value);
+};
+
+const yearsToDays = (years) => Math.max(1, Math.round(Number(years || 1))) * DAYS_PER_YEAR;
+
+const daysToYears = (days) => {
+    const value = Number(days || DAYS_PER_YEAR);
+    return Math.max(1, Math.round(value / DAYS_PER_YEAR));
+};
+
+const normalizeText = (value) => {
+    return String(value || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase();
+};
+
+const looksLikeNewMemberVoucher = (voucher) => {
+    const text = normalizeText(`${voucher?.code || ""} ${voucher?.name || ""}`);
+    return (
+        text.includes("newbie") ||
+        text.includes("new member") ||
+        text.includes("khach hang moi") ||
+        text.includes("nguoi moi")
+    );
+};
+
 const saveVoucher = async () => {
     try {
+        const requiredTotalSpent = nullableNumber(form.value.requiredTotalSpent);
+        const spendingWindowDays = requiredTotalSpent && requiredTotalSpent > 0
+            ? yearsToDays(nullableNumber(form.value.spendingWindowYears) || 1)
+            : null;
+
+        const looksNewMember = looksLikeNewMemberVoucher(form.value);
+        if (looksNewMember && !form.value.newMemberOnly) {
+            const confirmed = await showCinemaAlert({
+                icon: "warning",
+                title: "Voucher có vẻ dành cho khách mới",
+                text: "Bạn chưa bật điều kiện Chỉ khách mới. Nếu lưu như vậy, mọi khách đủ điều kiện khác vẫn có thể dùng voucher này.",
+                showCancelButton: true,
+                confirmButtonText: "Vẫn lưu",
+                cancelButtonText: "Quay lại bật điều kiện",
+            });
+
+            if (!confirmed.isConfirmed) return;
+        }
+
         const payload = {
             code: form.value.code?.trim(),
             name: form.value.name?.trim(),
             description: form.value.description?.trim() || null,
             type: form.value.type,
             value: Number(form.value.value || 0),
-            maxDiscount: form.value.maxDiscount !== null ? Number(form.value.maxDiscount) : null,
-            minOrder: form.value.minOrder !== null ? Number(form.value.minOrder) : null,
-            usageLimit: form.value.usageLimit !== null ? Number(form.value.usageLimit) : null,
-            perUserLimit: form.value.perUserLimit !== null ? Number(form.value.perUserLimit) : null,
+            maxDiscount: nullableNumber(form.value.maxDiscount),
+            minOrder: nullableNumber(form.value.minOrder),
+            requiredTotalSpent,
+            spendingWindowDays,
+            usageLimit: nullableNumber(form.value.usageLimit),
+            perUserLimit: nullableNumber(form.value.perUserLimit),
             startAt: normalizeDateTime(form.value.startAt),
             endAt: normalizeDateTime(form.value.endAt),
             active: form.value.active,
@@ -318,6 +425,14 @@ const formatCurrency = (amount) => {
 const formatValue = (voucher) => {
     if (voucher.type === "PERCENT") return `${voucher.value || 0}%`;
     return formatCurrency(voucher.value || 0);
+};
+
+const formatWindowYears = (days) => {
+    const years = daysToYears(days);
+    const endYear = new Date().getFullYear();
+    const startYear = endYear - years + 1;
+    if (years === 1) return `năm ${endYear}`;
+    return `từ năm ${startYear} đến năm ${endYear}`;
 };
 
 onMounted(fetchVouchers);
@@ -419,6 +534,32 @@ onMounted(fetchVouchers);
     border-radius: 999px;
     font-size: 0.75rem;
     margin-top: 0.4rem;
+}
+
+.badge.points {
+    background: #e8f7ed;
+    color: #1f8f3b;
+}
+
+.badge.new-member {
+    background: #fff3cd;
+    color: #8a5a00;
+}
+
+.badge.spend-only {
+    background: #eef2ff;
+    color: #4338ca;
+}
+
+.badge.warning {
+    background: #fdecec;
+    color: #d33939;
+}
+
+.condition-note {
+    color: #8a5a00;
+    font-size: 0.78rem;
+    margin-top: 0.25rem;
 }
 
 .status {
@@ -524,6 +665,53 @@ onMounted(fetchVouchers);
     gap: 0.5rem;
 }
 
+.form-grid label.inline small {
+    display: block;
+    color: #777;
+    font-weight: 400;
+    margin-top: 0.15rem;
+}
+
+.condition-help {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: #8a5a44;
+    font-size: 0.85rem;
+}
+
+.field-guide {
+    grid-column: 1 / -1;
+    border: 1px solid #ffe0d1;
+    border-radius: 10px;
+    background: #fff8f4;
+    padding: 0.9rem 1rem;
+}
+
+.field-guide-title {
+    font-weight: 700;
+    color: #7c2d12;
+    margin-bottom: 0.5rem;
+}
+
+.field-guide ul {
+    margin: 0;
+    padding-left: 1.1rem;
+    columns: 2;
+    column-gap: 1.5rem;
+}
+
+.field-guide li {
+    break-inside: avoid;
+    margin-bottom: 0.35rem;
+    color: #5f5048;
+    font-size: 0.84rem;
+    line-height: 1.4;
+}
+
+.field-guide strong {
+    color: #2f2926;
+}
+
 @media (max-width: 720px) {
     .header {
         flex-direction: column;
@@ -533,5 +721,10 @@ onMounted(fetchVouchers);
     .voucher-table {
         min-width: 600px;
     }
+
+    .field-guide ul {
+        columns: 1;
+    }
 }
 </style>
+

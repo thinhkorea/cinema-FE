@@ -115,5 +115,6 @@ export const showCinemaToast = ({
 export const getApiErrorMessage = (error, fallback = "Đã xảy ra lỗi. Vui lòng thử lại.") => {
     const data = error?.response?.data;
     if (typeof data === "string") return data;
-    return data?.error || data?.message || error?.message || fallback;
+    if (data?.error && data.error !== "Internal Server Error") return data.error;
+    return data?.message || data?.error || error?.message || fallback;
 };
