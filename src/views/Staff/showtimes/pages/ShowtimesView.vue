@@ -23,7 +23,7 @@
       </tbody>
     </table>
 
-    <p v-if="showtimes.length === 0" class="text-muted mt-3">Không có suất chiếu nào.</p>
+    <p v-if="showtimes.length === 0" class="text-muted mt-3">Không có suất chiếu sắp tới.</p>
   </div>
 </template>
 
@@ -36,7 +36,10 @@ const showtimes = ref([])
 onMounted(async () => {
   try {
     const res = await api.get('/staff/showtimes')
-    showtimes.value = res.data
+    const now = new Date()
+    showtimes.value = (Array.isArray(res.data) ? res.data : [])
+      .filter((showtime) => new Date(showtime.startTime) > now)
+      .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
   } catch (err) {
     console.error('Lỗi khi load suất chiếu:', err)
   }

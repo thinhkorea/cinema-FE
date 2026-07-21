@@ -12,7 +12,7 @@
                 <input v-model="selectedDate" type="date" class="form-control" />
                 <button class="btn btn-primary" @click="loadShiftClose" :disabled="loading">
                     <span v-if="loading" class="spinner-border spinner-border-sm me-1"></span>
-                    Tải báo cáo
+                    Tải lại
                 </button>
             </div>
         </section>
@@ -376,10 +376,12 @@ onUnmounted(() => {
 .shift-close-page {
     padding: 1.25rem;
     color: var(--text-primary);
+    background: linear-gradient(180deg, #fffdfb 0%, #fff 42%);
 }
 
 .shift-header,
 .shift-state-panel,
+.shift-register-panel,
 .cash-check-panel,
 .detail-panel {
     border: 1px solid #efe2db;
@@ -393,7 +395,7 @@ onUnmounted(() => {
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    padding: 1rem;
+    padding: 1rem 1.1rem;
     background: linear-gradient(135deg, #fff8f4 0%, #ffffff 65%);
 }
 
@@ -416,19 +418,181 @@ onUnmounted(() => {
     gap: 0.55rem;
 }
 
+.shift-date-tools .form-control {
+    min-width: 180px;
+}
+
 .shift-state-panel {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
     margin-top: 0.9rem;
+    padding: 0.9rem 1rem;
+    background: #fffaf7;
+}
+
+.shift-register-panel {
+    margin-top: 0.9rem;
     padding: 1rem;
+}
+
+.registration-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 0.75rem;
+}
+
+.registration-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.75rem;
+    border: 1px solid #f3dfd8;
+    border-radius: 12px;
+    background: #fff;
+    min-height: 96px;
+    padding: 0.85rem 0.9rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.registration-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 22px rgba(255, 107, 53, 0.09);
+}
+
+.registration-card.available {
+    border-color: #ffd3c2;
+}
+
+.registration-card.registered {
+    border-color: #a7dcc7;
+    background: #f8fffb;
+}
+
+.registration-card.full {
+    border-color: #e5e0dd;
+    background: #fafafa;
+}
+
+.registration-card-main {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+}
+
+.registration-icon {
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border-radius: 10px;
+    background: #fff1ea;
+    color: #ff6b35;
+    font-size: 1.05rem;
+}
+
+.registration-card.registered .registration-icon {
+    background: #eaf8f1;
+    color: #24865a;
+}
+
+.registration-card.full .registration-icon {
+    background: #f1eeee;
+    color: #8a7f7a;
+}
+
+.registration-info {
+    min-width: 0;
+}
+
+.registration-info strong {
+    display: block;
+    color: #282320;
+    line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.slot-meter {
+    height: 6px;
+    width: 100%;
+    min-width: 130px;
+    margin: 0.45rem 0 0.3rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #f1e8e3;
+}
+
+.slot-meter span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #ff6b35, #ff9a69);
+}
+
+.registration-card.registered .slot-meter span {
+    background: linear-gradient(90deg, #2da36f, #63c497);
+}
+
+.registration-card.full .slot-meter span {
+    background: #9a918d;
+}
+
+.registration-action {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.45rem;
+}
+
+.registration-action .btn {
+    min-width: 104px;
+    min-height: 34px;
+}
+
+.slot-status {
+    border-radius: 999px;
+    background: #fff1ea;
+    color: #bc4f26;
+    font-size: 0.72rem;
+    font-weight: 800;
+    line-height: 1;
+    padding: 0.35rem 0.55rem;
+    white-space: nowrap;
+}
+
+.registration-card.registered .slot-status {
+    background: #eaf8f1;
+    color: #24865a;
+}
+
+.registration-card.full .slot-status {
+    background: #eeecea;
+    color: #746b66;
+}
+
+.empty-registration {
+    grid-column: 1 / -1;
+    border: 1px dashed #e8d8d0;
+    border-radius: 12px;
+    color: var(--text-secondary);
+    padding: 1rem;
+    text-align: center;
 }
 
 .shift-actions {
     display: flex;
     align-items: center;
     gap: 0.55rem;
+}
+
+.shift-actions .btn {
+    min-width: 106px;
+    min-height: 38px;
 }
 
 .summary-grid {
@@ -541,6 +705,22 @@ onUnmounted(() => {
     .shift-actions,
     .shift-actions .btn,
     .shift-date-tools .btn {
+        width: 100%;
+    }
+
+    .shift-date-tools .form-control {
+        min-width: 0;
+    }
+
+    .registration-card {
+        grid-template-columns: 1fr;
+    }
+
+    .registration-action {
+        align-items: stretch;
+    }
+
+    .registration-action .btn {
         width: 100%;
     }
 

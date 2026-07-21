@@ -62,6 +62,8 @@ const router = useRouter();
 
 const isSuccess = route.query.vnp_ResponseCode === "00";
 const txnRef = route.query.vnp_TxnRef;
+const paymentToken = route.query.paymentToken;
+const paymentFlow = route.query.flow || "booking";
 
 // Đóng modal
 const closeModal = () => {
@@ -137,7 +139,12 @@ onMounted(async () => {
             }
 
             // BƯỚC 3: XÁC NHẬN THANH TOÁN (endpoint gọn nhẹ, phản hồi nhanh hơn)
-            await api.post(`/bookings/pay-by-txn/${txnRef}`);
+            await api.post("/payments/confirm-vnpay", {
+                txnRef,
+                responseCode: route.query.vnp_ResponseCode,
+                flow: paymentFlow,
+                paymentToken,
+            });
 
             if (txnRef) {
                 router.replace(`/my-bookings/txn/${txnRef}`);

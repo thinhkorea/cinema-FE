@@ -50,21 +50,13 @@ import { useRouter } from "vue-router";
 import AppHeader from "@/components/AppHeader.vue";
 import api from "@/api";
 import { showCinemaAlert, getApiErrorMessage } from "@/utils/cinemaAlert";
+import { loadStandaloneSnackCart } from "@/utils/standaloneSnackCart";
 
 const router = useRouter();
 const note = ref("");
 const processing = ref(false);
 
-const cartItems = ref(loadCart());
-
-function loadCart() {
-    try {
-        const raw = localStorage.getItem("standaloneSnackCart");
-        return raw ? JSON.parse(raw) : [];
-    } catch {
-        return [];
-    }
-}
+const cartItems = ref(loadStandaloneSnackCart());
 
 const totalQuantity = computed(() => cartItems.value.reduce((sum, item) => sum + item.quantity, 0));
 const totalAmount = computed(() => cartItems.value.reduce((sum, item) => sum + item.price * item.quantity, 0));
@@ -97,6 +89,13 @@ async function confirmPayment() {
 
     try {
         processing.value = true;
+        cartItems.value = loadStandaloneSnackCart();
+        if (cartItems.value.length === 0) {
+            processing.value = false;
+            router.replace("/snack-store");
+            return;
+        }
+
         const orderPayload = {
             items: cartItems.value.map((item) => ({
                 snackId: item.snackId,
@@ -107,6 +106,7 @@ async function confirmPayment() {
 
         const { data: order } = await api.post("/snack-orders", orderPayload);
         sessionStorage.setItem("pendingSnackOrderCode", order.orderCode);
+        sessionStorage.setItem("pendingSnackOrderCreatedAt", String(Date.now()));
 
         const { data: payment } = await api.post("/payments/create-payment", {
             txnRef: order.orderCode,

@@ -13,12 +13,13 @@
                         v-for="tab in movieTabs"
                         :key="tab.key"
                         :class="['tab-btn', { active: activeTab === tab.key }]"
-                        @click="activeTab = tab.key"
+                        @click="selectTab(tab.key)"
                     >
                         <i :class="tab.icon"></i>
                         {{ tab.name }}
                     </button>
                 </div>
+
             </div>
         </section>
 
@@ -73,6 +74,7 @@
                                         </div>
                                     </div>
                                 </div>
+
                             </div>
 
                             <div class="showtimes-section">
@@ -122,8 +124,8 @@
                 <!-- Empty State -->
                 <div v-if="!loading && filteredMovies.length === 0" class="empty-section">
                     <div class="empty-icon"></div>
-                    <h3 class="empty-title">Không có phim nào</h3>
-                    <p class="empty-text">Hiện tại không có phim nào trong danh mục này</p>
+                    <h3 class="empty-title">{{ emptyTitle }}</h3>
+                    <p class="empty-text">{{ emptyText }}</p>
                 </div>
             </div>
         </section>
@@ -167,6 +169,18 @@ const filteredMovies = computed(() => {
 
     return filtered;
 });
+
+const emptyTitle = computed(() => {
+    return "Không có phim nào";
+});
+
+const emptyText = computed(() => {
+    return "Hiện tại không có phim nào trong danh mục này";
+});
+
+const selectTab = (tabKey) => {
+    activeTab.value = tabKey;
+};
 
 const formatPrice = (price) => {
     return new Intl.NumberFormat("vi-VN", {

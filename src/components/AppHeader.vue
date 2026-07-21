@@ -21,6 +21,9 @@
                         <router-link to="/movies" class="nav-link">Phim</router-link>
                     </li>
                     <li class="nav-item">
+                        <router-link to="/find-movie" class="nav-link">Tìm phim</router-link>
+                    </li>
+                    <li class="nav-item">
                         <router-link to="/snack-store" class="nav-link">Bắp nước</router-link>
                     </li>
                     <li class="nav-item">
@@ -130,10 +133,10 @@ const goDashboard = () => {
 <style scoped>
 .navbar {
     background: #ffffff;
-    font-size: 17px;
+    font-size: 15.5px;
     z-index: 1050;
     border-bottom: 1px solid #e6e6e6;
-    min-height: 70px;
+    min-height: 63px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
@@ -144,7 +147,7 @@ const goDashboard = () => {
 }
 
 .logo-img {
-    height: 40px;
+    height: 36px;
     width: auto;
     object-fit: contain;
     border-radius: 8px;
@@ -208,11 +211,11 @@ const goDashboard = () => {
     border: 1px solid #e6e6e6;
     border-radius: 8px;
     padding: 0.5rem 0;
-    min-width: 180px;
+    min-width: 162px;
     position: absolute;
     top: 100%;
     right: 0;
-    margin-top: 8px;
+    margin-top: 7px;
     opacity: 0;
     transform: translateY(-10px);
     pointer-events: none;
@@ -227,8 +230,8 @@ const goDashboard = () => {
 }
 
 .dropdown-item {
-    font-size: 14px;
-    padding: 0.5rem 1.2rem;
+    font-size: 13px;
+    padding: 0.45rem 1.08rem;
     transition: all 0.2s ease;
     color: #444 !important;
 }

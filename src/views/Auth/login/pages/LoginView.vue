@@ -131,12 +131,11 @@
 
 <script setup>
 import { reactive, ref } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth.store";
 import { getApiErrorMessage, showCinemaAlert } from "@/utils/cinemaAlert";
 
 const router = useRouter();
-const route = useRoute();
 const auth = useAuthStore();
 
 const form = reactive({
@@ -160,28 +159,7 @@ async function handleLogin() {
             password: form.password,
         });
 
-        await showCinemaAlert({
-            icon: "success",
-            title: "Đăng nhập thành công",
-            timer: 1200,
-        });
-
-        setTimeout(async () => {
-            const role = auth.role;
-            const redirectTarget = route.query.redirect;
-            if (role === "ADMIN") {
-                router.push("/admin/dashboard");
-            } else if (role === "STAFF") {
-                router.push("/staff/seat-map");
-            } else if (role === "CUSTOMER") {
-                router.push(typeof redirectTarget === "string" && redirectTarget ? redirectTarget : "/");
-            } else {
-                await showCinemaAlert({
-                    icon: "error",
-                    title: "Không xác định được quyền truy cập",
-                });
-            }
-        }, 600);
+        await router.replace("/");
     } catch (err) {
         console.error("Login failed:", err);
         const errorMsg = getApiErrorMessage(err, "Email/số điện thoại hoặc mật khẩu không đúng.");

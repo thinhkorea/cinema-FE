@@ -70,6 +70,7 @@ const links = [
     { label: "Tạo nhân viên", path: "/admin/register-staff", icon: "bi bi-person-plus" },
     { label: "Tài khoản", path: "/admin/users", icon: "bi bi-people" },
     { label: "Voucher", path: "/admin/vouchers", icon: "bi bi-ticket-perforated" },
+    { label: "Kiểm duyệt", path: "/admin/review-moderation", icon: "bi bi-shield-check" },
 ];
 
 const logout = async () => {
@@ -102,14 +103,14 @@ const activeTitle = computed(() => {
     background:
         radial-gradient(circle at 5% 10%, rgba(255, 107, 53, 0.15), transparent 28%),
         radial-gradient(circle at 95% 85%, rgba(255, 140, 90, 0.12), transparent 32%), #f5f5f5;
-    padding: 12px;
+    padding: 10px;
     overflow: hidden;
 }
 
 .admin-layout {
-    height: calc(100vh - 24px);
+    height: calc(100vh - 20px);
     border: 1px solid #eee2dc;
-    border-radius: 20px;
+    border-radius: 18px;
     overflow: hidden;
     background: #fff;
     box-shadow: 0 12px 32px rgba(255, 107, 53, 0.12);
@@ -118,8 +119,8 @@ const activeTitle = computed(() => {
 
 .admin-toggle {
     position: fixed;
-    top: 14px;
-    left: 14px;
+    top: 12px;
+    left: 12px;
     z-index: 1110;
     box-shadow: 0 8px 20px rgba(255, 107, 53, 0.25);
 }
@@ -132,39 +133,65 @@ const activeTitle = computed(() => {
 }
 
 .admin-sidebar {
-    width: 270px;
+    width: 244px;
     display: flex;
     flex-direction: column;
     background: linear-gradient(180deg, #fff8f4 0%, #fff 45%);
     border-right: 1px solid #f0dfd7;
-    padding: 22px 16px;
+    padding: 14px 12px;
     transition: transform 0.25s ease;
     z-index: 1;
+    min-height: 0;
 }
 
 .sidebar-brand {
-    padding: 10px 10px 16px;
+    padding: 6px 9px 10px;
     border-bottom: 1px solid #f0dfd7;
-    margin-bottom: 14px;
+    margin-bottom: 8px;
+    flex-shrink: 0;
 }
 
 .brand-kicker {
     color: #a26f5e;
-    font-size: 12px;
+    font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
 }
 
 .admin-nav {
-    gap: 8px;
+    flex: 1;
+    gap: 4px;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.admin-nav::-webkit-scrollbar {
+    width: 5px;
+}
+
+.admin-nav::-webkit-scrollbar-thumb {
+    background: #f0c9bb;
+    border-radius: 999px;
 }
 
 .nav-link {
     color: #5f5b59;
-    padding: 10px 12px;
-    border-radius: 10px;
+    align-items: center;
+    display: flex;
+    font-size: 0.95rem;
+    gap: 8px;
+    min-height: 38px;
+    padding: 7px 10px;
+    border-radius: 8px;
     transition: 0.2s ease;
     font-weight: 500;
+}
+
+.nav-link i {
+    flex: 0 0 18px;
+    margin-right: 0 !important;
+    text-align: center;
 }
 
 .nav-link:hover {
@@ -175,13 +202,26 @@ const activeTitle = computed(() => {
 .nav-link.active {
     background: linear-gradient(135deg, #ff6b35, #ff8a5c);
     color: #fff !important;
-    box-shadow: 0 6px 16px rgba(255, 107, 53, 0.25);
+    box-shadow: 0 5px 14px rgba(255, 107, 53, 0.22);
 }
 
 .sidebar-footer {
     margin-top: auto;
     border-top: 1px solid #f0dfd7;
-    padding: 14px 8px 4px;
+    flex-shrink: 0;
+    padding: 9px 7px 0;
+}
+
+.sidebar-footer .btn {
+    align-items: center;
+    display: inline-flex;
+    justify-content: center;
+    min-height: 34px;
+    padding: 7px 10px;
+}
+
+.sidebar-footer .small {
+    font-size: 0.82rem;
 }
 
 .admin-content {
@@ -189,22 +229,22 @@ const activeTitle = computed(() => {
     min-height: 0;
     overflow-y: auto;
     background: #f6f4f3;
-    padding: 20px;
+    padding: 18px;
 }
 
 .content-topbar {
     background: #fff;
     border: 1px solid #efe2db;
-    border-radius: 14px;
-    padding: 12px 16px;
-    margin-bottom: 14px;
+    border-radius: 12px;
+    padding: 11px 14px;
+    margin-bottom: 12px;
 }
 
 .content-surface {
     background: #fff;
     border: 1px solid #efe2db;
-    border-radius: 14px;
-    min-height: calc(100% - 80px);
+    border-radius: 12px;
+    min-height: calc(100% - 72px);
 }
 
 @media (max-width: 991.98px) {

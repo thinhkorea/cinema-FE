@@ -230,7 +230,6 @@ const loading = ref(true);
 const filterStatus = ref("ALL");
 const currentPage = ref(1);
 const itemsPerPage = ref(10); // Số lượng vé tối đa per trang
-const notifiedEmpty = ref(false);
 
 const goHome = () => router.push("/");
 
@@ -261,16 +260,6 @@ const loadMyBookings = async () => {
         const startTime = new Date(b.startTime).getTime();
         return b.status === "PAID" && Number.isFinite(startTime) && startTime > now;
     });
-
-    if (bookings.value.length === 0 && !notifiedEmpty.value) {
-        notifiedEmpty.value = true;
-        await showCinemaAlert({
-            icon: "info",
-            title: "Chưa có vé",
-            text: "Bạn chưa có vé nào trong lịch sử.",
-            timer: 1800,
-        });
-    }
 
     const txnRefs = [...new Set(bookings.value.map((b) => b.txnRef).filter(Boolean))];
     await fetchSnacksForTransactions(txnRefs);

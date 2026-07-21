@@ -72,25 +72,17 @@ import { useRouter } from "vue-router";
 import AppHeader from "@/components/AppHeader.vue";
 import api from "@/api";
 import { useAuthStore } from "@/stores/auth.store";
+import { loadStandaloneSnackCart, saveStandaloneSnackCart } from "@/utils/standaloneSnackCart";
 
 const router = useRouter();
 const auth = useAuthStore();
 
 const loading = ref(true);
 const snacks = ref([]);
-const cart = ref(loadCart());
-
-function loadCart() {
-    try {
-        const raw = localStorage.getItem("standaloneSnackCart");
-        return raw ? JSON.parse(raw) : [];
-    } catch {
-        return [];
-    }
-}
+const cart = ref(loadStandaloneSnackCart());
 
 function saveCart() {
-    localStorage.setItem("standaloneSnackCart", JSON.stringify(cart.value));
+    saveStandaloneSnackCart(cart.value);
 }
 
 function resolveSnackImage(imageUrl) {
@@ -136,6 +128,9 @@ function decrease(snack) {
 }
 
 function goToCheckout() {
+    cart.value = loadStandaloneSnackCart();
+    if (cart.value.length === 0) return;
+
     if (!auth.isAuthenticated) {
         router.push({
             path: "/login",

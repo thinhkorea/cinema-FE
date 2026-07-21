@@ -163,6 +163,33 @@
                                     </div>
                                 </div>
 
+                                <div v-if="reviews.length > 0" class="review-toolbar mb-4">
+                                    <div class="rating-filter-group" aria-label="Lọc theo số sao">
+                                        <button
+                                            v-for="option in ratingFilterOptions"
+                                            :key="option.value"
+                                            type="button"
+                                            class="rating-filter-btn"
+                                            :class="{ active: reviewRatingFilter === option.value }"
+                                            @click="reviewRatingFilter = option.value"
+                                        >
+                                            {{ option.label }}
+                                        </button>
+                                    </div>
+
+                                    <div class="review-filter-controls">
+                                        <select v-model="reviewSort" class="review-sort-select" aria-label="Sắp xếp đánh giá">
+                                            <option value="newest">Mới nhất</option>
+                                            <option value="highest">Điểm cao nhất</option>
+                                            <option value="lowest">Điểm thấp nhất</option>
+                                        </select>
+                                        <label class="comment-filter">
+                                            <input v-model="onlyReviewsWithComment" type="checkbox" />
+                                            <span>Có bình luận</span>
+                                        </label>
+                                    </div>
+                                </div>
+
                                 <div class="review-form mb-4" v-if="auth.isAuthenticated && !hasCurrentUserReviewed()">
                                     <h3 class="h5 text-white mb-3">Viết đánh giá của bạn</h3>
                                     <div class="star-picker mb-3">
@@ -202,7 +229,7 @@
                                     v-else-if="auth.isAuthenticated && hasCurrentUserReviewed()"
                                 >
                                     <p class="mb-0">
-                                        Bạn đã gửi đánh giá cho phim này. Mỗi tài khoản chỉ được đánh giá 1 lần.
+                                        Bạn đã gửi đánh giá cho phim này. Bạn có thể chỉnh sửa hoặc xóa bình luận của mình trong danh sách bên dưới.
                                     </p>
                                 </div>
 
@@ -217,16 +244,91 @@
                                     Chưa có đánh giá nào cho phim này.
                                 </div>
 
+                                <div v-else-if="filteredReviews.length === 0" class="empty-reviews">
+                                    Không có đánh giá phù hợp với bộ lọc.
+                                </div>
+
                                 <div v-else class="review-list">
-                                    <div v-for="r in reviews" :key="r.reviewId" class="review-item">
+                                    <div v-for="r in filteredReviews" :key="r.reviewId" class="review-item">
                                         <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
                                             <div>
                                                 <p class="review-author mb-1">{{ r.fullName || r.username }}</p>
                                                 <div class="review-stars">{{ renderStars(r.rating) }}</div>
                                             </div>
-                                            <small class="review-time">{{ formatReviewTime(r.createdAt) }}</small>
+                                            <div class="review-meta-actions">
+                                                <small class="review-time">{{ formatReviewTime(r.createdAt) }}</small>
+                                                <div v-if="isCurrentUserReview(r)" class="review-actions">
+                                                    <button
+                                                        type="button"
+                                                        class="review-action-btn"
+                                                        aria-label="Sửa đánh giá"
+                                                        title="Sửa đánh giá"
+                                                        :disabled="editingReviewId === r.reviewId || deletingReviewId === r.reviewId"
+                                                        @click="startEditReview(r)"
+                                                    >
+                                                        <i class="bi bi-pencil-square"></i>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        class="review-action-btn danger"
+                                                        aria-label="Xóa đánh giá"
+                                                        title="Xóa đánh giá"
+                                                        :disabled="deletingReviewId === r.reviewId"
+                                                        @click="deleteReview(r)"
+                                                    >
+                                                        <span
+                                                            v-if="deletingReviewId === r.reviewId"
+                                                            class="spinner-border spinner-border-sm"
+                                                            aria-hidden="true"
+                                                        ></span>
+                                                        <i v-else class="bi bi-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <p class="review-comment mb-0">{{ r.comment || "(Không có bình luận)" }}</p>
+                                        <div v-if="editingReviewId === r.reviewId" class="review-edit-form">
+                                            <div class="star-picker mb-3">
+                                                <button
+                                                    v-for="star in 5"
+                                                    :key="star"
+                                                    type="button"
+                                                    class="star-btn"
+                                                    :class="{ active: star <= editReviewForm.rating }"
+                                                    @click="editReviewForm.rating = star"
+                                                >
+                                                    ★
+                                                </button>
+                                                <span class="ms-2 text-light">{{ editReviewForm.rating }}/5</span>
+                                            </div>
+                                            <textarea
+                                                v-model="editReviewForm.comment"
+                                                class="form-control review-input"
+                                                rows="3"
+                                                maxlength="1000"
+                                            ></textarea>
+                                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                                <small class="text-secondary">{{ editReviewForm.comment.length }}/1000 ký tự</small>
+                                                <div class="review-edit-actions">
+                                                    <button
+                                                        type="button"
+                                                        class="btn btn-sm btn-outline-secondary"
+                                                        :disabled="savingReviewEdit"
+                                                        @click="cancelEditReview"
+                                                    >
+                                                        Hủy
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        class="btn btn-sm btn-warning fw-bold"
+                                                        :disabled="savingReviewEdit"
+                                                        @click="saveReviewEdit(r)"
+                                                    >
+                                                        {{ savingReviewEdit ? "Đang lưu..." : "Lưu" }}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <p v-else class="review-comment mb-0">{{ r.comment || "(Không có bình luận)" }}</p>
                                     </div>
                                 </div>
                             </div>
@@ -262,11 +364,11 @@
 <script setup>
 import AppHeader from "@/components/AppHeader.vue";
 import AppFooter from "@/components/AppFooter.vue";
-import { ref, onMounted } from "vue";
+import { computed, ref, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import api from "@/api";
 import { useAuthStore } from "@/stores/auth.store";
-import { showCinemaAlert, showCinemaToast } from "@/utils/cinemaAlert";
+import { getApiErrorMessage, showCinemaAlert, showCinemaConfirm, showCinemaToast } from "@/utils/cinemaAlert";
 import { resolveMediaUrl } from "@/utils/mediaUrl";
 
 const route = useRoute();
@@ -278,6 +380,40 @@ const reviews = ref([]);
 const reviewSummary = ref({ averageRating: 0, reviewCount: 0 });
 const submittingReview = ref(false);
 const reviewForm = ref({ rating: 5, comment: "" });
+const reviewRatingFilter = ref("ALL");
+const reviewSort = ref("newest");
+const onlyReviewsWithComment = ref(false);
+const submittedReviewStatus = ref(null);
+const editingReviewId = ref(null);
+const deletingReviewId = ref(null);
+const savingReviewEdit = ref(false);
+const editReviewForm = ref({ rating: 5, comment: "" });
+
+const ratingFilterOptions = [
+    { label: "Tất cả", value: "ALL" },
+    { label: "5★", value: 5 },
+    { label: "4★", value: 4 },
+    { label: "3★", value: 3 },
+    { label: "2★", value: 2 },
+    { label: "1★", value: 1 },
+];
+
+const filteredReviews = computed(() => {
+    const selectedRating = reviewRatingFilter.value;
+    const result = reviews.value
+        .filter((review) => selectedRating === "ALL" || Number(review.rating) === selectedRating)
+        .filter((review) => !onlyReviewsWithComment.value || Boolean(review.comment?.trim()));
+
+    return [...result].sort((a, b) => {
+        if (reviewSort.value === "highest") {
+            return Number(b.rating || 0) - Number(a.rating || 0) || new Date(b.createdAt) - new Date(a.createdAt);
+        }
+        if (reviewSort.value === "lowest") {
+            return Number(a.rating || 0) - Number(b.rating || 0) || new Date(b.createdAt) - new Date(a.createdAt);
+        }
+        return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+});
 
 // Ensure all hooks are called at the top level
 onMounted(async () => {
@@ -335,38 +471,118 @@ const submitReview = async () => {
 
     try {
         submittingReview.value = true;
-        await api.post(`/movies/${movieId}/reviews`, {
+        const { data: createdReview } = await api.post(`/movies/${movieId}/reviews`, {
             rating: reviewForm.value.rating,
             comment: reviewForm.value.comment,
         });
+        submittedReviewStatus.value = createdReview?.moderationStatus || "APPROVED";
         reviewForm.value.comment = "";
         await fetchReviews(movieId);
-        await showCinemaToast({
-            icon: "success",
-            title: "Đã gửi đánh giá",
-            text: "Cảm ơn bạn đã chia sẻ cảm nhận về bộ phim!",
-        });
+        if (createdReview?.flagged || createdReview?.moderationStatus === "FLAGGED") {
+            await showCinemaAlert({
+                icon: "info",
+                title: "Đánh giá đang được kiểm duyệt",
+                text: "Bình luận của bạn có dấu hiệu cần kiểm tra nên chưa được hiển thị công khai.",
+            });
+        } else {
+            await showCinemaToast({
+                icon: "success",
+                title: "Đã gửi đánh giá",
+                text: "Cảm ơn bạn đã chia sẻ cảm nhận về bộ phim!",
+            });
+        }
     } catch (err) {
         console.error("Lỗi gửi review:", err);
-        const errorMessage = err.response?.data?.error || "Không thể gửi đánh giá.";
-
-        // Kiểm tra loại lỗi để hiển thị icon phù hợp
-        const isValidationError =
-            errorMessage.includes("sau khi suất chiếu") || errorMessage.includes("mua và thanh toán vé");
-
         await showCinemaAlert({
-            icon: isValidationError ? "info" : "error",
-            title: isValidationError ? "Chưa đủ điều kiện" : "Gửi đánh giá thất bại",
-            text: errorMessage,
+            icon: "error",
+            title: "Gửi đánh giá thất bại",
+            text: getApiErrorMessage(err, "Không thể gửi đánh giá."),
         });
     } finally {
         submittingReview.value = false;
     }
 };
 
+const isCurrentUserReview = (review) => {
+    return Boolean(auth.isAuthenticated && auth.username && review?.username === auth.username);
+};
+
 const hasCurrentUserReviewed = () => {
+    if (submittedReviewStatus.value) return true;
     if (!auth.isAuthenticated || !auth.username) return false;
-    return reviews.value.some((r) => r.username === auth.username);
+    return reviews.value.some(isCurrentUserReview);
+};
+
+const startEditReview = (review) => {
+    editingReviewId.value = review.reviewId;
+    editReviewForm.value = {
+        rating: Math.max(1, Math.min(5, Number(review.rating) || 5)),
+        comment: review.comment || "",
+    };
+};
+
+const cancelEditReview = () => {
+    editingReviewId.value = null;
+    editReviewForm.value = { rating: 5, comment: "" };
+};
+
+const saveReviewEdit = async (review) => {
+    const movieId = route.params.id;
+    savingReviewEdit.value = true;
+    try {
+        const { data: updatedReview } = await api.put(`/movies/${movieId}/reviews/${review.reviewId}`, {
+            rating: editReviewForm.value.rating,
+            comment: editReviewForm.value.comment,
+        });
+        submittedReviewStatus.value = updatedReview?.moderationStatus || "APPROVED";
+        cancelEditReview();
+        await fetchReviews(movieId);
+        if (updatedReview?.flagged || updatedReview?.moderationStatus === "FLAGGED") {
+            await showCinemaAlert({
+                icon: "info",
+                title: "Đánh giá đang được kiểm duyệt",
+                text: "Nội dung chỉnh sửa có dấu hiệu cần kiểm tra nên chưa được hiển thị công khai.",
+            });
+        } else {
+            await showCinemaToast({ icon: "success", title: "Đã cập nhật đánh giá" });
+        }
+    } catch (err) {
+        await showCinemaAlert({
+            icon: "error",
+            title: "Không thể cập nhật đánh giá",
+            text: getApiErrorMessage(err),
+        });
+    } finally {
+        savingReviewEdit.value = false;
+    }
+};
+
+const deleteReview = async (review) => {
+    const confirmed = await showCinemaConfirm({
+        icon: "warning",
+        title: "Xóa đánh giá?",
+        text: "Đánh giá này sẽ bị xóa khỏi phim.",
+        confirmButtonText: "Xóa",
+    });
+    if (!confirmed) return;
+
+    const movieId = route.params.id;
+    deletingReviewId.value = review.reviewId;
+    try {
+        await api.delete(`/movies/${movieId}/reviews/${review.reviewId}`);
+        submittedReviewStatus.value = null;
+        cancelEditReview();
+        await fetchReviews(movieId);
+        await showCinemaToast({ icon: "success", title: "Đã xóa đánh giá" });
+    } catch (err) {
+        await showCinemaAlert({
+            icon: "error",
+            title: "Không thể xóa đánh giá",
+            text: getApiErrorMessage(err),
+        });
+    } finally {
+        deletingReviewId.value = null;
+    }
 };
 
 const goBooking = () => {
@@ -667,6 +883,73 @@ const formatReviewTime = (value) => {
     font-size: 14px;
 }
 
+.review-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: #fff;
+    border: 1px solid #e6e6e6;
+    border-radius: 10px;
+    padding: 12px;
+}
+
+.rating-filter-group,
+.review-filter-controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.rating-filter-btn {
+    border: 1px solid #f0d5c9;
+    background: #fff8f4;
+    color: #6f5c52;
+    border-radius: 999px;
+    padding: 7px 12px;
+    font-weight: 700;
+    line-height: 1;
+    transition: 0.2s ease;
+}
+
+.rating-filter-btn:hover,
+.rating-filter-btn.active {
+    background: #ff6b35;
+    border-color: #ff6b35;
+    color: #fff;
+}
+
+.review-sort-select {
+    min-width: 150px;
+    border: 1px solid #d7d7d7;
+    border-radius: 8px;
+    background: #fff;
+    color: #333;
+    padding: 8px 10px;
+    font-weight: 600;
+}
+
+.review-sort-select:focus {
+    border-color: #ff6b35;
+    outline: none;
+    box-shadow: 0 0 0 0.2rem rgba(255, 107, 53, 0.12);
+}
+
+.comment-filter {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: #555;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+}
+
+.comment-filter input {
+    accent-color: #ff6b35;
+}
+
 .review-form {
     background: #fff;
     border: 1px solid #e5e5e5;
@@ -751,6 +1034,63 @@ const formatReviewTime = (value) => {
     color: #888;
 }
 
+.review-meta-actions {
+    align-items: flex-end;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.review-actions,
+.review-edit-actions {
+    display: inline-flex;
+    gap: 8px;
+}
+
+.review-action-btn {
+    align-items: center;
+    background: #fff8f4;
+    border: 1px solid #f0d5c9;
+    border-radius: 50%;
+    color: #6f5c52;
+    display: inline-flex;
+    font-size: 15px;
+    height: 34px;
+    justify-content: center;
+    line-height: 1;
+    padding: 0;
+    width: 34px;
+}
+
+.review-action-btn:hover:not(:disabled) {
+    background: #ff6b35;
+    border-color: #ff6b35;
+    color: #fff;
+}
+
+.review-action-btn.danger {
+    background: #fff1f1;
+    border-color: #f1c7c7;
+    color: #b42318;
+}
+
+.review-action-btn.danger:hover:not(:disabled) {
+    background: #dc3545;
+    border-color: #dc3545;
+    color: #fff;
+}
+
+.review-action-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+
+.review-edit-form {
+    border-top: 1px solid #eeeeee;
+    margin-top: 12px;
+    padding-top: 12px;
+}
+
 .review-comment {
     color: #4f4f4f;
     line-height: 1.6;
@@ -774,6 +1114,19 @@ const formatReviewTime = (value) => {
     .poster-sticky {
         position: static;
         margin-top: 30px;
+    }
+
+    .review-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .review-sort-select {
+        flex: 1;
+    }
+
+    .review-meta-actions {
+        align-items: flex-start;
     }
 }
 

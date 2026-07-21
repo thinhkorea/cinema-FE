@@ -19,21 +19,22 @@ onMounted(async () => {
     const responseCode = route.query.vnp_ResponseCode?.toString();
     txnRef.value = route.query.vnp_TxnRef || localStorage.getItem("txnRef");
 
-    console.log("VNPay Response Code:", responseCode);
-    console.log("VNPay TxnRef:", txnRef.value);
-
     if (responseCode === "00" && txnRef.value) {
         try {
-            await api.post(`/bookings/pay-by-txn/${txnRef.value}`);
+            await api.post("/payments/confirm-vnpay", {
+                txnRef: txnRef.value,
+                responseCode,
+                flow: route.query.flow || "booking",
+                paymentToken: route.query.paymentToken,
+            });
             success.value = true;
-            console.log("Cập nhật thanh toán thành công!");
-            localStorage.removeItem("txnRef");
-        } catch (err) {
-            console.error("Lỗi khi cập nhật thanh toán:", err);
+        } catch {
             success.value = false;
         }
-    } else {
-        success.value = false;
+    }
+
+    if (success.value) {
+        localStorage.removeItem("txnRef");
     }
 
     showCinemaAlert({

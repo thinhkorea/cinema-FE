@@ -4,6 +4,7 @@ import { useAuthStore } from "@/stores/auth.store";
 const routes = [
     { path: "/", component: () => import("@/views/public/home/pages/HomeView.vue"), meta: { public: true } },
     { path: "/movies", component: () => import("@/views/public/movies/pages/MoviesView.vue"), meta: { public: true } },
+    { path: "/find-movie", component: () => import("@/views/public/movie-finder/pages/MovieFinderView.vue"), meta: { public: true } },
     { path: "/snack-store", component: () => import("@/views/public/snack-store/pages/SnackStoreView.vue"), meta: { public: true } },
     {
         path: "/snack-store/payment",
@@ -87,6 +88,7 @@ const routes = [
             { path: "register-staff", component: () => import("@/views/Admin/staff/pages/RegisterStaffView.vue") },
             { path: "users", component: () => import("@/views/Admin/users/pages/UsersView.vue") },
             { path: "vouchers", component: () => import("@/views/Admin/vouchers/pages/VouchersView.vue") },
+            { path: "review-moderation", component: () => import("@/views/Admin/review-moderation/pages/ReviewModerationView.vue") },
         ],
     },
 
@@ -102,6 +104,7 @@ const routes = [
             { path: "payment-result", component: () => import("@/views/Staff/tickets/pages/PaymentResult.vue") },
             { path: "search-ticket", component: () => import("@/views/Staff/tickets/pages/SearchTicketView.vue") },
             { path: "recipes", component: () => import("@/views/Staff/recipes/pages/PopcornRecipesView.vue") },
+            { path: "shift-registration", component: () => import("@/views/Staff/shift/pages/ShiftRegistrationView.vue") },
             { path: "shift-close", component: () => import("@/views/Staff/shift/pages/ShiftCloseView.vue") },
             { path: "ticket/:txnRef", component: () => import("@/views/Staff/tickets/pages/Ticket.vue") },
         ],

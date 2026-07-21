@@ -70,6 +70,16 @@
                         </li>
                         <li class="nav-item">
                             <router-link
+                                to="/staff/shift-registration"
+                                class="nav-link"
+                                active-class="active"
+                                @click="closeOnMobile"
+                            >
+                                <i class="bi bi-calendar2-check me-2"></i> Chọn ca làm
+                            </router-link>
+                        </li>
+                        <li class="nav-item">
+                            <router-link
                                 to="/staff/shift-close"
                                 class="nav-link"
                                 active-class="active"
@@ -83,10 +93,10 @@
 
                 <div class="staff-footer">
                     <p class="mb-2 small text-secondary">{{ auth.fullName || auth.username || "Nhân viên" }}</p>
-                    <button class="btn btn-outline-primary btn-sm w-100 mb-2" @click="goHome">
+                    <button class="btn btn-outline-primary w-100 mb-2" @click="goHome">
                         <i class="bi bi-house me-1"></i> Trang chủ
                     </button>
-                    <button class="btn btn-primary btn-sm w-100" @click="logout">
+                    <button class="btn btn-primary w-100" @click="logout">
                         <i class="bi bi-box-arrow-right me-1"></i> Đăng xuất
                     </button>
                 </div>
@@ -124,6 +134,7 @@ const links = [
     { label: "Vé đã bán", path: "/staff/sold-tickets" },
     { label: "Tra cứu vé", path: "/staff/search-ticket" },
     { label: "Công thức bắp", path: "/staff/recipes" },
+    { label: "Chọn ca làm", path: "/staff/shift-registration" },
     { label: "Kết ca", path: "/staff/shift-close" },
 ];
 
@@ -157,14 +168,14 @@ const activeTitle = computed(() => {
     background:
         radial-gradient(circle at 8% 12%, rgba(255, 107, 53, 0.14), transparent 28%),
         radial-gradient(circle at 90% 88%, rgba(255, 107, 53, 0.1), transparent 33%), #f5f5f5;
-    padding: 12px;
+    padding: 10px;
     overflow: hidden;
 }
 
 .staff-layout {
-    height: calc(100vh - 24px);
+    height: calc(100vh - 20px);
     display: flex;
-    border-radius: 20px;
+    border-radius: 18px;
     border: 1px solid #eee2dc;
     overflow: hidden;
     background: #fff;
@@ -173,8 +184,8 @@ const activeTitle = computed(() => {
 
 .staff-toggle {
     position: fixed;
-    top: 14px;
-    left: 14px;
+    top: 12px;
+    left: 12px;
     z-index: 1110;
     box-shadow: 0 8px 20px rgba(255, 107, 53, 0.25);
 }
@@ -187,7 +198,7 @@ const activeTitle = computed(() => {
 }
 
 .staff-sidebar {
-    width: 260px;
+    width: 244px;
     min-height: 100%;
     display: flex;
     flex-direction: column;
@@ -195,33 +206,33 @@ const activeTitle = computed(() => {
     background: linear-gradient(180deg, #fff8f4 0%, #fff 45%);
     border-right: 1px solid #f0dfd7;
     color: #333;
-    padding: 22px 16px;
+    padding: 20px 14px;
     transition: transform 0.25s ease;
     z-index: 1;
 }
 
 .sidebar-brand {
-    padding: 10px 10px 16px;
+    padding: 9px 9px 14px;
     border-bottom: 1px solid #f0dfd7;
 }
 
 .brand-kicker {
     color: #a26f5e;
-    font-size: 12px;
+    font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
 }
 
 .staff-nav {
-    gap: 8px;
+    gap: 7px;
 }
 
 .nav-link {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 10px 12px;
-    border-radius: 10px;
+    gap: 5px;
+    padding: 9px 11px;
+    border-radius: 9px;
     transition: 0.2s;
     color: #5f5b59;
     font-weight: 500;
@@ -240,7 +251,7 @@ const activeTitle = computed(() => {
 
 .staff-footer {
     border-top: 1px solid #f0dfd7;
-    padding: 14px 8px 4px;
+    padding: 12px 7px 4px;
     margin-top: auto;
 }
 
@@ -249,22 +260,22 @@ const activeTitle = computed(() => {
     min-height: 0;
     overflow-y: auto;
     background: #f6f4f3;
-    padding: 20px;
+    padding: 18px;
 }
 
 .content-topbar {
     background: #fff;
     border: 1px solid #efe2db;
-    border-radius: 14px;
-    padding: 12px 16px;
-    margin-bottom: 14px;
+    border-radius: 12px;
+    padding: 11px 14px;
+    margin-bottom: 12px;
 }
 
 .content-surface {
     background: #fff;
     border: 1px solid #efe2db;
-    border-radius: 14px;
-    min-height: calc(100% - 80px);
+    border-radius: 12px;
+    min-height: calc(100% - 72px);
 }
 
 @media (max-width: 991.98px) {
