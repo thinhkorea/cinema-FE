@@ -8,7 +8,7 @@
         </div>
 
         <!-- Bộ lọc -->
-        <div class="mb-3 d-flex align-items-center gap-3">
+        <div class="mb-3 d-flex align-items-center gap-3 flex-wrap">
             <label class="fw-bold">Trạng thái:</label>
             <select v-model="selectedStatus" class="form-select w-auto">
                 <option value="">Tất cả</option>
@@ -43,9 +43,9 @@
                     </tr>
                 </thead>
 
-                <tbody v-if="filteredMovies.length">
-                    <tr v-for="(m, i) in filteredMovies" :key="m.movieId">
-                        <td>{{ i + 1 }}</td>
+                <tbody v-if="paginatedMovies.length">
+                    <tr v-for="(m, i) in paginatedMovies" :key="m.movieId">
+                        <td>{{ (currentPage - 1) * pageSize + i + 1 }}</td>
                         <td>
                             <img
                                 v-if="m.posterUrl"
@@ -107,10 +107,19 @@
 
                 <tbody v-else>
                     <tr>
-                        <td colspan="9" class="text-center text-muted py-3">Không có phim nào</td>
+                        <td colspan="11" class="text-center text-muted py-3">Không có phim nào</td>
                     </tr>
                 </tbody>
             </table>
+
+            <AdminPagination
+                v-if="filteredMovies.length"
+                v-model="currentPage"
+                v-model:page-size="pageSize"
+                :total-items="filteredMovies.length"
+                item-label="phim"
+                aria-label="Phân trang phim"
+            />
         </div>
     </div>
 
@@ -235,9 +244,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted } from "vue";
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from "vue";
 import { Modal } from "bootstrap";
 import api from "@/api";
+import AdminPagination from "@/views/Admin/components/AdminPagination.vue";
 import { getApiErrorMessage, showCinemaAlert, showCinemaConfirm } from "@/utils/cinemaAlert";
 import { getMediaFileName, resolveMediaUrl } from "@/utils/mediaUrl";
 
@@ -257,9 +267,26 @@ let modal = null;
 const showPosterLoading = computed(() => posterLoading.value && !posterPreviewUrl.value);
 
 const selectedStatus = ref("");
+const currentPage = ref(1);
+const pageSize = ref(10);
 const filteredMovies = computed(() => {
     if (!selectedStatus.value) return movies.value;
     return movies.value.filter((m) => m.status === selectedStatus.value);
+});
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredMovies.value.length / pageSize.value)));
+const paginatedMovies = computed(() => {
+    const start = (currentPage.value - 1) * pageSize.value;
+    return filteredMovies.value.slice(start, start + pageSize.value);
+});
+
+watch([selectedStatus, pageSize], () => {
+    currentPage.value = 1;
+});
+
+watch(totalPages, (newTotal) => {
+    if (currentPage.value > newTotal) {
+        currentPage.value = newTotal;
+    }
 });
 
 const form = reactive({

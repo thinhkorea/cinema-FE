@@ -59,7 +59,7 @@
                                     </div>
                                     <!-- Description -->
                                     <p class="lead text-light mb-4 description-text">
-                                        {{ movie.longDescription || movie.description || "Đang cập nhật nội dung..." }}
+                                        {{ movieDescriptionText }}
                                     </p>
 
                                     <!-- CTA Button -->
@@ -117,9 +117,14 @@
                             <!-- Full Description -->
                             <div class="mb-5">
                                 <h2 class="h3 fw-bold text-white mb-4">Nội dung phim</h2>
-                                <p class="text-light description-full">
-                                    {{ movie.longDescription || movie.description || "Đang cập nhật nội dung..." }}
-                                </p>
+                                <div class="text-light description-full">
+                                    <p
+                                        v-for="(paragraph, index) in movieDescriptionParagraphs"
+                                        :key="`movie-description-${index}`"
+                                    >
+                                        {{ paragraph }}
+                                    </p>
+                                </div>
                             </div>
 
                             <!-- Additional Info -->
@@ -284,6 +289,22 @@
                                                         <i v-else class="bi bi-trash"></i>
                                                     </button>
                                                 </div>
+                                                <button
+                                                    v-else-if="canReportReview(r)"
+                                                    type="button"
+                                                    class="review-action-btn report"
+                                                    aria-label="Báo cáo bình luận"
+                                                    title="Báo cáo bình luận không phù hợp"
+                                                    :disabled="reportingReviewId === r.reviewId"
+                                                    @click="reportReview(r)"
+                                                >
+                                                    <span
+                                                        v-if="reportingReviewId === r.reviewId"
+                                                        class="spinner-border spinner-border-sm"
+                                                        aria-hidden="true"
+                                                    ></span>
+                                                    <i v-else class="bi bi-flag"></i>
+                                                </button>
                                             </div>
                                         </div>
                                         <div v-if="editingReviewId === r.reviewId" class="review-edit-form">
@@ -368,7 +389,8 @@ import { computed, ref, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import api from "@/api";
 import { useAuthStore } from "@/stores/auth.store";
-import { getApiErrorMessage, showCinemaAlert, showCinemaConfirm, showCinemaToast } from "@/utils/cinemaAlert";
+import Swal from "sweetalert2";
+import { cinemaAlertClasses, getApiErrorMessage, showCinemaAlert, showCinemaConfirm, showCinemaToast } from "@/utils/cinemaAlert";
 import { resolveMediaUrl } from "@/utils/mediaUrl";
 
 const route = useRoute();
@@ -386,6 +408,7 @@ const onlyReviewsWithComment = ref(false);
 const submittedReviewStatus = ref(null);
 const editingReviewId = ref(null);
 const deletingReviewId = ref(null);
+const reportingReviewId = ref(null);
 const savingReviewEdit = ref(false);
 const editReviewForm = ref({ rating: 5, comment: "" });
 
@@ -413,6 +436,20 @@ const filteredReviews = computed(() => {
         }
         return new Date(b.createdAt) - new Date(a.createdAt);
     });
+});
+
+const movieDescriptionText = computed(() => {
+    return movie.value?.longDescription || movie.value?.description || "Đang cập nhật nội dung...";
+});
+
+const movieDescriptionParagraphs = computed(() => {
+    const text = String(movieDescriptionText.value || "").trim();
+    if (!text) return ["Đang cập nhật nội dung..."];
+
+    return text
+        .split(/\r?\n\s*\r?\n|\r?\n/)
+        .map((paragraph) => paragraph.trim())
+        .filter(Boolean);
 });
 
 // Ensure all hooks are called at the top level
@@ -507,6 +544,15 @@ const isCurrentUserReview = (review) => {
     return Boolean(auth.isAuthenticated && auth.username && review?.username === auth.username);
 };
 
+const canReportReview = (review) => {
+    return Boolean(
+        auth.isAuthenticated &&
+            auth.isCustomer &&
+            !isCurrentUserReview(review) &&
+            String(review?.violationType || "").toUpperCase() !== "USER_REPORT"
+    );
+};
+
 const hasCurrentUserReviewed = () => {
     if (submittedReviewStatus.value) return true;
     if (!auth.isAuthenticated || !auth.username) return false;
@@ -582,6 +628,49 @@ const deleteReview = async (review) => {
         });
     } finally {
         deletingReviewId.value = null;
+    }
+};
+
+const reportReview = async (review) => {
+    const result = await Swal.fire({
+        icon: "warning",
+        title: "Báo cáo bình luận",
+        text: "Nếu bình luận có nội dung không phù hợp, admin sẽ kiểm tra và quyết định hiển thị lại hoặc ẩn bình luận.",
+        input: "textarea",
+        inputLabel: "Lý do báo cáo",
+        inputPlaceholder: "VD: Bình luận có ngôn từ xúc phạm, spam, tiết lộ nội dung phim...",
+        inputAttributes: {
+            maxlength: 500,
+        },
+        showCancelButton: true,
+        confirmButtonText: "Gửi báo cáo",
+        cancelButtonText: "Hủy",
+        customClass: cinemaAlertClasses,
+        buttonsStyling: false,
+    });
+
+    if (!result.isConfirmed) return;
+
+    const movieId = route.params.id;
+    reportingReviewId.value = review.reviewId;
+    try {
+        await api.post(`/movies/${movieId}/reviews/${review.reviewId}/report`, {
+            reason: String(result.value || "").trim(),
+        });
+        await fetchReviews(movieId);
+        await showCinemaToast({
+            icon: "success",
+            title: "Đã gửi báo cáo",
+            text: "Admin sẽ kiểm tra bình luận này.",
+        });
+    } catch (err) {
+        await showCinemaAlert({
+            icon: "error",
+            title: "Không thể gửi báo cáo",
+            text: getApiErrorMessage(err),
+        });
+    } finally {
+        reportingReviewId.value = null;
     }
 };
 
@@ -746,6 +835,20 @@ const formatReviewTime = (value) => {
     -webkit-box-orient: vertical;
     overflow: hidden;
     line-height: 1.6;
+    white-space: pre-line;
+}
+
+.description-full {
+    line-height: 1.75;
+    white-space: pre-line;
+}
+
+.description-full p {
+    margin: 0 0 1rem;
+}
+
+.description-full p:last-child {
+    margin-bottom: 0;
 }
 
 /* --- Unified Section Background --- */
@@ -1077,6 +1180,18 @@ const formatReviewTime = (value) => {
 .review-action-btn.danger:hover:not(:disabled) {
     background: #dc3545;
     border-color: #dc3545;
+    color: #fff;
+}
+
+.review-action-btn.report {
+    background: #fff8e7;
+    border-color: #f3ddb0;
+    color: #8a5a00;
+}
+
+.review-action-btn.report:hover:not(:disabled) {
+    background: #f0ad4e;
+    border-color: #f0ad4e;
     color: #fff;
 }
 

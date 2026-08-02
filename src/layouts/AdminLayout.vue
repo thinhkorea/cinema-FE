@@ -71,6 +71,7 @@ const links = [
     { label: "Tài khoản", path: "/admin/users", icon: "bi bi-people" },
     { label: "Voucher", path: "/admin/vouchers", icon: "bi bi-ticket-perforated" },
     { label: "Kiểm duyệt", path: "/admin/review-moderation", icon: "bi bi-shield-check" },
+    { label: "Tim phim AI", path: "/admin/movie-discovery", icon: "bi bi-stars" },
 ];
 
 const logout = async () => {

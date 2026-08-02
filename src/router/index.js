@@ -77,6 +77,7 @@ const routes = [
         component: () => import("@/layouts/AdminLayout.vue"),
         meta: { requiresAdmin: true },
         children: [
+            { path: "", redirect: "/admin/dashboard" },
             { path: "dashboard", component: () => import("@/views/Admin/dashboard/pages/DashboardView.vue") },
             { path: "movies", component: () => import("@/views/Admin/movies/pages/MoviesView.vue") },
             { path: "rooms", component: () => import("@/views/Admin/rooms/pages/RoomsView.vue") },
@@ -89,6 +90,7 @@ const routes = [
             { path: "users", component: () => import("@/views/Admin/users/pages/UsersView.vue") },
             { path: "vouchers", component: () => import("@/views/Admin/vouchers/pages/VouchersView.vue") },
             { path: "review-moderation", component: () => import("@/views/Admin/review-moderation/pages/ReviewModerationView.vue") },
+            { path: "movie-discovery", component: () => import("@/views/Admin/chatbot/pages/MovieDiscoveryAdminView.vue") },
         ],
     },
 
@@ -123,6 +125,10 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
     const auth = useAuthStore();
     const role = auth.role || localStorage.getItem("role");
+
+    if (to.path === "/" && role === "ADMIN") {
+        return next("/admin/dashboard");
+    }
 
     // Đã đăng nhập thì không vào lại trang guest-only
     if (to.meta.requiresGuest && role) {

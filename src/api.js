@@ -6,6 +6,10 @@ const baseURL = "http://localhost:8080/api";
 
 const api = axios.create({
     baseURL,
+    headers: {
+        "Content-Type": "application/json;charset=UTF-8",
+        Accept: "application/json;charset=UTF-8",
+    },
 });
 
 let refreshPromise = null;

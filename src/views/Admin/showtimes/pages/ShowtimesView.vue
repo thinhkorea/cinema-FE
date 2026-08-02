@@ -69,24 +69,6 @@
                         <button class="btn btn-outline-secondary w-100" type="button" @click="resetFilters">Xóa</button>
                     </div>
                 </div>
-                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3">
-                    <small class="text-muted"
-                        >Hiển thị {{ paginatedShowtimes.length }} / {{ filteredShowtimes.length }} suất chiếu đã
-                        lọc</small
-                    >
-                    <div class="d-flex align-items-center gap-2">
-                        <label class="form-label mb-0">Mỗi trang</label>
-                        <select
-                            v-model.number="pagination.pageSize"
-                            class="form-select form-select-sm page-size-select"
-                        >
-                            <option :value="5">5</option>
-                            <option :value="10">10</option>
-                            <option :value="20">20</option>
-                            <option :value="50">50</option>
-                        </select>
-                    </div>
-                </div>
             </div>
             <div class="card-body table-responsive">
                 <table class="table table-hover align-middle">
@@ -131,38 +113,14 @@
                     </tbody>
                 </table>
             </div>
-            <div v-if="totalPages > 1" class="card-footer bg-white">
-                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
-                    <small class="text-muted">Trang {{ pagination.currentPage }} / {{ totalPages }}</small>
-                    <div class="btn-group" role="group" aria-label="Pagination">
-                        <button
-                            class="btn btn-outline-secondary btn-sm"
-                            type="button"
-                            :disabled="pagination.currentPage === 1"
-                            @click="goToPage(pagination.currentPage - 1)"
-                        >
-                            Trước
-                        </button>
-                        <button
-                            v-for="page in visiblePages"
-                            :key="`page-${page}`"
-                            class="btn btn-sm"
-                            :class="page === pagination.currentPage ? 'btn-primary' : 'btn-outline-secondary'"
-                            type="button"
-                            @click="goToPage(page)"
-                        >
-                            {{ page }}
-                        </button>
-                        <button
-                            class="btn btn-outline-secondary btn-sm"
-                            type="button"
-                            :disabled="pagination.currentPage === totalPages"
-                            @click="goToPage(pagination.currentPage + 1)"
-                        >
-                            Sau
-                        </button>
-                    </div>
-                </div>
+            <div v-if="filteredShowtimes.length" class="card-footer bg-white">
+                <AdminPagination
+                    v-model="pagination.currentPage"
+                    v-model:page-size="pagination.pageSize"
+                    :total-items="filteredShowtimes.length"
+                    item-label="suất chiếu"
+                    aria-label="Phân trang suất chiếu"
+                />
             </div>
         </div>
 
@@ -464,6 +422,7 @@
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import api from "@/api";
 import { Modal } from "bootstrap";
+import AdminPagination from "@/views/Admin/components/AdminPagination.vue";
 import { getApiErrorMessage, showCinemaAlert, showCinemaConfirm } from "@/utils/cinemaAlert";
 
 const showtimes = ref([]);
@@ -640,17 +599,6 @@ const paginatedShowtimes = computed(() => {
     return filteredShowtimes.value.slice(startIndex, startIndex + pagination.pageSize);
 });
 
-const visiblePages = computed(() => {
-    const pages = [];
-    const start = Math.max(1, pagination.currentPage - 2);
-    const end = Math.min(totalPages.value, start + 4);
-
-    for (let page = start; page <= end; page += 1) {
-        pages.push(page);
-    }
-    return pages;
-});
-
 const previewShowtimeDetails = computed(() => (bulkPreview.value?.createdShowtimes || []).slice(0, 12));
 const previewSkippedMessages = computed(() => (bulkPreview.value?.skippedMessages || []).slice(0, 5));
 
@@ -748,11 +696,6 @@ const resetFilters = () => {
         progress: "",
     });
     pagination.currentPage = 1;
-};
-
-const goToPage = (page) => {
-    if (page < 1 || page > totalPages.value) return;
-    pagination.currentPage = page;
 };
 
 const openCreate = () => {
@@ -985,6 +928,10 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.card-footer :deep(.admin-pagination) {
+    margin-top: 0;
+}
+
 .bulk-slot-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));

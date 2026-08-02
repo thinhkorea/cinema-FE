@@ -159,7 +159,13 @@ async function handleLogin() {
             password: form.password,
         });
 
-        await router.replace("/");
+        if (auth.role === "ADMIN") {
+            await router.replace("/admin/dashboard");
+        } else if (auth.role === "STAFF") {
+            await router.replace("/staff/seat-map");
+        } else {
+            await router.replace("/");
+        }
     } catch (err) {
         console.error("Login failed:", err);
         const errorMsg = getApiErrorMessage(err, "Email/số điện thoại hoặc mật khẩu không đúng.");

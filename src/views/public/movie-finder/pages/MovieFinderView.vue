@@ -84,7 +84,48 @@
                                 <strong>{{ getMatchLabel(bestMovie.score) }}</strong>
                             </div>
 
-                            <p class="result-description">{{ bestMovie.description }}</p>
+                            <div class="result-diagnostics">
+                                <div class="diagnostics-title">
+                                    <i class="bi bi-sliders2"></i>
+                                    <span>Thông tin kiểm tra</span>
+                                </div>
+
+                                <div class="diagnostics-grid">
+                                    <div>
+                                        <span>Nguồn xử lý</span>
+                                        <strong :class="['source-pill', getSourceClass(bestMovie.matchSource)]">
+                                            {{ getSourceLabel(bestMovie.matchSource) }}
+                                        </strong>
+                                    </div>
+                                    <div>
+                                        <span>Điểm tổng</span>
+                                        <strong>{{ formatTotalScore(bestMovie.score) }}</strong>
+                                    </div>
+                                    <div>
+                                        <span>Embedding</span>
+                                        <strong>{{ formatModelScore(bestMovie.semanticScore) }}</strong>
+                                    </div>
+                                    <div>
+                                        <span>Rerank</span>
+                                        <strong>{{ formatModelScore(bestMovie.rerankScore) }}</strong>
+                                    </div>
+                                    <div>
+                                        <span>Thời gian</span>
+                                        <strong>{{ formatDuration(bestMovie.processingTimeMs) }}</strong>
+                                    </div>
+                                </div>
+
+                                <p class="source-hint">{{ getSourceHint(bestMovie.matchSource) }}</p>
+                            </div>
+
+                            <div v-if="bestMovie.description" class="result-description">
+                                <p
+                                    v-for="(paragraph, index) in splitDescription(bestMovie.description)"
+                                    :key="`${bestMovie.movieId}-description-${index}`"
+                                >
+                                    {{ paragraph }}
+                                </p>
+                            </div>
 
                             <div class="result-actions">
                                 <button type="button" class="primary-action" @click="goBooking(bestMovie.movieId)">
@@ -96,6 +137,30 @@
                             </div>
                         </div>
                     </article>
+
+                    <div v-if="rankedMovies.length > 1" class="ranking-panel">
+                        <div class="ranking-header">
+                            <i class="bi bi-list-ol"></i>
+                            <h3>Bảng kiểm tra xếp hạng</h3>
+                        </div>
+
+                        <div class="ranking-list">
+                            <div
+                                v-for="(movie, index) in rankedMovies"
+                                :key="movie.movieId || `${movie.title}-${index}`"
+                                class="ranking-row"
+                            >
+                                <span class="rank-number">#{{ index + 1 }}</span>
+                                <strong class="rank-title">{{ movie.title }}</strong>
+                                <span :class="['source-pill', getSourceClass(movie.matchSource)]">
+                                    {{ getSourceLabel(movie.matchSource) }}
+                                </span>
+                                <span>{{ formatTotalScore(movie.score) }}</span>
+                                <span>Embedding: {{ formatModelScore(movie.semanticScore) }}</span>
+                                <span>Rerank: {{ formatModelScore(movie.rerankScore) }}</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
         </main>
@@ -129,6 +194,7 @@ const examples = [
 ];
 
 const bestMovie = computed(() => resultMovies.value[0] || null);
+const rankedMovies = computed(() => resultMovies.value.slice(0, 5));
 
 const searchMovie = async () => {
     const query = storyQuery.value.trim();
@@ -141,7 +207,7 @@ const searchMovie = async () => {
         const { data } = await api.get("/movies/discover", {
             params: {
                 query,
-                limit: 1,
+                limit: 5,
             },
         });
         resultMovies.value = Array.isArray(data) ? data : [];
@@ -171,6 +237,59 @@ const getMatchLabel = (score) => {
     if (value >= 75) return "Rất phù hợp";
     if (value >= 55) return "Có thể đúng";
     return "Gợi ý";
+};
+
+const formatTotalScore = (score) => {
+    const value = Number(score);
+    return Number.isFinite(value) ? `${value.toFixed(1)}/100` : "Chưa có";
+};
+
+const formatModelScore = (score) => {
+    const value = Number(score);
+    return Number.isFinite(value) ? `${(value * 100).toFixed(1)}%` : "Chưa có";
+};
+
+const formatDuration = (durationMs) => {
+    const value = Number(durationMs);
+    return Number.isFinite(value) ? `${Math.round(value)} ms` : "Chưa có";
+};
+
+const splitDescription = (description) => {
+    const text = String(description || "").trim();
+    if (!text) return [];
+    return text
+        .split(/\r?\n\s*\r?\n|\r?\n/)
+        .map((paragraph) => paragraph.trim())
+        .filter(Boolean);
+};
+
+const getSourceLabel = (source) => {
+    const sourceMap = {
+        "EMBEDDING_MODEL+RERANK": "Embedding + Rerank",
+        EMBEDDING_MODEL: "Embedding",
+        RERANK: "Rerank",
+        LOCAL_SCORING: "Chấm điểm nội bộ",
+    };
+    return sourceMap[source] || "Chưa rõ";
+};
+
+const getSourceClass = (source) => {
+    if (source === "EMBEDDING_MODEL+RERANK") return "is-full-model";
+    if (source === "EMBEDDING_MODEL" || source === "RERANK") return "is-model";
+    return "is-local";
+};
+
+const getSourceHint = (source) => {
+    if (source === "EMBEDDING_MODEL+RERANK") {
+        return "Đã dùng embedding để lấy ứng viên và rerank để xếp hạng lại.";
+    }
+    if (source === "EMBEDDING_MODEL") {
+        return "Đã dùng embedding, nhưng rerank chưa trả điểm cho kết quả này.";
+    }
+    if (source === "RERANK") {
+        return "Đã dùng rerank trên danh sách ứng viên, nhưng không có điểm embedding.";
+    }
+    return "Kết quả đang dựa vào chấm điểm nội bộ. Nếu muốn dùng model, hãy kiểm tra AI service và rebuild embedding.";
 };
 
 const formatAgeRating = (ageRating) => {
@@ -386,26 +505,30 @@ onMounted(() => {
     background: #fff;
     border: 1px solid #e3e3e3;
     border-radius: 8px;
-    display: grid;
-    gap: 1.25rem;
-    grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+    display: flow-root;
     overflow: hidden;
     box-shadow: 0 12px 30px rgba(42, 28, 20, 0.08);
 }
 
 .result-poster {
     background: #eee;
-    min-height: 380px;
+    float: left;
+    height: 420px;
+    min-height: 0;
+    margin: 0 1.35rem 1rem 0;
+    overflow: hidden;
+    width: clamp(220px, 24vw, 280px);
 }
 
 .result-poster img {
+    display: block;
     height: 100%;
     object-fit: cover;
     width: 100%;
 }
 
 .result-content {
-    padding: 1.35rem 1.35rem 1.35rem 0;
+    padding: 1.35rem;
 }
 
 .result-label {
@@ -477,10 +600,148 @@ onMounted(() => {
     padding: 0.35rem 0.55rem;
 }
 
+.result-diagnostics {
+    background: #fbfbfb;
+    border: 1px solid #e8e8e8;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    padding: 0.85rem;
+}
+
+.diagnostics-title,
+.ranking-header {
+    align-items: center;
+    color: #444;
+    display: flex;
+    gap: 0.45rem;
+}
+
+.diagnostics-title {
+    font-size: 0.9rem;
+    font-weight: 850;
+    margin-bottom: 0.7rem;
+}
+
+.diagnostics-title i,
+.ranking-header i {
+    color: #ff6b35;
+}
+
+.diagnostics-grid {
+    display: grid;
+    gap: 0.6rem;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.diagnostics-grid div {
+    min-width: 0;
+}
+
+.diagnostics-grid span {
+    color: #767676;
+    display: block;
+    font-size: 0.74rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.diagnostics-grid strong,
+.ranking-row > span {
+    color: #333;
+    font-size: 0.84rem;
+    font-weight: 800;
+}
+
+.source-pill {
+    align-items: center;
+    border-radius: 999px;
+    display: inline-flex;
+    line-height: 1.2;
+    max-width: 100%;
+    padding: 0.28rem 0.5rem;
+    white-space: normal;
+}
+
+.source-pill.is-full-model {
+    background: #ecfdf3;
+    color: #18794e;
+}
+
+.source-pill.is-model {
+    background: #eef4ff;
+    color: #315fba;
+}
+
+.source-pill.is-local {
+    background: #fff6e5;
+    color: #9a5b00;
+}
+
+.source-hint {
+    color: #686868;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    margin: 0.7rem 0 0;
+}
+
+.ranking-panel {
+    background: #fff;
+    border: 1px solid #e3e3e3;
+    border-radius: 8px;
+    box-shadow: 0 12px 30px rgba(42, 28, 20, 0.06);
+    margin-top: 1rem;
+    padding: 1rem;
+}
+
+.ranking-header {
+    margin-bottom: 0.75rem;
+}
+
+.ranking-header h3 {
+    font-size: 1rem;
+    font-weight: 850;
+    margin: 0;
+}
+
+.ranking-list {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.ranking-row {
+    align-items: center;
+    background: #fafafa;
+    border: 1px solid #ececec;
+    border-radius: 8px;
+    display: grid;
+    gap: 0.6rem;
+    grid-template-columns: 44px minmax(150px, 1fr) minmax(130px, auto) repeat(3, minmax(90px, auto));
+    padding: 0.65rem 0.75rem;
+}
+
+.rank-number {
+    color: #ff6b35;
+}
+
+.rank-title {
+    color: #252525;
+    font-size: 0.92rem;
+    min-width: 0;
+}
+
 .result-description {
     color: #555;
     line-height: 1.55;
     margin: 0 0 1.1rem;
+    white-space: pre-line;
+}
+
+.result-description p {
+    margin: 0 0 0.85rem;
+}
+
+.result-description p:last-child {
+    margin-bottom: 0;
 }
 
 .mini-spinner {
@@ -504,15 +765,23 @@ onMounted(() => {
     }
 
     .finder-result {
-        grid-template-columns: 1fr;
+        display: block;
     }
 
     .result-poster {
-        min-height: 320px;
+        float: none;
+        height: 360px;
+        margin: 0;
+        width: 100%;
     }
 
     .result-content {
         padding: 1.1rem;
+    }
+
+    .diagnostics-grid,
+    .ranking-row {
+        grid-template-columns: 1fr;
     }
 
     .finder-submit,

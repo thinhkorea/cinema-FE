@@ -58,12 +58,12 @@
                     <article v-for="log in testLogs" :key="log.id" class="test-log-item">
                         <div class="test-log-head">
                             <span class="badge-soft" :class="violationClass(log.severity)">
-                                {{ log.flagged ? log.violationType : "SAFE" }}
+                                {{ log.flagged ? violationTitle(log) : "An toàn" }}
                             </span>
                             <small>{{ formatDate(log.checkedAt) }}</small>
                         </div>
-                        <p class="test-log-comment">{{ log.comment || "(Không có nội dung)" }}</p>
-                        <small class="test-log-reason">{{ log.reason }}</small>
+                        <p class="test-log-comment">{{ displayText(log.comment) || "(Không có nội dung)" }}</p>
+                        <small class="test-log-reason">{{ displayText(log.reason) }}</small>
                     </article>
                 </div>
             </div>
@@ -86,7 +86,7 @@
 
         <div class="moderation-tabs" role="tablist" aria-label="Bộ lọc kiểm duyệt">
             <button :class="{ active: activeTab === 'flagged' }" type="button" @click="activeTab = 'flagged'">
-                Review bị gắn cờ
+                Review cần kiểm tra
             </button>
             <button :class="{ active: activeTab === 'logs' }" type="button" @click="activeTab = 'logs'">
                 Lịch sử vi phạm
@@ -96,78 +96,87 @@
         <section v-if="activeTab === 'flagged'" class="moderation-panel">
             <div class="panel-title">
                 <h3>Review cần kiểm tra</h3>
-                <span>Duyệt để hiển thị lại, hoặc từ chối để giữ review ở trạng thái bị ẩn.</span>
+                <span>Báo cáo của khách chỉ đưa review vào hàng chờ; review chỉ bị ẩn khi admin từ chối.</span>
             </div>
 
             <div v-if="loading" class="empty-state">Đang tải dữ liệu...</div>
-            <div v-else-if="flaggedReviews.length === 0" class="empty-state">Không có review bị gắn cờ.</div>
-            <div v-else class="table-responsive">
-                <table class="table moderation-table flagged-table align-middle">
-                    <thead>
-                        <tr>
-                            <th>Phim</th>
-                            <th>Khách hàng</th>
-                            <th>Nội dung</th>
-                            <th>Vi phạm</th>
-                            <th class="text-end">Thao tác</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="review in flaggedReviews" :key="review.reviewId">
-                            <td>
-                                <strong>{{ review.movieTitle || "Chưa có phim" }}</strong>
-                                <small>{{ formatDate(review.createdAt) }}</small>
-                            </td>
-                            <td>
-                                <strong>{{ review.fullName || "Khách hàng" }}</strong>
-                                <small>{{ review.username || "Không có email" }}</small>
-                            </td>
-                            <td class="review-content">
-                                <span class="stars">{{ renderStars(review.rating) }}</span>
-                                <p>{{ review.comment || "Không có nội dung" }}</p>
-                            </td>
-                            <td>
-                                <span class="badge-soft" :class="violationClass(review.violationSeverity)">
-                                    {{ review.violationType || "OTHER" }}
-                                </span>
-                                <small>{{ review.violationSeverity || "MEDIUM" }}</small>
-                            </td>
-                            <td class="action-cell">
-                                <div class="action-buttons">
-                                    <button
-                                        class="action-icon-btn detail"
-                                        type="button"
-                                        title="Xem chi tiết"
-                                        aria-label="Xem chi tiết"
-                                        @click="openReviewDetail(review)"
-                                    >
-                                        <i class="bi bi-eye"></i>
-                                    </button>
-                                    <button
-                                        class="action-icon-btn approve"
-                                        type="button"
-                                        title="Duyệt"
-                                        aria-label="Duyệt"
-                                        :disabled="busyReviewId === review.reviewId"
-                                        @click="approveReview(review)"
-                                    >
-                                        <i class="bi bi-check-lg"></i>
-                                    </button>
-                                    <button
-                                        class="action-icon-btn reject"
-                                        type="button"
-                                        title="Từ chối"
-                                        aria-label="Từ chối"
-                                        :disabled="busyReviewId === review.reviewId"
-                                        @click="rejectReview(review)"
-                                    >
-                                        <i class="bi bi-x-lg"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+            <div v-else-if="flaggedReviews.length === 0" class="empty-state">Không có review cần kiểm tra.</div>
+            <div v-else>
+                <div class="table-responsive">
+                    <table class="table moderation-table flagged-table align-middle">
+                        <thead>
+                            <tr>
+                                <th>Phim</th>
+                                <th>Khách hàng</th>
+                                <th>Nội dung</th>
+                                <th>Vi phạm</th>
+                                <th class="text-end">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="review in paginatedFlaggedReviews" :key="review.reviewId">
+                                <td>
+                                    <strong>{{ review.movieTitle || "Chưa có phim" }}</strong>
+                                    <small>{{ formatDate(review.createdAt) }}</small>
+                                </td>
+                                <td>
+                                    <strong>{{ review.fullName || "Khách hàng" }}</strong>
+                                    <small>{{ review.username || "Không có email" }}</small>
+                                </td>
+                                <td class="review-content">
+                                    <span class="stars">{{ renderStars(review.rating) }}</span>
+                                    <p>{{ review.comment || "Không có nội dung" }}</p>
+                                </td>
+                                <td>
+                                    <span class="badge-soft" :class="violationClass(review.violationSeverity)">
+                                        {{ violationTitle(review) }}
+                                    </span>
+                                    <small class="violation-reason-preview">{{ violationMeta(review) }}</small>
+                                </td>
+                                <td class="action-cell">
+                                    <div class="action-buttons">
+                                        <button
+                                            class="action-icon-btn detail"
+                                            type="button"
+                                            title="Xem chi tiết"
+                                            aria-label="Xem chi tiết"
+                                            @click="openReviewDetail(review)"
+                                        >
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <button
+                                            class="action-icon-btn approve"
+                                            type="button"
+                                            :title="approveActionLabel(review)"
+                                            :aria-label="approveActionLabel(review)"
+                                            :disabled="busyReviewId === review.reviewId"
+                                            @click="approveReview(review)"
+                                        >
+                                            <i class="bi bi-check-lg"></i>
+                                        </button>
+                                        <button
+                                            class="action-icon-btn reject"
+                                            type="button"
+                                            title="Từ chối"
+                                            aria-label="Từ chối"
+                                            :disabled="busyReviewId === review.reviewId"
+                                            @click="rejectReview(review)"
+                                        >
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <AdminPagination
+                    v-model="flaggedCurrentPage"
+                    v-model:page-size="flaggedPageSize"
+                    :total-items="flaggedReviews.length"
+                    item-label="review"
+                    aria-label="Phân trang review cần kiểm tra"
+                />
             </div>
         </section>
 
@@ -179,40 +188,49 @@
 
             <div v-if="loading" class="empty-state">Đang tải dữ liệu...</div>
             <div v-else-if="violationLogs.length === 0" class="empty-state">Chưa có log vi phạm.</div>
-            <div v-else class="table-responsive">
-                <table class="table moderation-table logs-table align-middle">
-                    <thead>
-                        <tr>
-                            <th>Thời gian</th>
-                            <th>Khách hàng</th>
-                            <th>Phim</th>
-                            <th>Nội dung</th>
-                            <th>Vi phạm</th>
-                            <th>Nguồn</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="log in violationLogs" :key="log.violationLogId">
-                            <td>{{ formatDate(log.createdAt) }}</td>
-                            <td>
-                                <strong>{{ log.fullName || "Khách hàng" }}</strong>
-                                <small>{{ log.username || "Không có email" }}</small>
-                            </td>
-                            <td>{{ log.movieTitle || "Chưa có phim" }}</td>
-                            <td class="review-content">
-                                <p>{{ log.contentSnapshot || "Không có nội dung" }}</p>
-                                <small>{{ log.reason || "Không có lý do chi tiết." }}</small>
-                            </td>
-                            <td>
-                                <span class="badge-soft" :class="violationClass(log.severity)">
-                                    {{ log.violationType || "OTHER" }}
-                                </span>
-                                <small>{{ log.severity || "MEDIUM" }}</small>
-                            </td>
-                            <td>{{ providerLabel(log.moderationProvider) }}</td>
-                        </tr>
-                    </tbody>
-                </table>
+            <div v-else>
+                <div class="table-responsive">
+                    <table class="table moderation-table logs-table align-middle">
+                        <thead>
+                            <tr>
+                                <th>Thời gian</th>
+                                <th>Khách hàng</th>
+                                <th>Phim</th>
+                                <th>Nội dung</th>
+                                <th>Vi phạm</th>
+                                <th>Nguồn</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="log in paginatedViolationLogs" :key="log.violationLogId">
+                                <td>{{ formatDate(log.createdAt) }}</td>
+                                <td>
+                                    <strong>{{ log.fullName || "Khách hàng" }}</strong>
+                                    <small>{{ log.username || "Không có email" }}</small>
+                                </td>
+                                <td>{{ log.movieTitle || "Chưa có phim" }}</td>
+                                <td class="review-content">
+                                    <p>{{ displayText(log.contentSnapshot) || "Không có nội dung" }}</p>
+                                    <small>{{ violationDetailReason(log) }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge-soft" :class="violationClass(log.severity)">
+                                        {{ violationTitle(log) }}
+                                    </span>
+                                    <small class="violation-reason-preview">{{ violationMeta(log) }}</small>
+                                </td>
+                                <td>{{ providerLabel(log.moderationProvider) }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <AdminPagination
+                    v-model="logsCurrentPage"
+                    v-model:page-size="logsPageSize"
+                    :total-items="violationLogs.length"
+                    item-label="log"
+                    aria-label="Phân trang log vi phạm"
+                />
             </div>
         </section>
 
@@ -244,19 +262,19 @@
                     </div>
                     <div>
                         <span>Vi phạm</span>
-                        <strong>{{ selectedReviewDetail.violationType || "OTHER" }}</strong>
-                        <small>{{ selectedReviewDetail.violationSeverity || "MEDIUM" }}</small>
+                        <strong>{{ violationTitle(selectedReviewDetail) }}</strong>
+                        <small>{{ severityLabel(selectedReviewDetail.violationSeverity) }}</small>
                     </div>
                 </div>
 
                 <section class="detail-block">
                     <h4>Nội dung bình luận</h4>
-                    <p>{{ selectedReviewDetail.comment || "Không có nội dung" }}</p>
+                    <p>{{ displayText(selectedReviewDetail.comment) || "Không có nội dung" }}</p>
                 </section>
 
                 <section class="detail-block">
                     <h4>Lý do gắn cờ</h4>
-                    <p>{{ selectedReviewDetail.violationReason || "Không có lý do chi tiết." }}</p>
+                    <p>{{ violationDetailReason(selectedReviewDetail) }}</p>
                 </section>
             </article>
         </div>
@@ -264,8 +282,9 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import api from "@/api";
+import AdminPagination from "@/views/Admin/components/AdminPagination.vue";
 import { getApiErrorMessage, showCinemaConfirm, showCinemaToast } from "@/utils/cinemaAlert";
 
 const activeTab = ref("flagged");
@@ -273,6 +292,10 @@ const loading = ref(false);
 const busyReviewId = ref(null);
 const flaggedReviews = ref([]);
 const violationLogs = ref([]);
+const flaggedCurrentPage = ref(1);
+const flaggedPageSize = ref(10);
+const logsCurrentPage = ref(1);
+const logsPageSize = ref(10);
 const selectedReviewDetail = ref(null);
 const testComment = ref("");
 const testingModeration = ref(false);
@@ -280,6 +303,31 @@ const testLogs = ref([]);
 
 const highSeverityCount = computed(() => {
     return violationLogs.value.filter((log) => String(log.severity || "").toUpperCase() === "HIGH").length;
+});
+
+const flaggedTotalPages = computed(() => Math.max(1, Math.ceil(flaggedReviews.value.length / flaggedPageSize.value)));
+const logsTotalPages = computed(() => Math.max(1, Math.ceil(violationLogs.value.length / logsPageSize.value)));
+
+const paginatedFlaggedReviews = computed(() => {
+    const start = (flaggedCurrentPage.value - 1) * flaggedPageSize.value;
+    return flaggedReviews.value.slice(start, start + flaggedPageSize.value);
+});
+
+const paginatedViolationLogs = computed(() => {
+    const start = (logsCurrentPage.value - 1) * logsPageSize.value;
+    return violationLogs.value.slice(start, start + logsPageSize.value);
+});
+
+watch([flaggedPageSize, flaggedTotalPages], () => {
+    if (flaggedCurrentPage.value > flaggedTotalPages.value) {
+        flaggedCurrentPage.value = flaggedTotalPages.value;
+    }
+});
+
+watch([logsPageSize, logsTotalPages], () => {
+    if (logsCurrentPage.value > logsTotalPages.value) {
+        logsCurrentPage.value = logsTotalPages.value;
+    }
 });
 
 const loadModerationData = async () => {
@@ -303,23 +351,29 @@ const loadModerationData = async () => {
 };
 
 const approveReview = async (review) => {
+    const isReport = isUserReport(review);
     const confirmed = await showCinemaConfirm({
         icon: "question",
-        title: "Duyệt đánh giá?",
-        text: "Review này sẽ được hiển thị lại cho khách hàng.",
-        confirmButtonText: "Duyệt",
+        title: isReport ? "Bỏ qua báo cáo?" : "Duyệt đánh giá?",
+        text: isReport
+            ? "Review này vẫn đang hiển thị. Báo cáo sẽ được đóng và review được giữ lại trên trang phim."
+            : "Review này sẽ được hiển thị lại cho khách hàng.",
+        confirmButtonText: isReport ? "Giữ hiển thị" : "Duyệt",
     });
     if (!confirmed) return;
 
-    await updateReviewStatus(review, "approve", "Đã duyệt đánh giá");
+    await updateReviewStatus(review, "approve", isReport ? "Đã bỏ qua báo cáo" : "Đã duyệt đánh giá");
 };
 
 const rejectReview = async (review) => {
+    const isReport = isUserReport(review);
     const confirmed = await showCinemaConfirm({
         icon: "warning",
-        title: "Từ chối đánh giá?",
-        text: "Review này sẽ tiếp tục bị ẩn khỏi trang phim.",
-        confirmButtonText: "Từ chối",
+        title: isReport ? "Ẩn review này?" : "Từ chối đánh giá?",
+        text: isReport
+            ? "Admin xác nhận review không phù hợp và review sẽ bị ẩn khỏi trang phim."
+            : "Review này sẽ tiếp tục bị ẩn khỏi trang phim.",
+        confirmButtonText: isReport ? "Ẩn review" : "Từ chối",
     });
     if (!confirmed) return;
 
@@ -398,6 +452,161 @@ const formatDate = (value) => {
     }).format(date);
 };
 
+const cp1252Bytes = new Map([
+    [0x20ac, 0x80],
+    [0x201a, 0x82],
+    [0x0192, 0x83],
+    [0x201e, 0x84],
+    [0x2026, 0x85],
+    [0x2020, 0x86],
+    [0x2021, 0x87],
+    [0x02c6, 0x88],
+    [0x2030, 0x89],
+    [0x0160, 0x8a],
+    [0x2039, 0x8b],
+    [0x0152, 0x8c],
+    [0x017d, 0x8e],
+    [0x2018, 0x91],
+    [0x2019, 0x92],
+    [0x201c, 0x93],
+    [0x201d, 0x94],
+    [0x2022, 0x95],
+    [0x2013, 0x96],
+    [0x2014, 0x97],
+    [0x02dc, 0x98],
+    [0x2122, 0x99],
+    [0x0161, 0x9a],
+    [0x203a, 0x9b],
+    [0x0153, 0x9c],
+    [0x017e, 0x9e],
+    [0x0178, 0x9f],
+]);
+
+const replacementCharacter = String.fromCharCode(65533);
+const brokenVietnameseLetter = `[${replacementCharacter}?]`;
+
+const repairMojibake = (value) => {
+    if (typeof value !== "string" || value.length === 0) {
+        return value;
+    }
+
+    const bytes = [];
+    for (const char of value) {
+        const codePoint = char.codePointAt(0);
+        if (codePoint <= 0xff) {
+            bytes.push(codePoint);
+        } else if (cp1252Bytes.has(codePoint)) {
+            bytes.push(cp1252Bytes.get(codePoint));
+        } else {
+            return value;
+        }
+    }
+
+    const decoded = new TextDecoder("utf-8").decode(Uint8Array.from(bytes));
+    if (decoded === value || decoded.includes(replacementCharacter)) {
+        return value;
+    }
+    return repairMojibake(decoded);
+};
+
+const displayText = (value) => repairMojibake(value || "");
+
+const cleanBrokenVietnamese = (value) => {
+    if (!value) return "";
+
+    return value
+        .replace(new RegExp(`B${brokenVietnameseLetter}nh lu${brokenVietnameseLetter}n`, "gi"), "Bình luận")
+        .replace(new RegExp(`b${brokenVietnameseLetter}nh lu${brokenVietnameseLetter}n`, "gi"), "bình luận")
+        .replace(new RegExp(`kh${brokenVietnameseLetter}ng`, "gi"), "không")
+        .replace(new RegExp(`r${brokenVietnameseLetter}\\s+r${brokenVietnameseLetter}ng`, "gi"), "rõ ràng")
+        .replace(new RegExp(`r${brokenVietnameseLetter}ng`, "gi"), "ràng")
+        .replace(new RegExp(`r${brokenVietnameseLetter}`, "gi"), "rõ")
+        .replace(new RegExp(`l${brokenVietnameseLetter}\\s+do`, "gi"), "lý do")
+        .replace(new RegExp(`c${brokenVietnameseLetter}\\s+th${brokenVietnameseLetter}`, "gi"), "cụ thể")
+        .replace(new RegExp(`kh${brokenVietnameseLetter}ch h${brokenVietnameseLetter}ng`, "gi"), "khách hàng")
+        .replace(new RegExp(`b${brokenVietnameseLetter}o c${brokenVietnameseLetter}o`, "gi"), "báo cáo");
+};
+
+const extractUserReportReason = (value) => {
+    const text = cleanBrokenVietnamese(displayText(value).trim());
+    if (!text) return "";
+
+    const parenthesizedReporterMatch = text.match(/\)\s*:\s*(.+)$/);
+    if (parenthesizedReporterMatch?.[1]) {
+        return cleanBrokenVietnamese(parenthesizedReporterMatch[1].trim());
+    }
+
+    const customerReportMatch = text.match(/khách hàng\s+.+?\s+báo cáo\s*:\s*(.+)$/i);
+    if (customerReportMatch?.[1]) {
+        return cleanBrokenVietnamese(customerReportMatch[1].trim());
+    }
+
+    return text;
+};
+
+const violationTypeLabels = {
+    USER_REPORT: "Khách hàng báo cáo",
+    PROFANITY: "Ngôn từ không phù hợp",
+    HARASSMENT: "Quấy rối",
+    HATE_SPEECH: "Ngôn từ thù ghét",
+    SEXUAL: "Nội dung nhạy cảm",
+    VIOLENCE: "Bạo lực",
+    SPAM: "Spam",
+    OTHER: "Khác",
+};
+
+const severityLabels = {
+    HIGH: "Nghiêm trọng",
+    MEDIUM: "Trung bình",
+    LOW: "Nhẹ",
+};
+
+const severityLabel = (severity) => {
+    const normalized = String(severity || "MEDIUM").toUpperCase();
+    return severityLabels[normalized] || normalized;
+};
+
+const formatKeywordLabel = (value) => {
+    return String(value || "OTHER")
+        .split("_")
+        .filter(Boolean)
+        .map((part) => part.charAt(0) + part.slice(1).toLowerCase())
+        .join(" ");
+};
+
+const violationTitle = (item) => {
+    const type = String(item?.violationType || "").toUpperCase();
+    return violationTypeLabels[type] || formatKeywordLabel(type);
+};
+
+const isUserReport = (item) => {
+    return String(item?.violationType || "").toUpperCase() === "USER_REPORT";
+};
+
+const approveActionLabel = (item) => {
+    return isUserReport(item) ? "Giữ hiển thị" : "Duyệt";
+};
+
+const shortenText = (value, maxLength = 120) => {
+    const text = displayText(value).trim();
+    if (text.length <= maxLength) return text;
+    return `${text.slice(0, maxLength - 3)}...`;
+};
+
+const violationDetailReason = (item) => {
+    const rawReason = item?.violationReason || item?.reason;
+    const reason = isUserReport(item) ? extractUserReportReason(rawReason) : cleanBrokenVietnamese(displayText(rawReason).trim());
+    return reason || "Không có lý do chi tiết.";
+};
+
+const violationMeta = (item) => {
+    const reason = violationDetailReason(item);
+    if (reason !== "Không có lý do chi tiết.") {
+        return shortenText(reason);
+    }
+    return severityLabel(item?.violationSeverity || item?.severity);
+};
+
 const violationClass = (severity) => {
     const normalized = String(severity || "").toUpperCase();
     if (normalized === "HIGH") return "danger";
@@ -407,6 +616,7 @@ const violationClass = (severity) => {
 
 const providerLabel = (provider) => {
     const normalized = String(provider || "").toUpperCase();
+    if (normalized.includes("USER_REPORT")) return "Khách hàng";
     if (normalized.includes("HTTP_AI")) return "HTTP AI";
     if (normalized.includes("OLLAMA")) return "Ollama";
     if (normalized.includes("LOCAL") || normalized.includes("RULE")) return "Rule";
@@ -727,6 +937,14 @@ onMounted(loadModerationData);
     display: block;
     font-size: 0.82rem;
     margin-top: 4px;
+}
+
+.moderation-table small.violation-reason-preview {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-height: 1.35;
+    overflow: hidden;
 }
 
 .review-content p,

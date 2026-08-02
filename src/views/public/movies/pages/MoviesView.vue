@@ -224,25 +224,25 @@ const sortShowtimesByStartTime = (items = []) =>
 const fetchMoviesAndShowtimes = async () => {
     try {
         // Lấy danh sách phim
-        const moviesResponse = await api.get("/movies");
+        const [moviesResponse, showtimesResponse] = await Promise.all([
+            api.get("/movies"),
+            api.get("/showtimes/upcoming/grouped-by-movie"),
+        ]);
         movies.value = moviesResponse.data || [];
 
         // Lấy suất chiếu cho tất cả phim
         const showtimesData = {};
+        const groupedShowtimes = showtimesResponse.data || {};
         const moviesToProcess = movies.value; // Lấy tất cả phim
 
         for (const movie of moviesToProcess) {
             try {
-                const showtimesResponse = await api.get(`/showtimes/movie/${movie.movieId}`);
+                const movieShowtimes = groupedShowtimes[movie.movieId] || [];
                 const showtimesArray = sortShowtimesByStartTime(
-                    (showtimesResponse.data || []).filter(isUpcomingShowtime),
+                    movieShowtimes.filter(isUpcomingShowtime),
                 );
 
                 // Debug: Log cấu trúc dữ liệu showtime đầu tiên (chỉ cho phim đầu tiên)
-                if (showtimesArray.length > 0 && movie.movieId <= 482) {
-                    console.log(`Sample showtime for movie ${movie.movieId}:`, showtimesArray[0]);
-                }
-
                 showtimesData[movie.movieId] = showtimesArray;
             } catch (error) {
                 // Xử lý lỗi một cách im lặng, chỉ ghi log khi cần thiết

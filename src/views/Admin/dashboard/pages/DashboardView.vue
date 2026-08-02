@@ -44,7 +44,7 @@
       </div>
     </div>
 
-    <!-- Top phim & Top nhân viên -->
+    <!-- Top phim & Top khách hàng -->
     <div class="full-width-section mb-5">
       <h5 class="mb-4 d-flex align-items-center">
         <i class="bi bi-clock-history me-2 text-danger"></i> Doanh thu theo khung giờ
@@ -107,14 +107,15 @@
         </div>
       </div>
 
-      <!-- Top nhân viên -->
+      <!-- Top khách hàng -->
       <div class="col-lg-6">
         <div class="full-width-section h-100">
           <h5 class="mb-4 d-flex align-items-center">
-            <i class="bi bi-person-workspace me-2 text-info"></i> Top nhân viên theo doanh thu bán vé
+            <i class="bi bi-person-heart me-2 text-info"></i>
+            Khách hàng tiêu tiền nhiều nhất trong {{ currentMonthLabel }}
           </h5>
 
-          <div v-if="loadingStaffs" class="text-center py-4">
+          <div v-if="loadingCustomers" class="text-center py-4">
             <div class="spinner-border text-info"></div>
           </div>
 
@@ -123,15 +124,20 @@
               <thead class="table-light">
                 <tr>
                   <th>#</th>
-                  <th>Nhân viên</th>
-                  <th>Doanh thu</th>
+                  <th>Khách hàng</th>
+                  <th>Email</th>
+                  <th>Chi tiêu</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(s, i) in topStaffs" :key="i">
+                <tr v-for="(customer, i) in topCustomers" :key="customer.customerId || i">
                   <td>{{ i + 1 }}</td>
-                  <td class="fw-semibold">{{ s.staffName }}</td>
-                  <td class="text-primary fw-bold">{{ formatCurrency(s.totalRevenue) }}</td>
+                  <td class="fw-semibold">{{ customer.customerName }}</td>
+                  <td class="text-muted">{{ customer.email || '-' }}</td>
+                  <td class="text-primary fw-bold">{{ formatCurrency(customer.totalSpent) }}</td>
+                </tr>
+                <tr v-if="!topCustomers.length">
+                  <td colspan="4" class="text-muted py-3">Chưa có chi tiêu trong tháng này</td>
                 </tr>
               </tbody>
             </table>
@@ -143,7 +149,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import api from '@/api'
 import { Line } from 'vue-chartjs'
 import {
@@ -214,12 +220,14 @@ const loading = ref(true)
 const topMovies = ref([])
 const loadingMovies = ref(true)
 
-// Top nhân viên
-const topStaffs = ref([])
-const loadingStaffs = ref(true)
+// Top khách hàng
+const topCustomers = ref([])
+const loadingCustomers = ref(true)
 
 const timeSlotRevenue = ref([])
 const loadingTimeSlots = ref(true)
+const currentMonth = new Date().getMonth() + 1
+const currentMonthLabel = computed(() => `tháng ${currentMonth}/${currentYear}`)
 
 // API
 const fetchStats = async () => {
@@ -274,18 +282,20 @@ const fetchTopMovies = async () => {
   }
 }
 
-const fetchTopStaffs = async () => {
-  loadingStaffs.value = true
+const fetchTopCustomers = async () => {
+  loadingCustomers.value = true
   try {
-    const { data } = await api.get('/admin/revenue/staffs')
-    topStaffs.value = data.map(staff => ({
-      ...staff,
-      totalRevenue: Number(staff.totalRevenue || 0)
+    const { data } = await api.get(`/admin/revenue/customers/top-month?year=${currentYear}&month=${currentMonth}`)
+    topCustomers.value = data.map(customer => ({
+      ...customer,
+      totalSpent: Number(customer.totalSpent || 0),
+      ticketRevenue: Number(customer.ticketRevenue || 0),
+      snackRevenue: Number(customer.snackRevenue || 0)
     }))
   } catch (err) {
-    console.error('Error loading top staffs:', err)
+    console.error('Error loading top customers:', err)
   } finally {
-    loadingStaffs.value = false
+    loadingCustomers.value = false
   }
 }
 
@@ -294,7 +304,7 @@ onMounted(async () => {
   await fetchStats()
   await fetchRevenue()
   await fetchTopMovies()
-  await fetchTopStaffs()
+  await fetchTopCustomers()
 })
 
 function formatCurrency(value) {

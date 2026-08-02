@@ -10,60 +10,70 @@
 
         <div v-if="loading" class="loading">Đang tải dữ liệu...</div>
 
-        <div v-else class="table-wrap">
-            <table class="voucher-table">
-                <thead>
-                    <tr>
-                        <th>Mã</th>
-                        <th>Tên</th>
-                        <th>Loại</th>
-                        <th>Giá trị</th>
-                        <th>Điều kiện</th>
-                        <th>Trạng thái</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="voucher in vouchers" :key="voucher.voucherId">
-                        <td class="code">{{ voucher.code }}</td>
-                        <td>{{ voucher.name }}</td>
-                        <td>{{ voucher.type === "PERCENT" ? "%" : "Fixed" }}</td>
-                        <td>
-                            {{ formatValue(voucher) }}
-                        </td>
-                        <td>
-                            <div v-if="voucher.minOrder">
-                                Tối thiểu {{ formatCurrency(voucher.minOrder) }}
-                            </div>
-                            <div v-if="voucher.newMemberOnly" class="badge new-member">Chỉ khách mới</div>
-                            <div v-if="voucher.newMemberOnly" class="condition-note">Chưa từng thanh toán</div>
-                            <div v-if="looksLikeNewMemberVoucher(voucher) && !voucher.newMemberOnly" class="badge warning">
-                                Chưa bật điều kiện khách mới
-                            </div>
-                            <div v-if="voucher.requiredTotalSpent" class="badge points">
-                                Đã tiêu từ {{ formatCurrency(voucher.requiredTotalSpent) }} trong
-                                {{ formatWindowYears(voucher.spendingWindowDays) }}
-                            </div>
-                            <div v-if="voucher.requiredTotalSpent" class="badge spend-only">Theo mốc chi tiêu</div>
-                            <div v-if="!voucher.minOrder && !voucher.newMemberOnly && !voucher.requiredTotalSpent" class="muted">
-                                Không yêu cầu
-                            </div>
-                        </td>
-                        <td>
-                            <span :class="['status', voucher.active ? 'active' : 'inactive']">
-                                {{ voucher.active ? "Đang bật" : "Đã tắt" }}
-                            </span>
-                        </td>
-                        <td class="actions">
-                            <button class="btn-text" @click="openEdit(voucher)">Sửa</button>
-                            <button class="btn-text" @click="toggleActive(voucher)">
-                                {{ voucher.active ? "Tắt" : "Bật" }}
-                            </button>
-                            <button class="btn-text danger" @click="removeVoucher(voucher)">Xóa</button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+        <div v-else>
+            <div class="table-wrap">
+                <table class="voucher-table">
+                    <thead>
+                        <tr>
+                            <th>Mã</th>
+                            <th>Tên</th>
+                            <th>Loại</th>
+                            <th>Giá trị</th>
+                            <th>Điều kiện</th>
+                            <th>Trạng thái</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="voucher in paginatedVouchers" :key="voucher.voucherId">
+                            <td class="code">{{ voucher.code }}</td>
+                            <td>{{ voucher.name }}</td>
+                            <td>{{ voucher.type === "PERCENT" ? "%" : "Fixed" }}</td>
+                            <td>
+                                {{ formatValue(voucher) }}
+                            </td>
+                            <td>
+                                <div v-if="voucher.minOrder">
+                                    Tối thiểu {{ formatCurrency(voucher.minOrder) }}
+                                </div>
+                                <div v-if="voucher.newMemberOnly" class="badge new-member">Chỉ khách mới</div>
+                                <div v-if="voucher.newMemberOnly" class="condition-note">Chưa từng thanh toán</div>
+                                <div v-if="looksLikeNewMemberVoucher(voucher) && !voucher.newMemberOnly" class="badge warning">
+                                    Chưa bật điều kiện khách mới
+                                </div>
+                                <div v-if="voucher.requiredTotalSpent" class="badge points">
+                                    Đã tiêu từ {{ formatCurrency(voucher.requiredTotalSpent) }} trong
+                                    {{ formatWindowYears(voucher.spendingWindowDays) }}
+                                </div>
+                                <div v-if="voucher.requiredTotalSpent" class="badge spend-only">Theo mốc chi tiêu</div>
+                                <div v-if="!voucher.minOrder && !voucher.newMemberOnly && !voucher.requiredTotalSpent" class="muted">
+                                    Không yêu cầu
+                                </div>
+                            </td>
+                            <td>
+                                <span :class="['status', voucher.active ? 'active' : 'inactive']">
+                                    {{ voucher.active ? "Đang bật" : "Đã tắt" }}
+                                </span>
+                            </td>
+                            <td class="actions">
+                                <button class="btn-text" @click="openEdit(voucher)">Sửa</button>
+                                <button class="btn-text" @click="toggleActive(voucher)">
+                                    {{ voucher.active ? "Tắt" : "Bật" }}
+                                </button>
+                                <button class="btn-text danger" @click="removeVoucher(voucher)">Xóa</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <AdminPagination
+                v-if="vouchers.length"
+                v-model="currentPage"
+                v-model:page-size="pageSize"
+                :total-items="vouchers.length"
+                item-label="voucher"
+                aria-label="Phân trang voucher"
+            />
         </div>
 
         <div v-if="modalOpen" class="voucher-modal-backdrop" @click="closeModal">
@@ -185,12 +195,15 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import api from "@/api";
+import AdminPagination from "@/views/Admin/components/AdminPagination.vue";
 import { getApiErrorMessage, showCinemaAlert } from "@/utils/cinemaAlert";
 
 const vouchers = ref([]);
 const loading = ref(false);
+const currentPage = ref(1);
+const pageSize = ref(10);
 const modalOpen = ref(false);
 const isEditing = ref(false);
 const editingId = ref(null);
@@ -215,6 +228,17 @@ const emptyForm = () => ({
 });
 
 const form = ref(emptyForm());
+const totalPages = computed(() => Math.max(1, Math.ceil(vouchers.value.length / pageSize.value)));
+const paginatedVouchers = computed(() => {
+    const start = (currentPage.value - 1) * pageSize.value;
+    return vouchers.value.slice(start, start + pageSize.value);
+});
+
+watch([pageSize, totalPages], () => {
+    if (currentPage.value > totalPages.value) {
+        currentPage.value = totalPages.value;
+    }
+});
 
 const fetchVouchers = async () => {
     try {

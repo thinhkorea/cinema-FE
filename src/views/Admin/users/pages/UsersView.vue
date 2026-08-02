@@ -80,8 +80,9 @@
                 Không có khách hàng phù hợp với bộ lọc.
             </div>
 
-            <div v-else class="table-responsive">
-                <table class="table table-hover align-middle">
+            <div v-else>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
                     <thead class="table-light">
                         <tr>
                             <th>#</th>
@@ -92,8 +93,8 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="(user, index) in filteredCustomers" :key="user.userId">
-                            <td>{{ index + 1 }}</td>
+                        <tr v-for="(user, index) in paginatedCustomers" :key="user.userId">
+                            <td>{{ (customerCurrentPage - 1) * customerPageSize + index + 1 }}</td>
                             <td class="fw-semibold">{{ user.email || "N/A" }}</td>
                             <td>{{ user.fullName || "N/A" }}</td>
                             <td>
@@ -142,7 +143,15 @@
                             </td>
                         </tr>
                     </tbody>
-                </table>
+                    </table>
+                </div>
+                <AdminPagination
+                    v-model="customerCurrentPage"
+                    v-model:page-size="customerPageSize"
+                    :total-items="filteredCustomers.length"
+                    item-label="khách hàng"
+                    aria-label="Phân trang khách hàng"
+                />
             </div>
         </div>
 
@@ -201,8 +210,9 @@
                 Không có nhân viên phù hợp với bộ lọc.
             </div>
 
-            <div v-else class="table-responsive">
-                <table class="table table-hover align-middle">
+            <div v-else>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
                     <thead class="table-light">
                         <tr>
                             <th>#</th>
@@ -214,8 +224,8 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="(staff, index) in filteredStaffs" :key="staff.staffId">
-                            <td>{{ index + 1 }}</td>
+                        <tr v-for="(staff, index) in paginatedStaffs" :key="staff.staffId">
+                            <td>{{ (staffCurrentPage - 1) * staffPageSize + index + 1 }}</td>
                             <td>{{ staff.fullName || "N/A" }}</td>
                             <td>{{ staff.email || "N/A" }}</td>
                             <td>{{ staff.phone || "N/A" }}</td>
@@ -258,7 +268,15 @@
                             </td>
                         </tr>
                     </tbody>
-                </table>
+                    </table>
+                </div>
+                <AdminPagination
+                    v-model="staffCurrentPage"
+                    v-model:page-size="staffPageSize"
+                    :total-items="filteredStaffs.length"
+                    item-label="nhân viên"
+                    aria-label="Phân trang nhân viên"
+                />
             </div>
         </div>
 
@@ -437,8 +455,9 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted } from "vue";
+import { computed, ref, onMounted, watch } from "vue";
 import api from "@/api";
+import AdminPagination from "@/views/Admin/components/AdminPagination.vue";
 import { getApiErrorMessage, showCinemaAlert, showCinemaConfirm, showCinemaToast } from "@/utils/cinemaAlert";
 
 const activeTab = ref("customers");
@@ -448,6 +467,10 @@ const loadingUsers = ref(true);
 const loadingStaffs = ref(true);
 const notifiedEmptyUsers = ref(false);
 const notifiedEmptyStaffs = ref(false);
+const customerCurrentPage = ref(1);
+const customerPageSize = ref(10);
+const staffCurrentPage = ref(1);
+const staffPageSize = ref(10);
 const selectedAccount = ref(null);
 const historyCustomer = ref(null);
 const bookingHistory = ref([]);
@@ -550,6 +573,39 @@ const filteredStaffs = computed(() => {
         (!staffFilters.value.position || normalizeText(staff.position).includes(normalizeText(staffFilters.value.position))) &&
         matchesNumberRange(staff.salary, staffFilters.value.minSalary, staffFilters.value.maxSalary)
     );
+});
+
+const customerTotalPages = computed(() => Math.max(1, Math.ceil(filteredCustomers.value.length / customerPageSize.value)));
+const staffTotalPages = computed(() => Math.max(1, Math.ceil(filteredStaffs.value.length / staffPageSize.value)));
+
+const paginatedCustomers = computed(() => {
+    const start = (customerCurrentPage.value - 1) * customerPageSize.value;
+    return filteredCustomers.value.slice(start, start + customerPageSize.value);
+});
+
+const paginatedStaffs = computed(() => {
+    const start = (staffCurrentPage.value - 1) * staffPageSize.value;
+    return filteredStaffs.value.slice(start, start + staffPageSize.value);
+});
+
+watch(customerFilters, () => {
+    customerCurrentPage.value = 1;
+}, { deep: true });
+
+watch(staffFilters, () => {
+    staffCurrentPage.value = 1;
+}, { deep: true });
+
+watch([customerPageSize, customerTotalPages], () => {
+    if (customerCurrentPage.value > customerTotalPages.value) {
+        customerCurrentPage.value = customerTotalPages.value;
+    }
+});
+
+watch([staffPageSize, staffTotalPages], () => {
+    if (staffCurrentPage.value > staffTotalPages.value) {
+        staffCurrentPage.value = staffTotalPages.value;
+    }
 });
 
 const filteredBookingHistory = computed(() => {

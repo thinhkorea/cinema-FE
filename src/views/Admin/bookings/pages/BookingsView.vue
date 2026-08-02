@@ -44,88 +44,42 @@
                 </tbody>
             </table>
 
-            <!-- Pagination -->
-            <nav v-if="totalPages > 1" class="mt-4">
-                <ul class="pagination justify-content-center">
-                    <li class="page-item" :class="{ disabled: currentPage === 1 }">
-                        <button class="page-link" @click="currentPage = 1" :disabled="currentPage === 1">
-                            <i class="bi bi-chevron-double-left"></i>
-                        </button>
-                    </li>
-                    <li class="page-item" :class="{ disabled: currentPage === 1 }">
-                        <button class="page-link" @click="currentPage--" :disabled="currentPage === 1">
-                            <i class="bi bi-chevron-left"></i> Trước
-                        </button>
-                    </li>
-
-                    <li
-                        v-for="page in visiblePages"
-                        :key="page"
-                        class="page-item"
-                        :class="{ active: currentPage === page }"
-                    >
-                        <button class="page-link" @click="currentPage = page">
-                            {{ page }}
-                        </button>
-                    </li>
-
-                    <li class="page-item" :class="{ disabled: currentPage === totalPages }">
-                        <button class="page-link" @click="currentPage++" :disabled="currentPage === totalPages">
-                            Sau <i class="bi bi-chevron-right"></i>
-                        </button>
-                    </li>
-                    <li class="page-item" :class="{ disabled: currentPage === totalPages }">
-                        <button
-                            class="page-link"
-                            @click="currentPage = totalPages"
-                            :disabled="currentPage === totalPages"
-                        >
-                            <i class="bi bi-chevron-double-right"></i>
-                        </button>
-                    </li>
-                </ul>
-            </nav>
-
-            <div v-if="totalPages > 1" class="text-center mt-3 text-muted" style="font-size: 14px">
-                Trang {{ currentPage }} / {{ totalPages }} (Tổng {{ bookings.length }} bản ghi)
-            </div>
+            <AdminPagination
+                v-if="bookings.length"
+                v-model="currentPage"
+                v-model:page-size="itemsPerPage"
+                :total-items="bookings.length"
+                item-label="đặt vé"
+                aria-label="Phân trang đặt vé"
+            />
         </div>
     </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import api from "@/api";
+import AdminPagination from "@/views/Admin/components/AdminPagination.vue";
 
 const bookings = ref([]);
 const loading = ref(true);
 const currentPage = ref(1);
-const itemsPerPage = 10;
+const itemsPerPage = ref(10);
 
 const totalPages = computed(() => {
-    return Math.ceil(bookings.value.length / itemsPerPage);
+    return Math.max(1, Math.ceil(bookings.value.length / itemsPerPage.value));
 });
 
 const paginatedBookings = computed(() => {
-    const start = (currentPage.value - 1) * itemsPerPage;
-    const end = start + itemsPerPage;
+    const start = (currentPage.value - 1) * itemsPerPage.value;
+    const end = start + itemsPerPage.value;
     return bookings.value.slice(start, end);
 });
 
-const visiblePages = computed(() => {
-    const pages = [];
-    const maxVisible = 5;
-    let startPage = Math.max(1, currentPage.value - Math.floor(maxVisible / 2));
-    let endPage = Math.min(totalPages.value, startPage + maxVisible - 1);
-
-    if (endPage - startPage + 1 < maxVisible) {
-        startPage = Math.max(1, endPage - maxVisible + 1);
+watch([itemsPerPage, totalPages], () => {
+    if (currentPage.value > totalPages.value) {
+        currentPage.value = totalPages.value;
     }
-
-    for (let i = startPage; i <= endPage; i++) {
-        pages.push(i);
-    }
-    return pages;
 });
 
 onMounted(async () => {
