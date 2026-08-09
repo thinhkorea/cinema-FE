@@ -111,21 +111,36 @@
         <section class="egift-section">
             <div class="container">
                 <div class="section-header">
-                    <h2 class="section-title">Thẻ quà tặng CGV</h2>
-                    <a href="#" class="view-all">Xem tất cả →</a>
+                    <h2 class="section-title">Voucher đang hiệu lực</h2>
+                    <a
+                        v-if="egifts.length > 3"
+                        href="#"
+                        class="view-all"
+                        @click.prevent="showAllVouchers = !showAllVouchers"
+                    >
+                        {{ showAllVouchers ? "Thu gọn ↑" : "Xem tất cả →" }}
+                    </a>
                 </div>
-                <div class="row g-4">
-                    <div v-for="(gift, index) in egifts" :key="gift.id" class="col-md-6 col-lg-4">
+                <div v-if="loadingVouchers" class="home-voucher-state">
+                    Đang tải ưu đãi...
+                </div>
+                <div v-else-if="egifts.length" class="row g-4">
+                    <div v-for="(gift, index) in displayedVouchers" :key="gift.voucherId" class="col-md-6 col-lg-4">
                         <div class="gift-card" :style="{ animationDelay: `${index * 0.1}s` }">
                             <div class="gift-icon-wrapper">
-                                <span class="gift-icon">{{ gift.icon }}</span>
+                                <span class="gift-icon">{{ giftIcon(gift, index) }}</span>
                             </div>
                             <h3 class="gift-name">{{ gift.name }}</h3>
-                            <p class="gift-price">{{ gift.price }}</p>
-                            <p class="gift-desc">{{ gift.desc }}</p>
-                            <button class="btn btn-sm btn-outline-warning">Chi tiết</button>
+                            <p class="gift-price">{{ formatVoucherValue(gift) }}</p>
+                            <p class="gift-desc">{{ formatVoucherDescription(gift) }}</p>
+                            <button class="btn btn-sm btn-outline-warning" @click="goVoucherDetails">
+                                Xem điều kiện
+                            </button>
                         </div>
                     </div>
+                </div>
+                <div v-else class="home-voucher-state">
+                    Hiện chưa có voucher nào đang hiệu lực.
                 </div>
             </div>
         </section>
@@ -215,6 +230,9 @@ const movieTabs = [
 ];
 const activeTab = ref("now_showing");
 const movies = ref([]);
+const egifts = ref([]);
+const showAllVouchers = ref(false);
+const loadingVouchers = ref(false);
 const loadingMovies = ref(false);
 const currentMovieIndex = ref(0);
 const AUTO_PLAY_DELAY = 5000;
@@ -238,6 +256,21 @@ const fetchMovies = async (status) => {
         loadingMovies.value = false;
     }
 };
+
+const fetchActiveVouchers = async () => {
+    loadingVouchers.value = true;
+    try {
+        const response = await api.get("/public/vouchers/active");
+        egifts.value = Array.isArray(response.data) ? response.data : [];
+    } catch (error) {
+        console.error("Lỗi khi tải voucher đang hiệu lực:", error);
+        egifts.value = [];
+    } finally {
+        loadingVouchers.value = false;
+    }
+};
+
+const displayedVouchers = computed(() => (showAllVouchers.value ? egifts.value : egifts.value.slice(0, 3)));
 
 const prevMovie = () => {
     if (displayedMovies.value.length > 0) {
@@ -312,6 +345,7 @@ watch(
 
 onMounted(() => {
     auth.restoreSession();
+    fetchActiveVouchers();
 });
 
 onUnmounted(() => {
@@ -342,11 +376,40 @@ const newsItems = [
     },
 ];
 
-const egifts = [
-    { id: 1, name: "PACONNIE 01", price: "99,000đ", icon: "🎁", desc: "Thẻ quà tặng cơ bản" },
-    { id: 2, name: "CINE 04", price: "199,000đ", icon: "🎫", desc: "Gói vé ưu đãi" },
-    { id: 3, name: "COMBO", price: "299,000đ", icon: "🍿", desc: "Gói combo đặc biệt" },
-];
+const giftIcon = (voucher, index) => {
+    if (voucher.type === "FIXED") return "🎫";
+    return index % 2 === 0 ? "🎁" : "🍿";
+};
+
+const formatVoucherValue = (voucher) => {
+    if (voucher.type === "PERCENT") {
+        const maxDiscount = voucher.maxDiscount
+            ? `, tối đa ${formatCurrency(voucher.maxDiscount)}`
+            : "";
+        return `Giảm ${voucher.value || 0}%${maxDiscount}`;
+    }
+    return `Giảm ${formatCurrency(voucher.value || 0)}`;
+};
+
+const formatVoucherDescription = (voucher) => {
+    const conditions = [];
+    if (voucher.description) conditions.push(voucher.description);
+    if (voucher.minOrder) conditions.push(`Đơn từ ${formatCurrency(voucher.minOrder)}`);
+    if (voucher.newMemberOnly) conditions.push("Dành cho thành viên mới");
+    if (voucher.requiredTotalSpent) conditions.push(`Từ mốc chi tiêu ${formatCurrency(voucher.requiredTotalSpent)}`);
+    return conditions.join(" · ") || "Đang áp dụng theo điều kiện của hệ thống";
+};
+
+const formatCurrency = (value) =>
+    new Intl.NumberFormat("vi-VN", {
+        style: "currency",
+        currency: "VND",
+        maximumFractionDigits: 0,
+    }).format(Number(value || 0));
+
+const goVoucherDetails = () => {
+    router.push(auth.isAuthenticated ? "/profile" : "/login");
+};
 
 const videos = [
     {
@@ -667,6 +730,16 @@ const offers = [
 
 .egift-section .view-all:hover {
     color: #ff5722;
+}
+
+.home-voucher-state {
+    min-height: 170px;
+    display: grid;
+    place-items: center;
+    border: 1px dashed #e8cfc4;
+    border-radius: 12px;
+    color: #7b6d67;
+    background: rgba(255, 255, 255, 0.7);
 }
 
 .section-header {

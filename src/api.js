@@ -7,7 +7,6 @@ const baseURL = "http://localhost:8080/api";
 const api = axios.create({
     baseURL,
     headers: {
-        "Content-Type": "application/json;charset=UTF-8",
         Accept: "application/json;charset=UTF-8",
     },
 });
@@ -61,6 +60,10 @@ async function refreshAccessToken() {
 }
 
 api.interceptors.request.use((config) => {
+    if (config.data instanceof FormData) {
+        delete config.headers["Content-Type"];
+    }
+
     if (config.skipAuth) {
         delete config.skipAuth;
         return config;

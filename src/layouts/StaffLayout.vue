@@ -1,116 +1,62 @@
 <template>
-    <div class="staff-shell">
-        <button class="btn btn-primary staff-toggle d-lg-none" @click="toggleSidebar">
+    <div class="staff-shell" :class="{ 'ticket-print-shell': isTicketPrintView }">
+        <button v-if="!isTicketPrintView" class="btn btn-primary staff-toggle d-lg-none" @click="toggleSidebar">
             <i class="bi bi-list me-1"></i> Danh mục
         </button>
 
-        <div v-if="showSidebar" class="sidebar-backdrop d-lg-none" @click="toggleSidebar"></div>
+        <div v-if="!isTicketPrintView && showSidebar" class="sidebar-backdrop d-lg-none" @click="toggleSidebar"></div>
 
         <div class="staff-layout">
-            <aside class="staff-sidebar" :class="{ show: showSidebar }">
-                <div>
+            <aside v-if="!isTicketPrintView" class="staff-sidebar" :class="{ show: showSidebar }">
+                <div class="sidebar-main">
                     <div class="sidebar-brand">
-                        <p class="brand-kicker mb-1">Vận hành rạp phim</p>
-                        <h5 class="mb-0 d-flex align-items-center">Trang nhân viên</h5>
+                        <div class="brand-logo">
+                            <img src="@/assets/logo.png" alt="Cinema logo" />
+                        </div>
+                        <div class="brand-text">
+                            <p class="brand-kicker mb-1">Vận hành rạp phim</p>
+                            <h5 class="mb-0 d-flex align-items-center">Trang nhân viên</h5>
+                        </div>
                     </div>
 
-                    <ul class="nav flex-column staff-nav mt-3">
-                        <li class="nav-item">
+                    <ul class="nav flex-column staff-nav">
+                        <li v-for="link in links" :key="link.path" class="nav-item">
                             <router-link
-                                to="/staff/seat-map"
+                                :to="link.path"
                                 class="nav-link"
                                 active-class="active"
+                                :title="link.label"
                                 @click="closeOnMobile"
                             >
-                                <i class="bi bi-ticket-detailed me-2"></i> Bán vé
-                            </router-link>
-                        </li>
-
-                        <li class="nav-item">
-                            <router-link
-                                to="/staff/showtimes"
-                                class="nav-link"
-                                active-class="active"
-                                @click="closeOnMobile"
-                            >
-                                <i class="bi bi-clock-history me-2"></i> Suất chiếu
-                            </router-link>
-                        </li>
-
-                        <li class="nav-item">
-                            <router-link
-                                to="/staff/sold-tickets"
-                                class="nav-link"
-                                active-class="active"
-                                @click="closeOnMobile"
-                            >
-                                <i class="bi bi-receipt me-2"></i> Vé đã bán
-                            </router-link>
-                        </li>
-
-                        <li class="nav-item">
-                            <router-link
-                                to="/staff/search-ticket"
-                                class="nav-link"
-                                active-class="active"
-                                @click="closeOnMobile"
-                            >
-                                <i class="bi bi-search me-2"></i> Tra cứu vé
-                            </router-link>
-                        </li>
-                        <li class="nav-item">
-                            <router-link
-                                to="/staff/recipes"
-                                class="nav-link"
-                                active-class="active"
-                                @click="closeOnMobile"
-                            >
-                                <i class="bi bi-journal-text me-2"></i> Công thức bắp
-                            </router-link>
-                        </li>
-                        <li class="nav-item">
-                            <router-link
-                                to="/staff/shift-registration"
-                                class="nav-link"
-                                active-class="active"
-                                @click="closeOnMobile"
-                            >
-                                <i class="bi bi-calendar2-check me-2"></i> Chọn ca làm
-                            </router-link>
-                        </li>
-                        <li class="nav-item">
-                            <router-link
-                                to="/staff/shift-close"
-                                class="nav-link"
-                                active-class="active"
-                                @click="closeOnMobile"
-                            >
-                                <i class="bi bi-cash-coin me-2"></i> Kết ca
+                                <i :class="link.icon"></i>
+                                <span class="nav-text">{{ link.label }}</span>
                             </router-link>
                         </li>
                     </ul>
                 </div>
 
                 <div class="staff-footer">
-                    <p class="mb-2 small text-secondary">{{ auth.fullName || auth.username || "Nhân viên" }}</p>
-                    <button class="btn btn-outline-primary w-100 mb-2" @click="goHome">
-                        <i class="bi bi-house me-1"></i> Trang chủ
+                    <p class="footer-user mb-2 small text-secondary">{{ auth.fullName || auth.username || "Nhân viên" }}</p>
+                    <button class="sidebar-action home-action" type="button" title="Trang chủ" aria-label="Trang chủ" @click="goHome">
+                        <i class="bi bi-house"></i>
+                        <span class="nav-text">Trang chủ</span>
                     </button>
-                    <button class="btn btn-primary w-100" @click="logout">
-                        <i class="bi bi-box-arrow-right me-1"></i> Đăng xuất
+                    <button class="sidebar-action logout-action" type="button" title="Đăng xuất" aria-label="Đăng xuất" @click="logout">
+                        <i class="bi bi-box-arrow-right"></i>
+                        <span class="nav-text">Đăng xuất</span>
                     </button>
                 </div>
             </aside>
 
             <main class="staff-content">
-                <div class="content-topbar">
+                <div v-if="!isTicketPrintView" class="content-topbar">
                     <div>
                         <p class="mb-1 text-muted small">Khu vực nhân viên</p>
                         <h4 class="mb-0">{{ activeTitle }}</h4>
                     </div>
                 </div>
 
-                <section class="content-surface">
+                <section class="content-surface" :class="{ 'ticket-print-surface': isTicketPrintView }">
                     <router-view />
                 </section>
             </main>
@@ -129,13 +75,13 @@ const router = useRouter();
 const route = useRoute();
 
 const links = [
-    { label: "Bán vé", path: "/staff/seat-map" },
-    { label: "Suất chiếu", path: "/staff/showtimes" },
-    { label: "Vé đã bán", path: "/staff/sold-tickets" },
-    { label: "Tra cứu vé", path: "/staff/search-ticket" },
-    { label: "Công thức bắp", path: "/staff/recipes" },
-    { label: "Chọn ca làm", path: "/staff/shift-registration" },
-    { label: "Kết ca", path: "/staff/shift-close" },
+    { label: "Bán vé", path: "/staff/seat-map", icon: "bi bi-ticket-detailed" },
+    { label: "Suất chiếu", path: "/staff/showtimes", icon: "bi bi-clock-history" },
+    { label: "Vé đã bán", path: "/staff/sold-tickets", icon: "bi bi-receipt" },
+    { label: "Tra cứu vé", path: "/staff/search-ticket", icon: "bi bi-search" },
+    { label: "Công thức bắp", path: "/staff/recipes", icon: "bi bi-journal-text" },
+    { label: "Chọn ca làm", path: "/staff/shift-registration", icon: "bi bi-calendar2-check" },
+    { label: "Kết ca", path: "/staff/shift-close", icon: "bi bi-cash-coin" },
 ];
 
 const logout = async () => {
@@ -149,6 +95,7 @@ const goHome = () => {
 
 const showSidebar = ref(false);
 const toggleSidebar = () => (showSidebar.value = !showSidebar.value);
+const isTicketPrintView = computed(() => route.meta.ticketPrint === true);
 
 const closeOnMobile = () => {
     if (window.innerWidth < 992) {
@@ -198,7 +145,9 @@ const activeTitle = computed(() => {
 }
 
 .staff-sidebar {
-    width: 244px;
+    --sidebar-collapsed: 76px;
+    --sidebar-expanded: 274px;
+    width: var(--sidebar-collapsed);
     min-height: 100%;
     display: flex;
     flex-direction: column;
@@ -206,14 +155,74 @@ const activeTitle = computed(() => {
     background: linear-gradient(180deg, #fff8f4 0%, #fff 45%);
     border-right: 1px solid #f0dfd7;
     color: #333;
-    padding: 20px 14px;
-    transition: transform 0.25s ease;
-    z-index: 1;
+    padding: 14px 10px;
+    transition: width 0.24s ease, transform 0.25s ease, box-shadow 0.24s ease;
+    z-index: 5;
+    overflow: hidden;
+}
+
+.staff-sidebar:hover,
+.staff-sidebar:focus-within {
+    width: var(--sidebar-expanded);
+    box-shadow: 12px 0 28px rgba(48, 46, 45, 0.08);
+}
+
+.sidebar-main {
+    min-height: 0;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
 }
 
 .sidebar-brand {
-    padding: 9px 9px 14px;
+    min-height: 68px;
+    padding: 5px 4px 12px;
     border-bottom: 1px solid #f0dfd7;
+    margin-bottom: 12px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.brand-logo {
+    width: 46px;
+    height: 46px;
+    border: 1px solid #f0dfd7;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 46px;
+    background: #fff;
+    box-shadow: 0 8px 18px rgba(255, 107, 53, 0.08);
+}
+
+.brand-logo img {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+}
+
+.brand-text,
+.nav-text,
+.footer-user {
+    opacity: 0;
+    transform: translateX(-6px);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.staff-sidebar:hover .brand-text,
+.staff-sidebar:focus-within .brand-text,
+.staff-sidebar:hover .nav-text,
+.staff-sidebar:focus-within .nav-text,
+.staff-sidebar:hover .footer-user,
+.staff-sidebar:focus-within .footer-user {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
 }
 
 .brand-kicker {
@@ -224,18 +233,50 @@ const activeTitle = computed(() => {
 }
 
 .staff-nav {
-    gap: 7px;
+    flex: 1;
+    flex-wrap: nowrap;
+    gap: 8px;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.staff-nav .nav-item {
+    flex: 0 0 auto;
+    width: 100%;
+}
+
+.staff-nav::-webkit-scrollbar {
+    width: 5px;
+}
+
+.staff-nav::-webkit-scrollbar-thumb {
+    background: #f0c9bb;
+    border-radius: 999px;
 }
 
 .nav-link {
     display: flex;
     align-items: center;
-    gap: 5px;
-    padding: 9px 11px;
-    border-radius: 9px;
+    gap: 14px;
+    min-height: 46px;
+    padding: 9px 12px;
+    border-radius: 8px;
     transition: 0.2s;
     color: #5f5b59;
-    font-weight: 500;
+    font-weight: 700;
+    overflow: hidden;
+    width: 100%;
+}
+
+.nav-link i {
+    flex: 0 0 30px;
+    margin-right: 0 !important;
+    text-align: center;
+    color: #708090;
+    font-size: 1.22rem;
+    line-height: 1;
 }
 
 .nav-link:hover {
@@ -246,13 +287,68 @@ const activeTitle = computed(() => {
 .nav-link.active {
     background: linear-gradient(135deg, #ff6b35, #ff8a5c);
     color: #fff;
-    box-shadow: 0 6px 16px rgba(255, 107, 53, 0.25);
+    box-shadow: 0 10px 20px rgba(255, 107, 53, 0.25);
+}
+
+.nav-link.active i {
+    color: #fff;
 }
 
 .staff-footer {
     border-top: 1px solid #f0dfd7;
-    padding: 12px 7px 4px;
+    padding: 12px 4px 0;
     margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.sidebar-action {
+    align-items: center;
+    border: 0;
+    border-radius: 8px;
+    display: flex;
+    gap: 14px;
+    min-height: 44px;
+    overflow: hidden;
+    padding: 9px 12px;
+    text-align: left;
+    transition: 0.2s ease;
+    width: 100%;
+    font-weight: 700;
+}
+
+.sidebar-action i {
+    flex: 0 0 30px;
+    font-size: 1.22rem;
+    line-height: 1;
+    text-align: center;
+}
+
+.staff-footer .small {
+    font-size: 0.82rem;
+    min-height: 20px;
+}
+
+.home-action {
+    background: #fff7f2;
+    color: #ff6b35;
+}
+
+.home-action:hover {
+    background: #ff6b35;
+    color: #fff;
+}
+
+.logout-action {
+    background: #fff7f2;
+    color: #ff6b35;
+}
+
+.logout-action:hover {
+    background: #ff6b35;
+    color: #fff;
 }
 
 .staff-content {
@@ -278,6 +374,31 @@ const activeTitle = computed(() => {
     min-height: calc(100% - 72px);
 }
 
+.ticket-print-shell {
+    padding: 0;
+    background: #f5f5f5;
+}
+
+.ticket-print-shell .staff-layout {
+    height: 100vh;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: #f5f5f5;
+}
+
+.ticket-print-shell .staff-content {
+    padding: 0;
+    overflow-y: auto;
+}
+
+.ticket-print-shell .ticket-print-surface {
+    border: 0;
+    border-radius: 0;
+    min-height: 100%;
+    background: #f5f5f5;
+}
+
 @media (max-width: 991.98px) {
     .staff-shell {
         padding: 0;
@@ -296,8 +417,18 @@ const activeTitle = computed(() => {
         top: 0;
         left: 0;
         bottom: 0;
+        width: 274px;
         transform: translateX(-100%);
         z-index: 1100;
+        box-shadow: 12px 0 28px rgba(48, 46, 45, 0.12);
+    }
+
+    .staff-sidebar .brand-text,
+    .staff-sidebar .nav-text,
+    .staff-sidebar .footer-user {
+        opacity: 1;
+        transform: translateX(0);
+        pointer-events: auto;
     }
 
     .staff-sidebar.show {

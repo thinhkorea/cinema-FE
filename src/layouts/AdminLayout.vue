@@ -9,26 +9,33 @@
         <div class="admin-layout">
             <aside class="admin-sidebar" :class="{ show: showSidebar }">
                 <div class="sidebar-brand">
-                    <p class="brand-kicker mb-1">Quản lý rạp phim</p>
-                    <h5 class="mb-0 d-flex align-items-center">Trang quản trị</h5>
+                    <div class="brand-logo">
+                        <img src="@/assets/logo.png" alt="Cinema logo" />
+                    </div>
+                    <div class="brand-text">
+                        <p class="brand-kicker mb-1">Quản lý rạp phim</p>
+                        <h5 class="mb-0 d-flex align-items-center">Trang quản trị</h5>
+                    </div>
                 </div>
 
                 <ul class="nav flex-column admin-nav">
                     <li v-for="link in links" :key="link.path" class="nav-item">
-                        <RouterLink :to="link.path" class="nav-link" active-class="active" @click="closeOnMobile">
-                            <i :class="link.icon + ' me-2'"></i>
-                            {{ link.label }}
+                        <RouterLink :to="link.path" class="nav-link" active-class="active" :title="link.label" @click="closeOnMobile">
+                            <i :class="link.icon"></i>
+                            <span class="nav-text">{{ link.label }}</span>
                         </RouterLink>
                     </li>
                 </ul>
 
                 <div class="sidebar-footer">
-                    <p class="mb-2 small text-secondary">{{ auth.fullName || auth.username || "Quản trị viên" }}</p>
-                    <button class="btn btn-outline-primary w-100 mb-2" @click="goHome">
-                        <i class="bi bi-house me-2"></i> Trang chủ
+                    <p class="footer-user mb-2 small text-secondary">{{ auth.fullName || auth.username || "Quản trị viên" }}</p>
+                    <button class="sidebar-action home-action" type="button" title="Trang chủ" aria-label="Trang chủ" @click="goHome">
+                        <i class="bi bi-house"></i>
+                        <span class="nav-text">Trang chủ</span>
                     </button>
-                    <button class="btn btn-primary w-100" @click="logout">
-                        <i class="bi bi-box-arrow-right me-2"></i> Đăng xuất
+                    <button class="sidebar-action logout-action" type="button" title="Đăng xuất" aria-label="Đăng xuất" @click="logout">
+                        <i class="bi bi-box-arrow-right"></i>
+                        <span class="nav-text">Đăng xuất</span>
                     </button>
                 </div>
             </aside>
@@ -113,7 +120,7 @@ const activeTitle = computed(() => {
     border: 1px solid #eee2dc;
     border-radius: 18px;
     overflow: hidden;
-    background: #fff;
+    background: linear-gradient(180deg, #fff8f4 0%, #fff 45%);
     box-shadow: 0 12px 32px rgba(255, 107, 53, 0.12);
     display: flex;
 }
@@ -134,22 +141,75 @@ const activeTitle = computed(() => {
 }
 
 .admin-sidebar {
-    width: 244px;
+    --sidebar-collapsed: 76px;
+    --sidebar-expanded: 274px;
+    width: var(--sidebar-collapsed);
     display: flex;
     flex-direction: column;
-    background: linear-gradient(180deg, #fff8f4 0%, #fff 45%);
+    background: #fff;
     border-right: 1px solid #f0dfd7;
-    padding: 14px 12px;
-    transition: transform 0.25s ease;
-    z-index: 1;
+    padding: 14px 10px;
+    transition: width 0.24s ease, transform 0.25s ease, box-shadow 0.24s ease;
+    z-index: 5;
     min-height: 0;
+    overflow: hidden;
+}
+
+.admin-sidebar:hover,
+.admin-sidebar:focus-within {
+    width: var(--sidebar-expanded);
+    box-shadow: 12px 0 28px rgba(48, 46, 45, 0.08);
 }
 
 .sidebar-brand {
-    padding: 6px 9px 10px;
+    min-height: 68px;
+    padding: 5px 4px 12px;
     border-bottom: 1px solid #f0dfd7;
-    margin-bottom: 8px;
+    margin-bottom: 12px;
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.brand-logo {
+    width: 46px;
+    height: 46px;
+    border: 1px solid #f0dfd7;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 46px;
+    background: #fff;
+    box-shadow: 0 8px 18px rgba(255, 107, 53, 0.08);
+}
+
+.brand-logo img {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+}
+
+.brand-text,
+.nav-text,
+.footer-user {
+    opacity: 0;
+    transform: translateX(-6px);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.admin-sidebar:hover .brand-text,
+.admin-sidebar:focus-within .brand-text,
+.admin-sidebar:hover .nav-text,
+.admin-sidebar:focus-within .nav-text,
+.admin-sidebar:hover .footer-user,
+.admin-sidebar:focus-within .footer-user {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
 }
 
 .brand-kicker {
@@ -161,10 +221,17 @@ const activeTitle = computed(() => {
 
 .admin-nav {
     flex: 1;
-    gap: 4px;
+    flex-wrap: nowrap;
+    gap: 8px;
     min-height: 0;
+    overflow-x: hidden;
     overflow-y: auto;
     padding-right: 4px;
+}
+
+.admin-nav .nav-item {
+    flex: 0 0 auto;
+    width: 100%;
 }
 
 .admin-nav::-webkit-scrollbar {
@@ -180,19 +247,24 @@ const activeTitle = computed(() => {
     color: #5f5b59;
     align-items: center;
     display: flex;
-    font-size: 0.95rem;
-    gap: 8px;
-    min-height: 38px;
-    padding: 7px 10px;
+    font-size: 0.96rem;
+    gap: 14px;
+    min-height: 46px;
+    padding: 9px 12px;
     border-radius: 8px;
     transition: 0.2s ease;
-    font-weight: 500;
+    font-weight: 700;
+    width: 100%;
+    overflow: hidden;
 }
 
 .nav-link i {
-    flex: 0 0 18px;
+    flex: 0 0 30px;
     margin-right: 0 !important;
     text-align: center;
+    color: #708090;
+    font-size: 1.22rem;
+    line-height: 1;
 }
 
 .nav-link:hover {
@@ -203,26 +275,68 @@ const activeTitle = computed(() => {
 .nav-link.active {
     background: linear-gradient(135deg, #ff6b35, #ff8a5c);
     color: #fff !important;
-    box-shadow: 0 5px 14px rgba(255, 107, 53, 0.22);
+    box-shadow: 0 10px 20px rgba(255, 107, 53, 0.25);
+}
+
+.nav-link.active i {
+    color: #fff;
 }
 
 .sidebar-footer {
     margin-top: auto;
     border-top: 1px solid #f0dfd7;
     flex-shrink: 0;
-    padding: 9px 7px 0;
+    padding: 12px 4px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
-.sidebar-footer .btn {
+.sidebar-action {
     align-items: center;
-    display: inline-flex;
-    justify-content: center;
-    min-height: 34px;
-    padding: 7px 10px;
+    border: 0;
+    border-radius: 8px;
+    display: flex;
+    gap: 14px;
+    min-height: 44px;
+    overflow: hidden;
+    padding: 9px 12px;
+    text-align: left;
+    transition: 0.2s ease;
+    width: 100%;
+    font-weight: 700;
+}
+
+.sidebar-action i {
+    flex: 0 0 30px;
+    font-size: 1.22rem;
+    line-height: 1;
+    text-align: center;
 }
 
 .sidebar-footer .small {
     font-size: 0.82rem;
+    min-height: 20px;
+}
+
+.home-action {
+    background: #fff7f2;
+    color: #ff6b35;
+}
+
+.home-action:hover {
+    background: #ff6b35;
+    color: #fff;
+}
+
+.logout-action {
+    background: #fff7f2;
+    color: #ff6b35;
+}
+
+.logout-action:hover {
+    background: #ff6b35;
+    color: #fff;
 }
 
 .admin-content {
@@ -266,8 +380,18 @@ const activeTitle = computed(() => {
         top: 0;
         left: 0;
         bottom: 0;
+        width: 274px;
         transform: translateX(-100%);
         z-index: 1100;
+        box-shadow: 12px 0 28px rgba(48, 46, 45, 0.12);
+    }
+
+    .admin-sidebar .brand-text,
+    .admin-sidebar .nav-text,
+    .admin-sidebar .footer-user {
+        opacity: 1;
+        transform: translateX(0);
+        pointer-events: auto;
     }
 
     .admin-sidebar.show {

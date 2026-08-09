@@ -70,6 +70,11 @@ const routes = [
         component: () => import("@/views/Customer/bookings/pages/MyBookingView.vue"),
         meta: { requiresAuth: true, requiresCustomer: true },
     },
+    {
+        path: "/my-snack-orders",
+        redirect: "/my-bookings?tab=snacks",
+        meta: { requiresAuth: true, requiresCustomer: true },
+    },
 
     // ADMIN
     {
@@ -100,6 +105,7 @@ const routes = [
         component: () => import("@/layouts/StaffLayout.vue"),
         meta: { requiresStaff: true },
         children: [
+            { path: "", redirect: "/staff/seat-map" },
             { path: "seat-map", component: () => import("@/views/Staff/sell-ticket/pages/SellTicketView.vue") },
             { path: "showtimes", component: () => import("@/views/Staff/showtimes/pages/ShowtimesView.vue") },
             { path: "sold-tickets", component: () => import("@/views/Staff/tickets/pages/SoldTicketsView.vue") },
@@ -108,7 +114,16 @@ const routes = [
             { path: "recipes", component: () => import("@/views/Staff/recipes/pages/PopcornRecipesView.vue") },
             { path: "shift-registration", component: () => import("@/views/Staff/shift/pages/ShiftRegistrationView.vue") },
             { path: "shift-close", component: () => import("@/views/Staff/shift/pages/ShiftCloseView.vue") },
-            { path: "ticket/:txnRef", component: () => import("@/views/Staff/tickets/pages/Ticket.vue") },
+            {
+                path: "ticket/:txnRef",
+                component: () => import("@/views/Staff/tickets/pages/Ticket.vue"),
+                meta: { ticketPrint: true },
+            },
+            {
+                path: "snack-ticket/:orderCode",
+                component: () => import("@/views/Staff/tickets/pages/SnackTicket.vue"),
+                meta: { ticketPrint: true },
+            },
         ],
     },
 

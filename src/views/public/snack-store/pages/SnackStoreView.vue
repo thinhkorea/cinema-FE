@@ -4,8 +4,16 @@
 
         <div class="hero">
             <div class="container">
-                <h1>Bắp nước và combo</h1>
-                <p>Xem trước và đặt riêng bắp nước mà không cần chọn vé trước.</p>
+                <div class="hero-content">
+                    <div>
+                        <h1>Bắp nước và combo</h1>
+                        <p>Xem trước và đặt riêng bắp nước mà không cần chọn vé trước.</p>
+                    </div>
+                    <router-link v-if="auth.isAuthenticated" to="/my-bookings?tab=snacks" class="orders-link">
+                        <i class="bi bi-receipt-cutoff"></i>
+                        Đơn bắp nước của tôi
+                    </router-link>
+                </div>
             </div>
         </div>
 
@@ -163,8 +171,11 @@ onMounted(async () => {
 <style scoped>
 .snack-store-page { background: #f6f3ef; min-height: 100vh; }
 .hero { padding: 40px 0 24px; background: linear-gradient(135deg, #fff7f0, #ffe2d0); border-bottom: 1px solid #f1d6c8; }
+.hero-content { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
 .hero h1 { margin: 0 0 8px; color: #2c2c2c; font-size: 2.3rem; font-weight: 800; }
 .hero p { margin: 0; color: #6a5b52; }
+.orders-link { display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto; padding: 12px 16px; border: 1px solid #ffb08d; border-radius: 12px; background: #fff; color: #ff6b35; font-weight: 800; text-decoration: none; box-shadow: 0 10px 22px rgba(255, 107, 53, 0.12); }
+.orders-link:hover { background: #ff6b35; color: #fff; border-color: #ff6b35; }
 .container { max-width: 1280px; margin: 0 auto; padding: 0 20px; }
 .store-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; padding: 28px 20px 48px; }
 .catalog, .cart-panel { background: #fff; border: 1px solid #eadfd6; border-radius: 18px; box-shadow: 0 12px 24px rgba(40, 24, 16, 0.06); }
@@ -192,6 +203,7 @@ onMounted(async () => {
 .checkout-btn { width: 100%; border: none; border-radius: 12px; background: #ff6b35; color: #fff; padding: 14px 16px; font-weight: 700; }
 .checkout-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 @media (max-width: 960px) {
+  .hero-content { align-items: flex-start; flex-direction: column; }
   .store-layout { grid-template-columns: 1fr; }
   .cart-panel { position: static; }
 }

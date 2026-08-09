@@ -5,8 +5,29 @@
         <div class="container mt-4">
             <!-- HEADER -->
             <div class="page-header mb-4">
-                <h1 class="page-title">Lịch sử vé của tôi</h1>
-                <p class="page-subtitle">Quản lý và xem chi tiết các vé đã đặt</p>
+                <h1 class="page-title">Lịch sử đặt hàng</h1>
+                <p class="page-subtitle">Theo dõi vé đã đặt và các đơn bắp nước đã thanh toán</p>
+            </div>
+
+            <div class="history-tabs mb-4">
+                <button
+                    type="button"
+                    class="history-tab"
+                    :class="{ active: activeTab === 'tickets' }"
+                    @click="setActiveTab('tickets')"
+                >
+                    <i class="bi bi-ticket-perforated"></i>
+                    Vé xem phim
+                </button>
+                <button
+                    type="button"
+                    class="history-tab"
+                    :class="{ active: activeTab === 'snacks' }"
+                    @click="setActiveTab('snacks')"
+                >
+                    <i class="bi bi-cup-straw"></i>
+                    Bắp nước
+                </button>
             </div>
 
             <!-- LOADING -->
@@ -17,16 +38,10 @@
                 <p class="text-light">Đang tải dữ liệu...</p>
             </div>
 
-            <!-- EMPTY -->
-            <div v-else-if="bookings.length === 0" class="text-center py-4 text-muted">
-                <i class="bi bi-inbox fs-3 mb-3"></i>
-                <p class="mb-0">Bạn chưa có vé nào</p>
-            </div>
-
             <!-- CONTENT -->
             <div v-else>
                 <!-- STATS -->
-                <div class="stats-container mb-4">
+                <div v-if="activeTab === 'tickets'" class="stats-container mb-4">
                     <div class="stat-card">
                         <div class="stat-icon">
                             <i class="bi bi-ticket-fill"></i>
@@ -48,169 +63,183 @@
                 </div>
 
                 <!-- TICKET LIST -->
-                <div>
-                    <div v-for="dateGroup in paginatedDateGroups" :key="dateGroup.date" class="mb-4">
-                        <!-- DATE GROUP HEADER -->
-                        <div class="date-group-header" @click="dateGroup.expanded = !dateGroup.expanded">
-                            <div class="date-header-content">
-                                <i
-                                    class="bi chevron-icon"
-                                    :class="dateGroup.expanded ? 'bi-chevron-down' : 'bi-chevron-right'"
-                                ></i>
-                                <i class="bi bi-calendar-event date-icon"></i>
-                                <strong class="date-text">{{ dateGroup.date }}</strong>
-                                <span class="date-badge">{{ dateGroup.groups.length }} lịch chiếu</span>
+                <div v-if="activeTab === 'tickets'">
+                    <div v-if="bookings.length === 0" class="text-center py-4 text-muted">
+                        <i class="bi bi-inbox fs-3 mb-3"></i>
+                        <p class="mb-0">Bạn chưa có vé nào</p>
+                    </div>
+                    <template v-else>
+                        <div v-for="dateGroup in paginatedDateGroups" :key="dateGroup.date" class="mb-4">
+                            <!-- DATE GROUP HEADER -->
+                            <div class="date-group-header" @click="dateGroup.expanded = !dateGroup.expanded">
+                                <div class="date-header-content">
+                                    <i
+                                        class="bi chevron-icon"
+                                        :class="dateGroup.expanded ? 'bi-chevron-down' : 'bi-chevron-right'"
+                                    ></i>
+                                    <i class="bi bi-calendar-event date-icon"></i>
+                                    <strong class="date-text">{{ dateGroup.date }}</strong>
+                                    <span class="date-badge">{{ dateGroup.groups.length }} lịch chiếu</span>
+                                </div>
+                                <span class="ticket-count">{{ dateGroup.totalTickets }} vé</span>
                             </div>
-                            <span class="ticket-count">{{ dateGroup.totalTickets }} vé</span>
-                        </div>
 
-                        <!-- TICKETS IN THIS DATE -->
-                        <transition name="collapse" @enter="enter" @leave="leave">
-                            <div v-show="dateGroup.expanded" class="date-group-tickets">
-                                <div v-for="group in dateGroup.groups" :key="group.txnRef" class="mb-3">
-                                    <div class="ticket-card">
-                                        <!-- CARD HEADER -->
-                                        <div class="ticket-header">
-                                            <div class="ticket-title-section">
-                                                <h5 class="ticket-movie-title">{{ group.movieTitle }}</h5>
-                                                <p class="ticket-txn-ref">{{ group.txnRef }}</p>
+                            <!-- TICKETS IN THIS DATE -->
+                            <transition name="collapse" @enter="enter" @leave="leave">
+                                <div v-show="dateGroup.expanded" class="date-group-tickets">
+                                    <div v-for="group in dateGroup.groups" :key="group.txnRef" class="mb-3">
+                                        <div class="ticket-card">
+                                            <!-- CARD HEADER -->
+                                            <div class="ticket-header">
+                                                <div class="ticket-title-section">
+                                                    <h5 class="ticket-movie-title">{{ group.movieTitle }}</h5>
+                                                    <p class="ticket-txn-ref">{{ group.txnRef }}</p>
+                                                </div>
+                                                <div class="ticket-badge">
+                                                    <i class="bi bi-check-circle"></i>
+                                                    <span>{{ group.bookings.length }} vé</span>
+                                                </div>
                                             </div>
-                                            <div class="ticket-badge">
-                                                <i class="bi bi-check-circle"></i>
-                                                <span>{{ group.bookings.length }} vé</span>
-                                            </div>
-                                        </div>
 
-                                        <!-- CARD BODY -->
-                                        <div class="ticket-body">
-                                            <div class="ticket-info-grid">
-                                                <div class="info-item">
-                                                    <i class="bi bi-door-closed info-icon"></i>
-                                                    <div class="info-content">
-                                                        <span class="info-label">Phòng</span>
-                                                        <span class="info-value">{{ group.roomName }}</span>
+                                            <!-- CARD BODY -->
+                                            <div class="ticket-body">
+                                                <div class="ticket-info-grid">
+                                                    <div class="info-item">
+                                                        <i class="bi bi-door-closed info-icon"></i>
+                                                        <div class="info-content">
+                                                            <span class="info-label">Phòng</span>
+                                                            <span class="info-value">{{ group.roomName }}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="info-item">
+                                                        <i class="bi bi-calendar info-icon"></i>
+                                                        <div class="info-content">
+                                                            <span class="info-label">Ngày chiếu</span>
+                                                            <span class="info-value">{{
+                                                                formatDate(group.startTime)
+                                                            }}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="info-item">
+                                                        <i class="bi bi-clock info-icon"></i>
+                                                        <div class="info-content">
+                                                            <span class="info-label">Giờ chiếu</span>
+                                                            <span class="info-value">{{
+                                                                formatTime(group.startTime)
+                                                            }}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="info-item">
+                                                        <i class="bi bi-collection info-icon"></i>
+                                                        <div class="info-content">
+                                                            <span class="info-label">Ghế</span>
+                                                            <span class="info-value">{{ group.seats.join(", ") }}</span>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                <div class="info-item">
-                                                    <i class="bi bi-calendar info-icon"></i>
-                                                    <div class="info-content">
-                                                        <span class="info-label">Ngày chiếu</span>
-                                                        <span class="info-value">{{
-                                                            formatDate(group.startTime)
+
+                                                <div class="ticket-price">
+                                                    <div class="price-main">
+                                                        <span class="price-label">Tổng tiền:</span>
+                                                        <span class="price-value">{{
+                                                            formatPrice(getGroupFinalPrice(group))
                                                         }}</span>
                                                     </div>
-                                                </div>
-                                                <div class="info-item">
-                                                    <i class="bi bi-clock info-icon"></i>
-                                                    <div class="info-content">
-                                                        <span class="info-label">Giờ chiếu</span>
-                                                        <span class="info-value">{{
-                                                            formatTime(group.startTime)
-                                                        }}</span>
+                                                    <div v-if="getGroupSnacks(group).length" class="snack-summary mt-2">
+                                                        <div
+                                                            v-for="snack in getGroupSnacks(group)"
+                                                            :key="`${group.txnRef}-${snack.id || snack.snackId}`"
+                                                            class="snack-row"
+                                                        >
+                                                            <span class="snack-name">
+                                                                {{ snack.snackName }} x{{ snack.quantity }}
+                                                            </span>
+                                                            <span class="snack-price">{{
+                                                                formatPrice(snack.subtotal || 0)
+                                                            }}</span>
+                                                        </div>
+                                                        <div class="snack-total">
+                                                            <span>Tổng bắp nước:</span>
+                                                            <strong>{{ formatPrice(getGroupSnackTotal(group)) }}</strong>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                <div class="info-item">
-                                                    <i class="bi bi-collection info-icon"></i>
-                                                    <div class="info-content">
-                                                        <span class="info-label">Ghế</span>
-                                                        <span class="info-value">{{ group.seats.join(", ") }}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div class="ticket-price">
-                                                <div class="price-main">
-                                                    <span class="price-label">Tổng tiền:</span>
-                                                    <span class="price-value">{{
-                                                        formatPrice(getGroupFinalPrice(group))
-                                                    }}</span>
-                                                </div>
-                                                <div v-if="getGroupSnacks(group).length" class="snack-summary mt-2">
                                                     <div
-                                                        v-for="snack in getGroupSnacks(group)"
-                                                        :key="`${group.txnRef}-${snack.id || snack.snackId}`"
-                                                        class="snack-row"
+                                                        v-if="group.bookings.some((b) => b.pointsUsed > 0)"
+                                                        class="points-used"
                                                     >
-                                                        <span class="snack-name">
-                                                            {{ snack.snackName }} x{{ snack.quantity }}
-                                                        </span>
-                                                        <span class="snack-price">{{
-                                                            formatPrice(snack.subtotal || 0)
-                                                        }}</span>
+                                                        <i class="bi bi-gem"></i>
+                                                        Đã sử dụng
+                                                        {{
+                                                            group.bookings.reduce(
+                                                                (sum, b) => sum + (b.pointsUsed || 0),
+                                                                0,
+                                                            )
+                                                        }}
+                                                        điểm
                                                     </div>
-                                                    <div class="snack-total">
-                                                        <span>Tổng bắp nước:</span>
-                                                        <strong>{{ formatPrice(getGroupSnackTotal(group)) }}</strong>
-                                                    </div>
-                                                </div>
-                                                <div
-                                                    v-if="group.bookings.some((b) => b.pointsUsed > 0)"
-                                                    class="points-used"
-                                                >
-                                                    <i class="bi bi-gem"></i>
-                                                    Đã sử dụng
-                                                    {{
-                                                        group.bookings.reduce((sum, b) => sum + (b.pointsUsed || 0), 0)
-                                                    }}
-                                                    điểm
                                                 </div>
                                             </div>
-                                        </div>
 
-                                        <!-- CARD FOOTER -->
-                                        <div class="ticket-footer">
-                                            <button class="btn-details" @click="viewGroupDetails(group.txnRef)">
-                                                <i class="bi bi-eye"></i>
-                                                <span>Chi tiết</span>
-                                            </button>
-                                            <button
-                                                v-if="canCancelGroup(group)"
-                                                class="btn-cancel"
-                                                @click="cancelGroup(group)"
-                                            >
-                                                <i class="bi bi-x-circle"></i>
-                                                <span>Hủy vé</span>
-                                            </button>
-                                            <button
-                                                class="btn-copy"
-                                                @click="copyTxnRef(group.txnRef)"
-                                                title="Sao chép mã"
-                                            >
-                                                <i class="bi bi-files"></i>
-                                            </button>
+                                            <!-- CARD FOOTER -->
+                                            <div class="ticket-footer">
+                                                <button class="btn-details" @click="viewGroupDetails(group.txnRef)">
+                                                    <i class="bi bi-eye"></i>
+                                                    <span>Chi tiết</span>
+                                                </button>
+                                                <button
+                                                    v-if="canCancelGroup(group)"
+                                                    class="btn-cancel"
+                                                    @click="cancelGroup(group)"
+                                                >
+                                                    <i class="bi bi-x-circle"></i>
+                                                    <span>Hủy vé</span>
+                                                </button>
+                                                <button
+                                                    class="btn-copy"
+                                                    @click="copyTxnRef(group.txnRef)"
+                                                    title="Sao chép mã"
+                                                >
+                                                    <i class="bi bi-files"></i>
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        </transition>
-                    </div>
+                            </transition>
+                        </div>
 
-                    <!-- PAGINATION -->
-                    <nav aria-label="Page navigation" class="mt-5">
-                        <ul class="pagination justify-content-center">
-                            <li class="page-item" :class="{ disabled: currentPage === 1 }">
-                                <button class="page-link" @click="currentPage--" :disabled="currentPage === 1">
-                                    <i class="bi bi-chevron-left"></i> Trước
-                                </button>
-                            </li>
+                        <!-- PAGINATION -->
+                        <nav aria-label="Page navigation" class="mt-5">
+                            <ul class="pagination justify-content-center">
+                                <li class="page-item" :class="{ disabled: currentPage === 1 }">
+                                    <button class="page-link" @click="currentPage--" :disabled="currentPage === 1">
+                                        <i class="bi bi-chevron-left"></i> Trước
+                                    </button>
+                                </li>
 
-                            <li
-                                v-for="page in totalPages"
-                                :key="page"
-                                class="page-item"
-                                :class="{ active: page === currentPage }"
-                            >
-                                <button class="page-link" @click="currentPage = page">{{ page }}</button>
-                            </li>
+                                <li
+                                    v-for="page in totalPages"
+                                    :key="page"
+                                    class="page-item"
+                                    :class="{ active: page === currentPage }"
+                                >
+                                    <button class="page-link" @click="currentPage = page">{{ page }}</button>
+                                </li>
 
-                            <li class="page-item" :class="{ disabled: currentPage === totalPages }">
-                                <button class="page-link" @click="currentPage++" :disabled="currentPage === totalPages">
-                                    Sau <i class="bi bi-chevron-right"></i>
-                                </button>
-                            </li>
-                        </ul>
-                    </nav>
+                                <li class="page-item" :class="{ disabled: currentPage === totalPages }">
+                                    <button
+                                        class="page-link"
+                                        @click="currentPage++"
+                                        :disabled="currentPage === totalPages"
+                                    >
+                                        Sau <i class="bi bi-chevron-right"></i>
+                                    </button>
+                                </li>
+                            </ul>
+                        </nav>
+                    </template>
                 </div>
+                <SnackOrdersPanel v-else />
             </div>
         </div>
     </div>
@@ -218,15 +247,18 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import AppHeader from "@/components/AppHeader.vue";
+import SnackOrdersPanel from "@/views/Customer/snack-orders/components/SnackOrdersPanel.vue";
 import api from "@/api";
 import { getApiErrorMessage, showCinemaAlert, showCinemaConfirm } from "@/utils/cinemaAlert";
 
+const route = useRoute();
 const router = useRouter();
 const bookings = ref([]);
 const snacksByTxn = ref({});
 const loading = ref(true);
+const activeTab = ref(route.query.tab === "snacks" ? "snacks" : "tickets");
 const filterStatus = ref("ALL");
 const currentPage = ref(1);
 const itemsPerPage = ref(10); // Số lượng vé tối đa per trang
@@ -237,6 +269,24 @@ const goHome = () => router.push("/");
 watch(currentPage, () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
 });
+
+watch(
+    () => route.query.tab,
+    (tab) => {
+        activeTab.value = tab === "snacks" ? "snacks" : "tickets";
+    },
+);
+
+const setActiveTab = (tab) => {
+    activeTab.value = tab;
+    if (tab === "tickets") {
+        currentPage.value = 1;
+    }
+    router.replace({
+        path: "/my-bookings",
+        query: tab === "snacks" ? { tab: "snacks" } : {},
+    });
+};
 
 onMounted(async () => {
     try {
@@ -597,6 +647,35 @@ const leave = (el) => {
     color: #ccc;
     font-size: 1rem;
     margin: 0;
+}
+
+.history-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.history-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-width: 150px;
+    padding: 0.75rem 1.1rem;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.06);
+    color: #e8e8e8;
+    font-weight: 700;
+    transition: all 0.2s ease;
+}
+
+.history-tab:hover,
+.history-tab.active {
+    border-color: rgba(255, 215, 0, 0.35);
+    background: rgba(255, 215, 0, 0.16);
+    color: #ffd700;
 }
 
 /* Stats Container */
@@ -1009,6 +1088,20 @@ const leave = (el) => {
 
 .page-subtitle {
     color: #666;
+}
+
+.history-tab {
+    border-color: #e6e6e6;
+    background: #fff;
+    color: #555;
+}
+
+.history-tab:hover,
+.history-tab.active {
+    border-color: #ffbfa9;
+    background: #ff6b35;
+    color: #fff;
+    box-shadow: 0 10px 22px rgba(255, 107, 53, 0.16);
 }
 
 .stat-card,

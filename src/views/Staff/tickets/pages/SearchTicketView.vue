@@ -3,8 +3,10 @@
         <section class="lookup-hero">
             <div>
                 <p class="section-kicker mb-1">Tra cứu tại quầy</p>
-                <h5 class="mb-1">Tra cứu vé theo mã giao dịch</h5>
-                <p class="section-subtitle mb-0">Kiểm tra vé, in vé và xác nhận xuất bắp nước cho khách.</p>
+                <h5 class="mb-1">Nhận vé và đơn bắp nước</h5>
+                <p class="section-subtitle mb-0">
+                    Quét mã nhận vé online để in vé giấy, hoặc quét mã đơn bắp nước để giao món trực tiếp.
+                </p>
             </div>
         </section>
 
@@ -15,7 +17,7 @@
                     v-model="txnRef"
                     type="text"
                     class="form-control"
-                    placeholder="Nhập mã giao dịch (txnRef)..."
+                    placeholder="Nhập/quét mã nhận vé, mã vé giấy hoặc mã đơn bắp nước..."
                     @keyup.enter="searchTicket"
                 />
                 <button class="btn btn-primary" @click="searchTicket" :disabled="loading">
@@ -80,6 +82,10 @@
                         <i class="bi bi-check-circle-fill"></i>
                         Đã xuất
                     </span>
+                    <span v-else-if="snacks.length > 0 && !ticketsPrinted" class="print-required-pill">
+                        <i class="bi bi-printer"></i>
+                        Chưa in vé
+                    </span>
                 </div>
 
                 <div v-if="snacks.length > 0" class="table-responsive snack-table">
@@ -119,7 +125,7 @@
                             id="popcornSnack"
                             v-model="selectedPopcornSnackId"
                             class="form-select"
-                            :disabled="snacksFulfilled || popcornSnacks.length === 0"
+                            :disabled="snacksFulfilled || !ticketsPrinted || popcornSnacks.length === 0"
                         >
                             <option
                                 v-for="popcorn in sortedPopcornSnacks"
@@ -150,7 +156,7 @@
                                 type="radio"
                                 name="surchargePaymentMethod"
                                 :value="option.value"
-                                :disabled="snacksFulfilled"
+                                :disabled="snacksFulfilled || !ticketsPrinted"
                             />
                             <i :class="option.icon"></i>
                             <span>{{ option.label }}</span>
@@ -171,18 +177,27 @@
                     </div>
                 </div>
 
+                <div v-if="snacks.length > 0 && !ticketsPrinted" class="print-required-note">
+                    <i class="bi bi-info-circle-fill"></i>
+                    <span>Vui lòng in vé giấy trước. Sau đó nhân viên có thể quét vé giấy để xuất bắp nước đi kèm.</span>
+                </div>
+
                 <div v-if="snacks.length > 0" class="snack-actions">
-                    <button class="btn btn-primary" @click="fulfillSnacks" :disabled="fulfilling || snacksFulfilled">
+                    <button
+                        class="btn btn-primary"
+                        @click="fulfillSnacks"
+                        :disabled="fulfilling || snacksFulfilled || !ticketsPrinted"
+                    >
                         <span v-if="fulfilling" class="spinner-border spinner-border-sm me-2"></span>
                         <i v-else class="bi bi-check2-circle me-2"></i>
-                        {{ snacksFulfilled ? "Đã xuất bắp nước" : "Xác nhận xuất bắp nước" }}
+                        {{ bookingSnackActionLabel }}
                     </button>
                 </div>
             </section>
 
             <div class="print-actions">
                 <button
-                    v-if="!printedTxn.includes(txnRef)"
+                    v-if="!ticketsPrinted"
                     class="btn btn-primary px-4"
                     @click="printGroup"
                     :disabled="printing"
@@ -199,21 +214,107 @@
             </div>
         </div>
 
+        <div v-if="snackOrder" class="lookup-results standalone-snack-result">
+            <div class="result-heading">
+                <div>
+                    <p class="section-kicker mb-1">Đơn bắp nước</p>
+                    <h6 class="mb-0">
+                        Mã đơn:
+                        <span>{{ snackOrder.orderCode }}</span>
+                    </h6>
+                </div>
+            </div>
+
+            <div class="snack-order-grid">
+                <div>
+                    <span>Thanh toán</span>
+                    <strong>{{ snackOrder.paymentMethod || "VNPAY" }}</strong>
+                </div>
+                <div>
+                    <span>Thanh toán lúc</span>
+                    <strong>{{ formatDateTime(snackOrder.paidAt || snackOrder.createdAt) }}</strong>
+                </div>
+                <div>
+                    <span>Ngày nhận</span>
+                    <strong>{{ formatPickupDate(snackOrder.pickupDate) }}</strong>
+                </div>
+                <div>
+                    <span>Hạn nhận</span>
+                    <strong>{{ formatDateTime(snackOrder.pickupExpiresAt) }}</strong>
+                </div>
+                <div>
+                    <span>Tổng tiền</span>
+                    <strong class="brand-text">{{ formatCurrency(snackOrder.totalAmount) }}</strong>
+                </div>
+                <div v-if="Number(snackOrder.voucherDiscount || 0) > 0">
+                    <span>Voucher</span>
+                    <strong class="discount-text">-{{ formatCurrency(snackOrder.voucherDiscount) }}</strong>
+                </div>
+            </div>
+
+            <div v-if="snackOrderItems.length > 0" class="table-responsive snack-table standalone-snack-table">
+                <table class="table table-sm align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Sản phẩm khách mua</th>
+                            <th>Số lượng</th>
+                            <th>Tạm tính</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="(snack, index) in snackOrderItems" :key="`${snack.snackId}-${index}`">
+                            <td>{{ index + 1 }}</td>
+                            <td class="fw-semibold">{{ snack.snackName }}</td>
+                            <td>{{ snack.quantity }}</td>
+                            <td>{{ formatCurrency(snack.subtotal) }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="snack-actions">
+                <button class="btn btn-outline-primary" @click="openStandaloneSnackSlipPage">
+                    <i class="bi bi-printer me-2"></i>
+                    In phiếu bắp nước
+                </button>
+                <button
+                    class="btn btn-primary"
+                    @click="fulfillStandaloneSnackOrder"
+                    :disabled="fulfilling || !snackOrder?.canRedeem || !snackOrder?.printed"
+                >
+                    <span v-if="fulfilling" class="spinner-border spinner-border-sm me-2"></span>
+                    <i v-else class="bi bi-check2-circle me-2"></i>
+                    {{
+                        snackOrder?.fulfilled
+                            ? "Đã giao bắp nước"
+                            : snackOrder?.printed
+                              ? "Xác nhận giao bắp nước"
+                              : "Cần in phiếu trước"
+                    }}
+                </button>
+            </div>
+        </div>
+
         <div v-else-if="searched && tickets.length === 0" class="empty-result">
             <i class="bi bi-ticket-perforated"></i>
-            Không tìm thấy vé với mã giao dịch này.
+            Không tìm thấy vé hoặc đơn bắp nước với mã này.
         </div>
     </div>
 </template>
 
 <script setup>
-import { computed, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import api from "@/api";
-import { showCinemaAlert, showCinemaConfirm, showCinemaToast } from "@/utils/cinemaAlert";
+import { showCinemaAlert, showCinemaConfirm } from "@/utils/cinemaAlert";
 
 const txnRef = ref("");
+const route = useRoute();
+const router = useRouter();
 const tickets = ref([]);
 const snacks = ref([]);
+const snackOrder = ref(null);
 const popcornSnacks = ref([]);
 const selectedPopcornSnackId = ref(null);
 const surchargePaymentMethod = ref("CASH");
@@ -222,7 +323,16 @@ const printing = ref(false);
 const printedTxn = ref([]);
 const searched = ref(false);
 const fulfilling = ref(false);
+
+onMounted(() => {
+    const lookup = route.query.lookup;
+    if (typeof lookup === "string" && lookup.trim()) {
+        txnRef.value = lookup;
+        searchTicket();
+    }
+});
 const snackTotal = computed(() => snacks.value.reduce((sum, item) => sum + item.subtotal, 0));
+const snackOrderItems = computed(() => snackOrder.value?.items || []);
 const surchargePaymentOptions = [
     { value: "CASH", label: "Tiền mặt", icon: "bi bi-cash-stack" },
     { value: "VNPAY", label: "VNPay", icon: "bi bi-qr-code" },
@@ -231,6 +341,18 @@ const surchargePaymentOptions = [
 const snacksFulfilled = computed(
     () => tickets.value.length > 0 && tickets.value.every((ticket) => ticket.snacksFulfilled),
 );
+const ticketsPrinted = computed(() => {
+    const currentTxnRef = txnRef.value.trim();
+    return (
+        tickets.value.length > 0 &&
+        (printedTxn.value.includes(currentTxnRef) || tickets.value.every((ticket) => ticket.printed))
+    );
+});
+const bookingSnackActionLabel = computed(() => {
+    if (snacksFulfilled.value) return "Đã xuất bắp nước";
+    if (!ticketsPrinted.value) return "Cần in vé trước";
+    return "Xác nhận xuất bắp nước";
+});
 const fulfillmentRows = computed(() => buildFulfillmentRows(snacks.value));
 const sortedPopcornSnacks = computed(() =>
     [...popcornSnacks.value].sort((left, right) => Number(left.price || 0) - Number(right.price || 0)),
@@ -252,7 +374,6 @@ const popcornSurcharge = computed(() => {
     const diff = Number(selectedPopcornSnack.value.price || 0) - Number(defaultPopcornSnack.value.price || 0);
     return Math.max(0, diff) * comboPopcornQuantity.value;
 });
-
 async function searchTicket() {
     if (!txnRef.value.trim()) {
         await showCinemaAlert({
@@ -266,7 +387,19 @@ async function searchTicket() {
     searched.value = false;
 
     try {
-        const currentTxnRef = txnRef.value.trim();
+        const lookup = parseLookupCode(txnRef.value);
+        txnRef.value = lookup.code;
+        snackOrder.value = null;
+        tickets.value = [];
+        snacks.value = [];
+
+        if (lookup.type === "snack") {
+            await searchSnackOrder(lookup.code);
+            searched.value = true;
+            return;
+        }
+
+        const currentTxnRef = lookup.code;
         const res = await api.get(`/bookings/txn/${currentTxnRef}`);
         tickets.value = res.data || [];
 
@@ -289,12 +422,6 @@ async function searchTicket() {
                 title: "Không tìm thấy vé",
                 text: "Không tìm thấy vé với mã giao dịch này.",
             });
-        } else if (snacks.value.length === 0) {
-            await showCinemaToast({
-                icon: "info",
-                title: "Không có bắp nước",
-                text: "Mã giao dịch này không kèm bắp nước.",
-            });
         }
 
         if (tickets.value.length > 0 && tickets.value.every((t) => t.printed)) {
@@ -304,16 +431,49 @@ async function searchTicket() {
         }
     } catch (err) {
         console.error("Lỗi tra cứu vé:", err);
+        tickets.value = [];
         snacks.value = [];
+        snackOrder.value = null;
         searched.value = true;
         await showCinemaAlert({
             icon: "error",
             title: "Tra cứu thất bại",
-            text: "Không thể tra cứu vé. Kiểm tra kết nối hoặc mã giao dịch.",
+            text: err?.response?.data?.error || "Không thể tra cứu. Kiểm tra kết nối hoặc mã đã quét.",
         });
     } finally {
         loading.value = false;
     }
+}
+
+async function searchSnackOrder(orderCode) {
+    const res = await api.get(`/snack-orders/lookup/${encodeURIComponent(orderCode)}`);
+    snackOrder.value = res.data || null;
+    tickets.value = [];
+    snacks.value = [];
+}
+
+function parseLookupCode(value) {
+    const text = String(value || "").trim();
+    if (text.startsWith("TXN_PICKUP|")) {
+        return { type: "ticket", code: extractPayloadValue(text, "TXN") || text };
+    }
+    if (text.startsWith("TXN_TICKET|")) {
+        return { type: "ticket", code: extractPayloadValue(text, "TXN") || text };
+    }
+    if (text.startsWith("SNACK_ORDER|")) {
+        return { type: "snack", code: extractPayloadValue(text, "CODE") || text };
+    }
+    if (/^SNK-/i.test(text)) {
+        return { type: "snack", code: text.toUpperCase() };
+    }
+    return { type: "ticket", code: text };
+}
+
+function extractPayloadValue(payload, key) {
+    const body = payload.split("|").slice(1).join("|");
+    const prefix = `${key}=`;
+    const segment = body.split(";").find((part) => part.trim().startsWith(prefix));
+    return segment ? segment.trim().slice(prefix.length).trim() : "";
 }
 
 function mergeSnackItems(items) {
@@ -415,12 +575,7 @@ async function printGroup() {
     printing.value = true;
 
     try {
-        window.open(`/staff/ticket/${currentTxnRef}`, "_blank");
-        await api.post(`/bookings/mark-printed/${currentTxnRef}`);
-
-        if (!printedTxn.value.includes(currentTxnRef)) {
-            printedTxn.value.push(currentTxnRef);
-        }
+        await router.push(`/staff/ticket/${encodeURIComponent(currentTxnRef)}`);
     } catch (err) {
         console.error("Lỗi khi cập nhật trạng thái in:", err);
     } finally {
@@ -431,6 +586,14 @@ async function printGroup() {
 async function fulfillSnacks() {
     const currentTxnRef = txnRef.value.trim();
     if (!currentTxnRef) return;
+    if (!ticketsPrinted.value) {
+        await showCinemaAlert({
+            icon: "warning",
+            title: "Cần in vé trước",
+            text: "Vui lòng in vé giấy cho khách trước khi xác nhận xuất bắp nước đi kèm.",
+        });
+        return;
+    }
 
     const confirmed = await showCinemaConfirm({
         icon: "warning",
@@ -466,6 +629,55 @@ async function fulfillSnacks() {
     } finally {
         fulfilling.value = false;
     }
+}
+
+async function fulfillStandaloneSnackOrder() {
+    const orderCode = snackOrder.value?.orderCode;
+    if (!orderCode || !snackOrder.value?.canRedeem) return;
+
+    const rows = snackOrderItems.value
+        .map((item) => `<li><span>${escapeHtml(item.snackName)}</span><strong>x${item.quantity}</strong></li>`)
+        .join("");
+    const confirmed = await showCinemaConfirm({
+        icon: "warning",
+        title: "Xác nhận giao bắp nước",
+        html: `
+            <div class="cinema-alert-body">
+                <div class="cinema-alert-main">Xác nhận khách đã nhận các món dưới đây.</div>
+                <ul class="fulfillment-confirm-list">${rows}</ul>
+            </div>
+        `,
+        confirmButtonText: "Giao món",
+        cancelButtonText: "Kiểm tra lại",
+    });
+    if (!confirmed) return;
+
+    fulfilling.value = true;
+    try {
+        const res = await api.post(`/staff/snacks/fulfill-order/${encodeURIComponent(orderCode)}`);
+        await showCinemaAlert({
+            icon: "success",
+            title: "Giao món thành công",
+            text: buildFulfillmentMessage(res.data) || res.data?.message || "Đã giao bắp nước cho khách.",
+        });
+        await searchSnackOrder(orderCode);
+        searched.value = true;
+    } catch (err) {
+        console.error("Lỗi khi giao đơn bắp nước:", err);
+        await showCinemaAlert({
+            icon: "error",
+            title: "Giao món thất bại",
+            text: err?.response?.data?.error || "Không thể giao bắp nước. Vui lòng thử lại.",
+        });
+    } finally {
+        fulfilling.value = false;
+    }
+}
+
+function openStandaloneSnackSlipPage() {
+    const orderCode = snackOrder.value?.orderCode;
+    if (!orderCode) return;
+    router.push(`/staff/snack-ticket/${encodeURIComponent(orderCode)}`);
 }
 
 function buildFulfillmentConfirmHtml() {
@@ -506,6 +718,7 @@ function escapeHtml(value = "") {
 }
 
 function formatDateTime(t) {
+    if (!t) return "Đang cập nhật";
     return new Date(t).toLocaleString("vi-VN", {
         hour: "2-digit",
         minute: "2-digit",
@@ -513,6 +726,15 @@ function formatDateTime(t) {
         month: "2-digit",
         year: "numeric",
     });
+}
+
+function formatPickupDate(value) {
+    if (!value) return "Đang cập nhật";
+    return new Intl.DateTimeFormat("vi-VN", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+    }).format(new Date(`${value}T00:00:00`));
 }
 
 function formatCurrency(value) {
@@ -591,7 +813,8 @@ function formatCurrency(value) {
 }
 
 .result-count,
-.fulfilled-pill {
+.fulfilled-pill,
+.print-required-pill {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
@@ -602,6 +825,55 @@ function formatCurrency(value) {
     font-weight: 700;
     padding: 0.34rem 0.7rem;
     white-space: nowrap;
+}
+
+.print-required-pill {
+    background: #fff6df;
+    color: #8a5d12;
+}
+
+.standalone-snack-result {
+    background: #fffdfc;
+}
+
+.snack-order-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 0.9rem;
+}
+
+.snack-order-grid > div {
+    display: grid;
+    gap: 0.28rem;
+    border: 1px solid #f3dfd8;
+    border-radius: 10px;
+    background: #fff8f4;
+    padding: 0.72rem;
+}
+
+.snack-order-grid span {
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.snack-order-grid strong {
+    color: #4a4644;
+}
+
+.brand-text {
+    color: var(--brand) !important;
+}
+
+.discount-text {
+    color: #198754 !important;
+}
+
+.standalone-snack-table {
+    border: 1px solid #f1ddd4;
+    border-radius: 12px;
+    margin-top: 0.8rem;
 }
 
 .ticket-table,
@@ -809,9 +1081,30 @@ function formatCurrency(value) {
     color: var(--brand);
 }
 
+.print-required-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-top: 0.9rem;
+    border: 1px solid #f5dfb9;
+    border-radius: 12px;
+    background: #fffaf0;
+    color: #7a5a24;
+    padding: 0.72rem 0.85rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.print-required-note i {
+    margin-top: 0.1rem;
+    color: #c3831f;
+}
+
 .snack-actions,
 .print-actions {
     display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
     justify-content: flex-end;
     margin-top: 0.9rem;
 }
@@ -870,6 +1163,10 @@ function formatCurrency(value) {
         flex-direction: column;
     }
 
+    .snack-order-grid {
+        grid-template-columns: 1fr;
+    }
+
     .popcorn-choice {
         grid-template-columns: 1fr;
     }
@@ -891,4 +1188,5 @@ function formatCurrency(value) {
         width: 100%;
     }
 }
+
 </style>

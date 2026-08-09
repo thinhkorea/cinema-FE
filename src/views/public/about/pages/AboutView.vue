@@ -137,30 +137,24 @@
 
                         <div class="reward-milestone starter">
                             <span class="reward-tier-badge starter">
-                                <b>S</b>
                                 <em>Starter</em>
                             </span>
                             <span class="reward-milestone-dot">1</span>
                             <strong>500K</strong>
-                            <small>Mở ưu đãi đầu tiên cho lần mua tiếp theo.</small>
                         </div>
                         <div class="reward-milestone member">
                             <span class="reward-tier-badge member">
-                                <b>M+</b>
                                 <em>Member Plus</em>
                             </span>
                             <span class="reward-milestone-dot">2</span>
                             <strong>1TR</strong>
-                            <small>Nhận voucher có mức giảm sâu hơn.</small>
                         </div>
                         <div class="reward-milestone vip">
                             <span class="reward-tier-badge vip">
-                                <b>VIP</b>
                                 <em>VIP</em>
                             </span>
                             <span class="reward-milestone-dot">3</span>
                             <strong>2TR</strong>
-                            <small>Mở nhóm ưu đãi cao nhất đang áp dụng.</small>
                         </div>
                     </div>
 

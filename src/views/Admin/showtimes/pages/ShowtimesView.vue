@@ -618,16 +618,6 @@ const timeError = computed(() => {
 const scheduleError = computed(() => {
     if (!form.startTime || !form.endTime) return "";
 
-    const sameStartConflict = showtimes.value.find((showtime) => {
-        if (form.showtimeId && showtime.showtimeId === form.showtimeId) return false;
-        return showtime.startTime === form.startTime;
-    });
-    if (sameStartConflict) {
-        const movieTitle = sameStartConflict.movie?.title || "một phim khác";
-        const roomName = sameStartConflict.room?.roomName || "phòng khác";
-        return `Đã có suất chiếu của ${movieTitle} tại ${roomName} bắt đầu lúc ${formatTime(sameStartConflict.startTime)}. Không thể để nhiều phòng có cùng một giờ bắt đầu suất chiếu.`;
-    }
-
     if (!form.roomId) return "";
     const start = new Date(form.startTime);
     const end = new Date(form.endTime);

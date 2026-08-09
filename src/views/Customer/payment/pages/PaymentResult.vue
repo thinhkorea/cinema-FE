@@ -74,7 +74,9 @@ onMounted(async () => {
     try {
         // Nếu thanh toán thất bại
         if (!isSuccess && txnRef) {
-            await api.post(`/bookings/cancel-by-txn/${txnRef}`);
+            if (paymentFlow !== "snack-order") {
+                await api.post(`/bookings/cancel-by-txn/${txnRef}`);
+            }
             return;
         }
 
@@ -145,6 +147,13 @@ onMounted(async () => {
                 flow: paymentFlow,
                 paymentToken,
             });
+
+            if (paymentFlow === "snack-order") {
+                sessionStorage.removeItem("pendingSnackOrderCode");
+                sessionStorage.removeItem("pendingSnackOrderCreatedAt");
+                router.replace("/my-bookings?tab=snacks");
+                return;
+            }
 
             if (txnRef) {
                 router.replace(`/my-bookings/txn/${txnRef}`);

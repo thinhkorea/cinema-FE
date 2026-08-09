@@ -70,23 +70,23 @@
                     </div>
                 </div>
 
-                <!-- Digital Ticket -->
+                <!-- Online pickup code -->
                 <div class="digital-ticket">
                     <div class="ticket-header">
-                        <h3 class="ticket-title">Vé điện tử</h3>
+                        <h3 class="ticket-title">Mã nhận vé online</h3>
                     </div>
 
                     <div class="ticket-content">
                         <div class="qr-section">
                             <div class="qr-wrapper">
-                                <qrcode-vue :value="txnRef" :size="160" level="M" />
+                                <qrcode-vue :value="ticketPickupQrPayload" :size="160" level="M" />
                             </div>
-                            <p class="qr-instruction">Quét mã QR này cho nhân viên khi vào rạp</p>
+                            <p class="qr-instruction">Đưa mã này tại quầy hoặc kiosk để in vé giấy</p>
                         </div>
 
                         <div class="transaction-info">
                             <div class="transaction-id">
-                                <span class="label">Mã giao dịch:</span>
+                                <span class="label">Mã nhận vé:</span>
                                 <span class="value">{{ txnRef }}</span>
                             </div>
 
@@ -133,7 +133,10 @@
                     <div class="ticket-footer">
                         <div class="notice">
                             <i class="bi bi-info-circle"></i>
-                            <p>Vui lòng đưa mã QR này cho nhân viên khi vào rạp. Vé có hiệu lực trong ngày chiếu.</p>
+                            <p>
+                                Mã này dùng để nhận/in vé giấy. Vé giấy sau khi in sẽ được dùng để soát vé và nhận bắp
+                                nước đi kèm.
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -200,6 +203,7 @@ const seatList = computed(() => bookings.value.map((b) => b.seatNumber).join(", 
 const totalAmount = computed(() => bookings.value.reduce((sum, b) => sum + (b.total || 0), 0));
 const snacksTotal = computed(() => snacks.value.reduce((sum, item) => sum + (item.subtotal || 0), 0));
 const grandTotal = computed(() => totalAmount.value + snacksTotal.value);
+const ticketPickupQrPayload = computed(() => `TXN_PICKUP|TXN=${txnRef}`);
 
 const avgPrice = computed(() => (bookings.value.length ? totalAmount.value / bookings.value.length : 0));
 

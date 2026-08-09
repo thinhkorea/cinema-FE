@@ -89,7 +89,7 @@
                             </button>
                         </div>
                         <div class="voucher-list" v-if="availableVouchers.length">
-                            <p class="voucher-list-title">Mã phù hợp với bạn:</p>
+                            <p class="voucher-list-title">Ưu đãi phù hợp với bạn:</p>
                             <div class="voucher-pill-list">
                                 <button
                                     v-for="voucher in availableVouchers"
@@ -99,7 +99,7 @@
                                     :disabled="voucherApplying || !auth.isAuthenticated"
                                     @click="applyVoucher(voucher.code)"
                                 >
-                                    <div class="voucher-pill-title">{{ voucher.code }}</div>
+                                    <div class="voucher-pill-title">{{ voucher.name || "Voucher phù hợp" }}</div>
                                     <div class="voucher-pill-sub">
                                         Giảm {{ formatCurrency(voucher.discountAmount) }}
                                         <span v-if="voucher.newMemberOnly" class="voucher-badge">New</span>
@@ -114,10 +114,6 @@
                         <p v-else class="voucher-empty">Không có voucher phù hợp.</p>
                         <p v-if="voucherMessage" class="voucher-message" :class="voucherMessageTone">
                             {{ voucherMessage }}
-                        </p>
-                        <p v-if="voucherApplied" class="voucher-preview">
-                            Đã áp dụng: <strong>{{ voucherApplied.code }}</strong> — Giảm
-                            <strong>{{ formatCurrency(voucherDiscount) }}</strong>
                         </p>
                     </div>
 
@@ -180,7 +176,7 @@
 
                     <!-- Discount -->
                     <div v-if="voucherDiscount > 0" class="detail-row discount-row">
-                        <span class="label">Giảm voucher ({{ voucherApplied?.code }})</span>
+                        <span class="label">Giảm voucher</span>
                         <span class="value discount">-{{ formatCurrency(voucherDiscount) }}</span>
                     </div>
                     <div v-if="pointsToUse > 0" class="detail-row discount-row">
@@ -405,10 +401,10 @@ const applyVoucher = async (code) => {
             clearVoucher();
             return;
         }
-        voucherCode.value = code;
     }
 
-    if (!voucherCode.value) {
+    const codeToValidate = code || voucherCode.value;
+    if (!codeToValidate) {
         voucherMessage.value = "Vui lòng nhập mã voucher.";
         voucherMessageTone.value = "error";
         return;
@@ -417,12 +413,13 @@ const applyVoucher = async (code) => {
     try {
         voucherApplying.value = true;
         const { data } = await api.post("/vouchers/validate", {
-            code: voucherCode.value,
+            code: codeToValidate,
             totalAmount: baseTotal.value,
         });
 
         voucherApplied.value = data;
         voucherDiscount.value = data.discountAmount || 0;
+        voucherCode.value = "";
         voucherMessage.value = "";
         voucherMessageTone.value = "";
         sessionStorage.setItem(
@@ -894,12 +891,6 @@ const formatShortDate = (dateTime) => {
 .btn-apply {
     background: #ff6b35;
     color: #fff;
-}
-
-.voucher-preview {
-    margin-top: 0.75rem;
-    color: #2f2f2f;
-    font-size: 0.95rem;
 }
 
 .voucher-list {

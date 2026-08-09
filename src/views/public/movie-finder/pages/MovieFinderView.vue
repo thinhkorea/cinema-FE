@@ -78,46 +78,6 @@
                                 <span><i class="bi bi-shield-check"></i>{{ formatAgeRating(bestMovie.ageRating) }}</span>
                             </div>
 
-                            <div class="result-reason">
-                                <i class="bi bi-stars"></i>
-                                <p>{{ bestMovie.matchReason || "Có nhiều chi tiết gần với mô tả của bạn." }}</p>
-                                <strong>{{ getMatchLabel(bestMovie.score) }}</strong>
-                            </div>
-
-                            <div class="result-diagnostics">
-                                <div class="diagnostics-title">
-                                    <i class="bi bi-sliders2"></i>
-                                    <span>Thông tin kiểm tra</span>
-                                </div>
-
-                                <div class="diagnostics-grid">
-                                    <div>
-                                        <span>Nguồn xử lý</span>
-                                        <strong :class="['source-pill', getSourceClass(bestMovie.matchSource)]">
-                                            {{ getSourceLabel(bestMovie.matchSource) }}
-                                        </strong>
-                                    </div>
-                                    <div>
-                                        <span>Điểm tổng</span>
-                                        <strong>{{ formatTotalScore(bestMovie.score) }}</strong>
-                                    </div>
-                                    <div>
-                                        <span>Embedding</span>
-                                        <strong>{{ formatModelScore(bestMovie.semanticScore) }}</strong>
-                                    </div>
-                                    <div>
-                                        <span>Rerank</span>
-                                        <strong>{{ formatModelScore(bestMovie.rerankScore) }}</strong>
-                                    </div>
-                                    <div>
-                                        <span>Thời gian</span>
-                                        <strong>{{ formatDuration(bestMovie.processingTimeMs) }}</strong>
-                                    </div>
-                                </div>
-
-                                <p class="source-hint">{{ getSourceHint(bestMovie.matchSource) }}</p>
-                            </div>
-
                             <div v-if="bestMovie.description" class="result-description">
                                 <p
                                     v-for="(paragraph, index) in splitDescription(bestMovie.description)"
@@ -138,29 +98,33 @@
                         </div>
                     </article>
 
-                    <div v-if="rankedMovies.length > 1" class="ranking-panel">
-                        <div class="ranking-header">
-                            <i class="bi bi-list-ol"></i>
-                            <h3>Bảng kiểm tra xếp hạng</h3>
+                    <section v-if="!loading && suggestedMovies.length" class="suggestion-panel">
+                        <div class="suggestion-header">
+                            <span class="result-label">Gợi ý thêm</span>
+                            <h3>Phim có thể liên quan</h3>
                         </div>
 
-                        <div class="ranking-list">
-                            <div
-                                v-for="(movie, index) in rankedMovies"
+                        <div class="suggestion-list">
+                            <article
+                                v-for="(movie, index) in suggestedMovies"
                                 :key="movie.movieId || `${movie.title}-${index}`"
-                                class="ranking-row"
+                                class="suggestion-card"
                             >
-                                <span class="rank-number">#{{ index + 1 }}</span>
-                                <strong class="rank-title">{{ movie.title }}</strong>
-                                <span :class="['source-pill', getSourceClass(movie.matchSource)]">
-                                    {{ getSourceLabel(movie.matchSource) }}
-                                </span>
-                                <span>{{ formatTotalScore(movie.score) }}</span>
-                                <span>Embedding: {{ formatModelScore(movie.semanticScore) }}</span>
-                                <span>Rerank: {{ formatModelScore(movie.rerankScore) }}</span>
-                            </div>
+                                <img :src="resolveMediaUrl(movie.posterUrl)" :alt="movie.title" />
+                                <div class="suggestion-content">
+                                    <strong>{{ movie.title }}</strong>
+                                    <div class="suggestion-meta">
+                                        <span>{{ movie.genre || "Phim" }}</span>
+                                        <span>{{ movie.duration || 120 }} phút</span>
+                                    </div>
+                                </div>
+                                <button type="button" class="detail-icon-button" :aria-label="`Xem ${movie.title}`" @click="goMovieDetail(movie.movieId)">
+                                    <i class="bi bi-chevron-right"></i>
+                                </button>
+                            </article>
                         </div>
-                    </div>
+                    </section>
+
                 </div>
             </section>
         </main>
@@ -185,6 +149,8 @@ const resultMovies = ref([]);
 const loading = ref(false);
 const hasSearched = ref(false);
 const errorMessage = ref("");
+const SEARCH_CACHE_KEY = "movie-finder:last-search";
+const SEARCH_CACHE_TTL_MS = 30 * 60 * 1000;
 
 const examples = [
     "người cháu về chăm sóc bà bị bệnh",
@@ -194,7 +160,7 @@ const examples = [
 ];
 
 const bestMovie = computed(() => resultMovies.value[0] || null);
-const rankedMovies = computed(() => resultMovies.value.slice(0, 5));
+const suggestedMovies = computed(() => resultMovies.value.slice(1, 4));
 
 const searchMovie = async () => {
     const query = storyQuery.value.trim();
@@ -203,18 +169,30 @@ const searchMovie = async () => {
     loading.value = true;
     hasSearched.value = true;
     errorMessage.value = "";
+    resultMovies.value = [];
     try {
         const { data } = await api.get("/movies/discover", {
             params: {
                 query,
                 limit: 5,
             },
+            timeout: 120000,
         });
         resultMovies.value = Array.isArray(data) ? data : [];
+        saveSearchState(query, resultMovies.value);
     } catch (error) {
-        console.error("Error discovering movie:", error);
+        const isTimeout = error?.code === "ECONNABORTED" || String(error?.message || "").toLowerCase().includes("timeout");
+        console.error("Error discovering movie:", {
+            message: error?.message,
+            status: error?.response?.status,
+            data: error?.response?.data,
+            url: error?.config?.url,
+            method: error?.config?.method,
+        });
         resultMovies.value = [];
-        errorMessage.value = "Không tìm được phim theo mô tả lúc này. Vui lòng thử lại.";
+        errorMessage.value = isTimeout
+            ? "Hệ thống phân tích mô tả quá lâu. Vui lòng thử lại sau ít phút hoặc rút gọn mô tả."
+            : "Không tìm được phim theo mô tả lúc này. Vui lòng thử lại.";
     } finally {
         loading.value = false;
     }
@@ -230,28 +208,7 @@ const resetSearch = () => {
     resultMovies.value = [];
     hasSearched.value = false;
     errorMessage.value = "";
-};
-
-const getMatchLabel = (score) => {
-    const value = Number(score) || 0;
-    if (value >= 75) return "Rất phù hợp";
-    if (value >= 55) return "Có thể đúng";
-    return "Gợi ý";
-};
-
-const formatTotalScore = (score) => {
-    const value = Number(score);
-    return Number.isFinite(value) ? `${value.toFixed(1)}/100` : "Chưa có";
-};
-
-const formatModelScore = (score) => {
-    const value = Number(score);
-    return Number.isFinite(value) ? `${(value * 100).toFixed(1)}%` : "Chưa có";
-};
-
-const formatDuration = (durationMs) => {
-    const value = Number(durationMs);
-    return Number.isFinite(value) ? `${Math.round(value)} ms` : "Chưa có";
+    clearSearchState();
 };
 
 const splitDescription = (description) => {
@@ -261,35 +218,6 @@ const splitDescription = (description) => {
         .split(/\r?\n\s*\r?\n|\r?\n/)
         .map((paragraph) => paragraph.trim())
         .filter(Boolean);
-};
-
-const getSourceLabel = (source) => {
-    const sourceMap = {
-        "EMBEDDING_MODEL+RERANK": "Embedding + Rerank",
-        EMBEDDING_MODEL: "Embedding",
-        RERANK: "Rerank",
-        LOCAL_SCORING: "Chấm điểm nội bộ",
-    };
-    return sourceMap[source] || "Chưa rõ";
-};
-
-const getSourceClass = (source) => {
-    if (source === "EMBEDDING_MODEL+RERANK") return "is-full-model";
-    if (source === "EMBEDDING_MODEL" || source === "RERANK") return "is-model";
-    return "is-local";
-};
-
-const getSourceHint = (source) => {
-    if (source === "EMBEDDING_MODEL+RERANK") {
-        return "Đã dùng embedding để lấy ứng viên và rerank để xếp hạng lại.";
-    }
-    if (source === "EMBEDDING_MODEL") {
-        return "Đã dùng embedding, nhưng rerank chưa trả điểm cho kết quả này.";
-    }
-    if (source === "RERANK") {
-        return "Đã dùng rerank trên danh sách ứng viên, nhưng không có điểm embedding.";
-    }
-    return "Kết quả đang dựa vào chấm điểm nội bộ. Nếu muốn dùng model, hãy kiểm tra AI service và rebuild embedding.";
 };
 
 const formatAgeRating = (ageRating) => {
@@ -310,12 +238,47 @@ const goBooking = (movieId) => {
     router.push(`/booking/${movieId}`);
 };
 
+const saveSearchState = (query, movies) => {
+    const payload = {
+        query,
+        movies,
+        savedAt: Date.now(),
+    };
+    sessionStorage.setItem(SEARCH_CACHE_KEY, JSON.stringify(payload));
+};
+
+const clearSearchState = () => {
+    sessionStorage.removeItem(SEARCH_CACHE_KEY);
+};
+
+const restoreSearchState = () => {
+    try {
+        const cached = JSON.parse(sessionStorage.getItem(SEARCH_CACHE_KEY) || "null");
+        if (!cached || Date.now() - Number(cached.savedAt) > SEARCH_CACHE_TTL_MS) {
+            clearSearchState();
+            return false;
+        }
+
+        storyQuery.value = String(cached.query || "");
+        resultMovies.value = Array.isArray(cached.movies) ? cached.movies : [];
+        hasSearched.value = Boolean(storyQuery.value || resultMovies.value.length);
+        return hasSearched.value;
+    } catch (error) {
+        console.error("Could not restore movie finder state:", error);
+        clearSearchState();
+        return false;
+    }
+};
+
 onMounted(() => {
     const query = typeof route.query.story === "string" ? route.query.story.trim() : "";
     if (query) {
         storyQuery.value = query;
         searchMovie();
+        return;
     }
+
+    restoreSearchState();
 });
 </script>
 
@@ -568,165 +531,8 @@ onMounted(() => {
     padding: 0.35rem 0.65rem;
 }
 
-.result-meta i,
-.result-reason i {
+.result-meta i {
     color: #ff6b35;
-}
-
-.result-reason {
-    align-items: flex-start;
-    background: #fffaf7;
-    border: 1px solid #ffd8c9;
-    border-radius: 8px;
-    display: flex;
-    gap: 0.6rem;
-    margin-bottom: 1rem;
-    padding: 0.8rem;
-}
-
-.result-reason p {
-    color: #5b463e;
-    flex: 1;
-    line-height: 1.45;
-    margin: 0;
-}
-
-.result-reason strong {
-    background: #fff1eb;
-    border-radius: 999px;
-    color: #ff6b35;
-    flex: 0 0 auto;
-    font-size: 0.78rem;
-    padding: 0.35rem 0.55rem;
-}
-
-.result-diagnostics {
-    background: #fbfbfb;
-    border: 1px solid #e8e8e8;
-    border-radius: 8px;
-    margin-bottom: 1rem;
-    padding: 0.85rem;
-}
-
-.diagnostics-title,
-.ranking-header {
-    align-items: center;
-    color: #444;
-    display: flex;
-    gap: 0.45rem;
-}
-
-.diagnostics-title {
-    font-size: 0.9rem;
-    font-weight: 850;
-    margin-bottom: 0.7rem;
-}
-
-.diagnostics-title i,
-.ranking-header i {
-    color: #ff6b35;
-}
-
-.diagnostics-grid {
-    display: grid;
-    gap: 0.6rem;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-}
-
-.diagnostics-grid div {
-    min-width: 0;
-}
-
-.diagnostics-grid span {
-    color: #767676;
-    display: block;
-    font-size: 0.74rem;
-    font-weight: 700;
-    margin-bottom: 0.25rem;
-}
-
-.diagnostics-grid strong,
-.ranking-row > span {
-    color: #333;
-    font-size: 0.84rem;
-    font-weight: 800;
-}
-
-.source-pill {
-    align-items: center;
-    border-radius: 999px;
-    display: inline-flex;
-    line-height: 1.2;
-    max-width: 100%;
-    padding: 0.28rem 0.5rem;
-    white-space: normal;
-}
-
-.source-pill.is-full-model {
-    background: #ecfdf3;
-    color: #18794e;
-}
-
-.source-pill.is-model {
-    background: #eef4ff;
-    color: #315fba;
-}
-
-.source-pill.is-local {
-    background: #fff6e5;
-    color: #9a5b00;
-}
-
-.source-hint {
-    color: #686868;
-    font-size: 0.82rem;
-    line-height: 1.45;
-    margin: 0.7rem 0 0;
-}
-
-.ranking-panel {
-    background: #fff;
-    border: 1px solid #e3e3e3;
-    border-radius: 8px;
-    box-shadow: 0 12px 30px rgba(42, 28, 20, 0.06);
-    margin-top: 1rem;
-    padding: 1rem;
-}
-
-.ranking-header {
-    margin-bottom: 0.75rem;
-}
-
-.ranking-header h3 {
-    font-size: 1rem;
-    font-weight: 850;
-    margin: 0;
-}
-
-.ranking-list {
-    display: grid;
-    gap: 0.5rem;
-}
-
-.ranking-row {
-    align-items: center;
-    background: #fafafa;
-    border: 1px solid #ececec;
-    border-radius: 8px;
-    display: grid;
-    gap: 0.6rem;
-    grid-template-columns: 44px minmax(150px, 1fr) minmax(130px, auto) repeat(3, minmax(90px, auto));
-    padding: 0.65rem 0.75rem;
-}
-
-.rank-number {
-    color: #ff6b35;
-}
-
-.rank-title {
-    color: #252525;
-    font-size: 0.92rem;
-    min-width: 0;
 }
 
 .result-description {
@@ -742,6 +548,101 @@ onMounted(() => {
 
 .result-description p:last-child {
     margin-bottom: 0;
+}
+
+.suggestion-panel {
+    background: #fff;
+    border: 1px solid #e3e3e3;
+    border-radius: 8px;
+    box-shadow: 0 12px 30px rgba(42, 28, 20, 0.06);
+    margin-top: 1rem;
+    padding: 1rem;
+}
+
+.suggestion-header {
+    margin-bottom: 0.75rem;
+}
+
+.suggestion-header h3 {
+    color: #252525;
+    font-size: 1.12rem;
+    font-weight: 850;
+    letter-spacing: 0;
+    margin: 0;
+}
+
+.suggestion-list {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.suggestion-card {
+    align-items: center;
+    background: #fffaf7;
+    border: 1px solid #f0ddd5;
+    border-radius: 8px;
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: 72px minmax(0, 1fr) 34px;
+    min-height: 120px;
+    padding: 0.75rem;
+}
+
+.suggestion-card img {
+    aspect-ratio: 2 / 3;
+    border-radius: 7px;
+    height: 96px;
+    object-fit: cover;
+    width: 64px;
+}
+
+.suggestion-content {
+    min-width: 0;
+}
+
+.suggestion-content strong {
+    color: #252525;
+    display: block;
+    font-size: 0.95rem;
+    font-weight: 850;
+    line-height: 1.35;
+    margin-bottom: 0.45rem;
+}
+
+.suggestion-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.suggestion-meta span {
+    background: #fff;
+    border: 1px solid #eadbd4;
+    border-radius: 999px;
+    color: #6a5850;
+    font-size: 0.78rem;
+    font-weight: 750;
+    padding: 0.22rem 0.5rem;
+}
+
+.detail-icon-button {
+    align-items: center;
+    background: #fff;
+    border: 1px solid #eadbd4;
+    border-radius: 8px;
+    color: #ff6b35;
+    display: inline-flex;
+    height: 34px;
+    justify-content: center;
+    transition: 0.2s ease;
+    width: 34px;
+}
+
+.detail-icon-button:hover {
+    background: #ff6b35;
+    border-color: #ff6b35;
+    color: #fff;
 }
 
 .mini-spinner {
@@ -779,8 +680,7 @@ onMounted(() => {
         padding: 1.1rem;
     }
 
-    .diagnostics-grid,
-    .ranking-row {
+    .suggestion-list {
         grid-template-columns: 1fr;
     }
 
