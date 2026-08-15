@@ -106,7 +106,7 @@
                                 </div>
                                 <div class="exchange-info">
                                     <i class="bi bi-info-circle me-2"></i>
-                                    <span>Voucher tự xuất hiện khi bạn đạt mốc chi tiêu.</span>
+                                    <span>Mốc chi tiêu được tính theo các thanh toán đã hoàn tất.</span>
                                 </div>
                             </div>
                         </div>
@@ -197,73 +197,92 @@
                             </div>
                         </form>
                     </div>
+                </div>
 
+                <div class="profile-voucher-section">
                     <div class="voucher-card">
                         <div class="card-header">
                             <i class="bi bi-ticket-perforated me-2"></i>
-                            <span>Voucher của bạn</span>
+                            <span>Ví voucher</span>
                         </div>
 
                         <div class="voucher-card-body">
+                            <div class="voucher-wallet-summary">
+                                <div>
+                                    <span>Đã lưu trong ví</span>
+                                    <strong>{{ savedVouchers.length }}</strong>
+                                </div>
+                            </div>
+
+                            <div class="voucher-save-panel">
+                                <div>
+                                    <div class="voucher-save-title">
+                                        <i class="bi bi-bookmark-plus"></i>
+                                        <span>Lưu voucher bằng mã</span>
+                                    </div>
+                                    <p class="voucher-save-subtitle">Mã được lưu vào ví trước khi sử dụng khi thanh toán.</p>
+                                </div>
+                                <div class="voucher-save-form">
+                                    <input
+                                        v-model.trim="voucherSaveCode"
+                                        type="text"
+                                        class="form-input"
+                                        placeholder="Nhập mã voucher"
+                                        :disabled="voucherSaving"
+                                    />
+                                    <button
+                                        type="button"
+                                        class="btn-primary btn-save-voucher"
+                                        :disabled="voucherSaving"
+                                        @click="saveVoucherCode"
+                                    >
+                                        <i class="bi bi-plus-circle"></i>
+                                        <span>{{ voucherSaving ? "Đang lưu..." : "Lưu vào ví" }}</span>
+                                    </button>
+                                </div>
+                                <p v-if="voucherSaveMessage" class="voucher-save-message" :class="voucherSaveMessageTone">
+                                    {{ voucherSaveMessage }}
+                                </p>
+                            </div>
+
                             <div v-if="voucherLoading" class="voucher-loading">Đang tải voucher...</div>
                             <div v-else-if="voucherGroups.length" class="voucher-groups">
                                 <div v-for="group in voucherGroups" :key="group.key" class="voucher-group">
-                                    <div class="voucher-section-title">{{ group.title }}</div>
-                                    <div class="my-voucher-list">
+                                    <div class="voucher-section-heading">
+                                        <span>{{ group.title }}</span>
+                                        <small>{{ group.vouchers.length }} mã</small>
+                                    </div>
+                                    <div class="voucher-ticket-list">
                                         <div
                                             v-for="voucher in group.vouchers"
                                             :key="voucher.code"
-                                            class="my-voucher-item"
-                                            :class="{ locked: !voucher.eligible }"
+                                            class="voucher-ticket"
+                                            :class="{ locked: !voucher.claimed }"
                                         >
-                                            <div class="my-voucher-main">
-                                                <div>
-                                                    <div class="my-voucher-code">{{ voucher.code }}</div>
-                                                    <div class="my-voucher-name">{{ voucher.name }}</div>
-                                                </div>
-                                                <span
-                                                    class="my-voucher-status"
-                                                    :class="{ eligible: voucher.claimed }"
-                                                >
-                                                    {{ getVoucherStatusText(voucher) }}
-                                                </span>
+                                            <div class="voucher-ticket-ribbon">
+                                                {{ getVoucherStatusText(voucher) }}
                                             </div>
+                                            <div class="voucher-ticket-main">
+                                                <div class="my-voucher-code">{{ voucher.code }}</div>
+                                                <div class="my-voucher-name">{{ voucher.name }}</div>
+                                                <div class="my-voucher-desc">{{ formatVoucherValue(voucher) }}</div>
 
-                                            <div class="my-voucher-desc">
-                                                {{ formatVoucherValue(voucher) }}
-                                                <span v-if="voucher.minOrder">
-                                                    - Đơn từ {{ formatCurrency(voucher.minOrder) }}
-                                                </span>
+                                                <div class="voucher-meta-row">
+                                                    <span>{{ formatVoucherDateRange(voucher) }}</span>
+                                                    <span v-if="voucher.minOrder">Đơn từ {{ formatCurrency(voucher.minOrder) }}</span>
+                                                    <span v-if="voucher.newMemberOnly">Khách mới</span>
+                                                </div>
+
+                                                <div v-if="voucher.reason" class="my-voucher-reason">
+                                                    {{ normalizeVoucherReason(voucher.reason) }}
+                                                </div>
                                             </div>
-
-                                            <div v-if="voucher.requiredTotalSpent" class="my-voucher-progress">
-                                                <div class="progress-text">
-                                                    <span>
-                                                        Đã tiêu {{ formatCurrency(voucher.currentTotalSpent) }} /
-                                                        {{ formatCurrency(voucher.requiredTotalSpent) }}
-                                                    </span>
-                                                    <strong>{{ formatWindowYears(voucher.spendingWindowDays, profile.spendingYear) }}</strong>
-                                                </div>
-                                                <div class="spending-progress slim">
-                                                    <div
-                                                        class="spending-progress-bar"
-                                                        :style="{ width: `${getVoucherProgress(voucher)}%` }"
-                                                    ></div>
-                                                </div>
-                                        <div v-if="!voucher.eligible" class="voucher-remaining">
-                                            Còn thiếu {{ formatCurrency(voucher.remainingAmount) }}
-                                        </div>
-                                    </div>
-
-                                    <div v-if="voucher.reason" class="my-voucher-reason">
-                                        {{ voucher.reason }}
-                                    </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                             <div v-else class="voucher-empty-state">
-                                Chưa có voucher nào khả dụng. Khi đạt mốc chi tiêu, voucher sẽ tự xuất hiện tại đây.
+                                Chưa có voucher trong ví. Nhập mã voucher để lưu và dùng khi thanh toán.
                             </div>
                         </div>
                     </div>
@@ -278,7 +297,7 @@ import { computed, ref, onMounted } from "vue";
 import { useAuthStore } from "@/stores/auth.store";
 import api from "@/api";
 import { useRouter } from "vue-router";
-import { showCinemaAlert } from "@/utils/cinemaAlert";
+import { getApiErrorMessage, showCinemaAlert } from "@/utils/cinemaAlert";
 
 const router = useRouter();
 const auth = useAuthStore();
@@ -288,42 +307,20 @@ const loyalty = ref({ availablePoints: 0, transactions: [] });
 const nextExpiryDate = ref("");
 const myVouchers = ref([]);
 const voucherLoading = ref(false);
+const voucherSaveCode = ref("");
+const voucherSaving = ref(false);
+const voucherSaveMessage = ref("");
+const voucherSaveMessageTone = ref("");
 const fallbackSpendMilestones = [500000, 1000000, 2000000];
 
 const totalSpent = computed(() => Number(profile.value.totalSpent || 0));
 const profileSpendingWindowDays = computed(() => Number(profile.value.spendingWindowDays || 365));
 const getMilestoneAmount = (voucher) => Number(voucher.requiredTotalSpent || 0);
 const spendingVouchers = computed(() => myVouchers.value.filter((voucher) => getMilestoneAmount(voucher) > 0));
-const ownedSpendingVouchers = computed(() => spendingVouchers.value.filter((voucher) => voucher.claimed && voucher.eligible));
-const highestOwnedMilestone = computed(() => {
-    return ownedSpendingVouchers.value.reduce((highest, voucher) => {
-        return Math.max(highest, getMilestoneAmount(voucher));
-    }, 0);
-});
-const ownedVouchers = computed(() =>
-    myVouchers.value.filter((voucher) => {
-        if (!voucher.claimed || !voucher.eligible) return false;
-        const milestone = getMilestoneAmount(voucher);
-        return !milestone || milestone === highestOwnedMilestone.value;
-    }),
-);
-const allUpcomingSpendingVouchers = computed(() =>
-    spendingVouchers.value.filter((voucher) => !voucher.claimed),
-);
-const nextUpcomingMilestone = computed(() => {
-    return allUpcomingSpendingVouchers.value.reduce((next, voucher) => {
-        const milestone = getMilestoneAmount(voucher);
-        if (!milestone) return next;
-        return next === null || milestone < next ? milestone : next;
-    }, null);
-});
-const upcomingSpendingVouchers = computed(() =>
-    allUpcomingSpendingVouchers.value.filter((voucher) => getMilestoneAmount(voucher) === nextUpcomingMilestone.value),
-);
+const savedVouchers = computed(() => myVouchers.value.filter((voucher) => voucher.claimed));
 const voucherGroups = computed(() =>
     [
-        { key: "owned", title: "Voucher đã có", vouchers: ownedVouchers.value },
-        { key: "upcoming", title: "Sắp nhận theo mốc chi tiêu", vouchers: upcomingSpendingVouchers.value },
+        { key: "saved", title: "Voucher đã lưu", vouchers: savedVouchers.value },
     ].filter((group) => group.vouchers.length),
 );
 const spendMilestones = computed(() => {
@@ -451,16 +448,51 @@ const formatVoucherValue = (voucher) => {
     return `Giảm ${formatCurrency(voucher.value || 0)}`;
 };
 
-const getVoucherProgress = (voucher) => {
-    const required = Number(voucher.requiredTotalSpent || 0);
-    if (!required) return 100;
-    const current = Number(voucher.currentTotalSpent || 0);
-    return Math.min(100, Math.max(0, (current / required) * 100));
+const formatVoucherDateRange = (voucher) => {
+    const start = voucher.startAt ? formatDate(voucher.startAt) : "";
+    const end = voucher.endAt ? formatDate(voucher.endAt) : "";
+    if (start && end) return `${start} - ${end}`;
+    if (end) return `HSD ${end}`;
+    if (start) return `Có hiệu lực từ ${start}`;
+    return "Không giới hạn HSD";
 };
 
 const getVoucherStatusText = (voucher) => {
-    if (voucher.claimed) return "Đã có";
-    return "Sắp nhận";
+    if (voucher.claimed) return "Đã lưu";
+    return "Chưa lưu";
+};
+
+const normalizeVoucherReason = (reason) => {
+    return String(reason || "");
+};
+
+const saveVoucherCode = async () => {
+    const code = voucherSaveCode.value.trim();
+    if (!code) {
+        await showCinemaAlert({
+            icon: "warning",
+            title: "Nhập mã voucher",
+            text: "Vui lòng nhập mã voucher cần lưu.",
+        });
+        return;
+    }
+
+    try {
+        voucherSaving.value = true;
+        voucherSaveMessage.value = "";
+        voucherSaveMessageTone.value = "";
+        await api.post(`/vouchers/${encodeURIComponent(code)}/claim`);
+        voucherSaveCode.value = "";
+        voucherSaveMessage.value = "Đã lưu voucher vào ví.";
+        voucherSaveMessageTone.value = "success";
+        await loadMyVouchers();
+    } catch (err) {
+        console.error("Voucher save failed:", err);
+        voucherSaveMessage.value = getApiErrorMessage(err);
+        voucherSaveMessageTone.value = "error";
+    } finally {
+        voucherSaving.value = false;
+    }
 };
 
 const updateProfile = async () => {
@@ -611,9 +643,17 @@ const updateProfile = async () => {
 
 .profile-main-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
     gap: 1.5rem;
     align-items: start;
+}
+
+.profile-voucher-section {
+    display: flex;
+}
+
+.profile-voucher-section .voucher-card {
+    width: 100%;
 }
 
 .loyalty-card {
@@ -846,6 +886,55 @@ const updateProfile = async () => {
     line-height: 1.5;
 }
 
+.voucher-save-panel {
+    border: 1px solid rgba(255, 215, 0, 0.18);
+    border-radius: 14px;
+    padding: 1rem;
+    margin-bottom: 1.2rem;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.voucher-save-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #ffd700;
+    font-weight: 800;
+    margin-bottom: 0.85rem;
+}
+
+.voucher-save-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.btn-save-voucher {
+    justify-content: center;
+    white-space: nowrap;
+    padding: 0.875rem 1.1rem;
+}
+
+.voucher-save-message {
+    grid-column: 1 / -1;
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.voucher-save-message.success {
+    color: #bbf7d0;
+}
+
+.voucher-save-message.error {
+    color: #fecaca;
+}
+
+.my-voucher-item.usable {
+    border-color: rgba(34, 197, 94, 0.42);
+}
+
 .my-voucher-list {
     display: flex;
     flex-direction: column;
@@ -942,33 +1031,11 @@ const updateProfile = async () => {
 }
 
 .my-voucher-desc,
-.my-voucher-reason,
-.voucher-remaining {
+.my-voucher-reason {
     margin-top: 0.65rem;
     color: rgba(255, 255, 255, 0.78);
     font-size: 0.9rem;
     line-height: 1.45;
-}
-
-.my-voucher-progress {
-    margin-top: 0.8rem;
-}
-
-.progress-text {
-    display: flex;
-    justify-content: space-between;
-    gap: 0.75rem;
-    color: rgba(255, 255, 255, 0.86);
-    font-size: 0.85rem;
-}
-
-.progress-text strong {
-    flex: 0 0 auto;
-}
-
-.spending-progress.slim {
-    height: 7px;
-    margin: 0.55rem 0 0;
 }
 
 /* Form Styling */
@@ -1356,19 +1423,211 @@ const updateProfile = async () => {
     color: #ff6b35;
 }
 
+.voucher-save-panel {
+    background: #fffaf7;
+    border-color: #f0ddd5;
+}
+
+.voucher-save-title {
+    color: #ff6b35;
+}
+
 .voucher-section-title,
 .my-voucher-name,
 .my-voucher-desc,
-.my-voucher-reason,
-.voucher-remaining,
-.progress-text {
+.my-voucher-reason {
     color: #444;
+}
+
+.voucher-wallet-summary {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.voucher-wallet-summary > div {
+    border: 1px solid #f0ddd5;
+    border-radius: 12px;
+    background: linear-gradient(180deg, #fffaf7 0%, #fff 100%);
+    padding: 0.85rem;
+}
+
+.voucher-wallet-summary span {
+    display: block;
+    color: #7a6b63;
+    font-size: 0.78rem;
+    font-weight: 700;
+    margin-bottom: 0.35rem;
+}
+
+.voucher-wallet-summary strong {
+    color: #ff6b35;
+    font-size: 1.45rem;
+    line-height: 1;
+}
+
+.voucher-save-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 1fr);
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.voucher-save-title {
+    margin-bottom: 0.25rem;
+}
+
+.voucher-save-subtitle {
+    margin: 0;
+    color: #7a6b63;
+    font-size: 0.86rem;
+}
+
+.voucher-save-message.success {
+    color: #15803d;
+}
+
+.voucher-save-message.error {
+    color: #c94c28;
+}
+
+.voucher-ticket-list,
+.voucher-groups,
+.voucher-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.voucher-section-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    align-items: center;
+    margin-top: 0.35rem;
+    color: #2f2926;
+    font-size: 0.82rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.voucher-section-heading small {
+    color: #7a6b63;
+    font-size: 0.76rem;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.voucher-ticket {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 1rem;
+    overflow: hidden;
+    border: 1px solid #f0ddd5;
+    border-left: 4px solid #ff6b35;
+    border-radius: 12px;
+    background: #fff;
+    padding: 1rem;
+    box-shadow: 0 8px 20px rgba(255, 107, 53, 0.08);
+}
+
+.voucher-ticket.locked {
+    border-left-color: #cbd5e1;
+    background: #fbfbfb;
+}
+
+.voucher-ticket-main {
+    min-width: 0;
+}
+
+.voucher-ticket-ribbon {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    border-radius: 999px;
+    background: #fff3cd;
+    color: #8a5a00;
+    padding: 0.22rem 0.6rem;
+    font-size: 0.72rem;
+    font-weight: 900;
+}
+
+.voucher-ticket:not(.locked) .voucher-ticket-ribbon {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.my-voucher-code {
+    width: fit-content;
+    border: 1px dashed #ffb18f;
+    border-radius: 8px;
+    background: #fff6f1;
+    padding: 0.25rem 0.55rem;
+    color: #ff6b35;
+    font-size: 0.92rem;
+}
+
+.my-voucher-name {
+    padding-right: 6.5rem;
+    color: #2f2926;
+    font-size: 1rem;
+    font-weight: 800;
+    margin-top: 0.55rem;
+}
+
+.my-voucher-desc,
+.my-voucher-reason {
+    color: #5f5048;
+}
+
+.my-voucher-desc {
+    margin-top: 0.3rem;
+    font-weight: 700;
+}
+
+.voucher-meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.65rem;
+}
+
+.voucher-meta-row span {
+    border-radius: 999px;
+    background: #fff8f4;
+    border: 1px solid #f0ddd5;
+    color: #6b4c3b;
+    padding: 0.2rem 0.55rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.my-voucher-reason {
+    margin-top: 0.55rem;
+    font-size: 0.84rem;
+}
+
+.voucher-empty-state,
+.voucher-loading {
+    border: 1px dashed #f0ddd5;
+    border-radius: 12px;
+    background: #fffaf7;
+    color: #7a6b63;
+    padding: 1rem;
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
     .profile-summary-grid,
     .profile-main-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .voucher-save-panel {
         grid-template-columns: 1fr;
     }
 
@@ -1421,9 +1680,29 @@ const updateProfile = async () => {
     }
 
     .my-voucher-main,
-    .progress-text {
+    .voucher-save-form {
         flex-direction: column;
         gap: 0.45rem;
+    }
+
+    .voucher-wallet-summary,
+    .voucher-ticket {
+        grid-template-columns: 1fr;
+    }
+
+    .voucher-ticket-ribbon {
+        position: static;
+        width: fit-content;
+        order: -1;
+    }
+
+    .my-voucher-name {
+        padding-right: 0;
+    }
+
+    .voucher-save-form {
+        display: flex;
+        align-items: stretch;
     }
 
     .info-row {

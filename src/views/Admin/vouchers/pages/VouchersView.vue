@@ -2,57 +2,102 @@
     <div class="voucher-page">
         <div class="header">
             <div>
-                <h3 class="title">Quản lý voucher</h3>
-                <p class="subtitle">Tạo, chỉnh sửa, bật/tắt voucher khuyến mãi.</p>
+                <h3 class="title">Kho voucher</h3>
+                <p class="subtitle">Lưu trữ mã giảm giá, theo dõi lượt dùng, HSD và điều kiện áp dụng.</p>
             </div>
-            <button class="btn-primary" @click="openCreate">+ Tạo voucher</button>
+            <button class="btn-primary" @click="openCreate">
+                <i class="bi bi-plus-lg"></i>
+                <span>Tạo voucher</span>
+            </button>
         </div>
 
         <div v-if="loading" class="loading">Đang tải dữ liệu...</div>
 
         <div v-else>
+            <div class="voucher-stats">
+                <div class="voucher-stat-card">
+                    <span>Tổng voucher</span>
+                    <strong>{{ voucherStats.total }}</strong>
+                </div>
+                <div class="voucher-stat-card">
+                    <span>Đang bật</span>
+                    <strong>{{ voucherStats.active }}</strong>
+                </div>
+                <div class="voucher-stat-card">
+                    <span>Còn lượt dùng</span>
+                    <strong>{{ voucherStats.available }}</strong>
+                </div>
+                <div class="voucher-stat-card warning">
+                    <span>Sắp hết hạn</span>
+                    <strong>{{ voucherStats.expiringSoon }}</strong>
+                </div>
+            </div>
+
             <div class="table-wrap">
                 <table class="voucher-table">
                     <thead>
                         <tr>
-                            <th>Mã</th>
-                            <th>Tên</th>
-                            <th>Loại</th>
+                            <th>Voucher</th>
                             <th>Giá trị</th>
                             <th>Điều kiện</th>
+                            <th>Lượt dùng</th>
+                            <th>HSD</th>
                             <th>Trạng thái</th>
                             <th></th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-for="voucher in paginatedVouchers" :key="voucher.voucherId">
-                            <td class="code">{{ voucher.code }}</td>
-                            <td>{{ voucher.name }}</td>
-                            <td>{{ voucher.type === "PERCENT" ? "%" : "Fixed" }}</td>
                             <td>
-                                {{ formatValue(voucher) }}
-                            </td>
-                            <td>
-                                <div v-if="voucher.minOrder">
-                                    Tối thiểu {{ formatCurrency(voucher.minOrder) }}
-                                </div>
-                                <div v-if="voucher.newMemberOnly" class="badge new-member">Chỉ khách mới</div>
-                                <div v-if="voucher.newMemberOnly" class="condition-note">Chưa từng thanh toán</div>
-                                <div v-if="looksLikeNewMemberVoucher(voucher) && !voucher.newMemberOnly" class="badge warning">
-                                    Chưa bật điều kiện khách mới
-                                </div>
-                                <div v-if="voucher.requiredTotalSpent" class="badge points">
-                                    Đã tiêu từ {{ formatCurrency(voucher.requiredTotalSpent) }} trong
-                                    {{ formatWindowYears(voucher.spendingWindowDays) }}
-                                </div>
-                                <div v-if="voucher.requiredTotalSpent" class="badge spend-only">Theo mốc chi tiêu</div>
-                                <div v-if="!voucher.minOrder && !voucher.newMemberOnly && !voucher.requiredTotalSpent" class="muted">
-                                    Không yêu cầu
+                                <div class="voucher-identity">
+                                    <div class="code">{{ voucher.code }}</div>
+                                    <strong>{{ voucher.name }}</strong>
+                                    <span v-if="voucher.description">{{ voucher.description }}</span>
                                 </div>
                             </td>
+                            <td class="value-cell">
+                                <strong>{{ formatValue(voucher) }}</strong>
+                                <span>{{ voucher.type === "PERCENT" ? "Theo phần trăm" : "Giảm cố định" }}</span>
+                            </td>
                             <td>
-                                <span :class="['status', voucher.active ? 'active' : 'inactive']">
-                                    {{ voucher.active ? "Đang bật" : "Đã tắt" }}
+                                <div class="condition-stack">
+                                    <span
+                                        v-for="condition in getConditionLabels(voucher)"
+                                        :key="condition"
+                                        class="condition-pill"
+                                    >
+                                        {{ condition }}
+                                    </span>
+                                    <span
+                                        v-if="looksLikeNewMemberVoucher(voucher) && !voucher.newMemberOnly"
+                                        class="condition-pill danger"
+                                    >
+                                        Chưa bật điều kiện khách mới
+                                    </span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="usage-cell">
+                                    <div class="usage-text">
+                                        <strong>{{ Number(voucher.usedCount || 0) }}</strong>
+                                        <span>/ {{ formatUsageLimit(voucher) }}</span>
+                                    </div>
+                                    <div v-if="hasUsageLimit(voucher)" class="usage-track">
+                                        <div :style="{ width: `${getUsagePercent(voucher)}%` }"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="expiry-cell">
+                                    <strong>{{ formatDateRange(voucher) }}</strong>
+                                    <span :class="['expiry-status', getExpiryState(voucher)]">
+                                        {{ getExpiryText(voucher) }}
+                                    </span>
+                                </div>
+                            </td>
+                            <td>
+                                <span :class="['status', getVoucherStatusClass(voucher)]">
+                                    {{ getVoucherStatusText(voucher) }}
                                 </span>
                             </td>
                             <td class="actions">
@@ -232,6 +277,27 @@ const totalPages = computed(() => Math.max(1, Math.ceil(vouchers.value.length / 
 const paginatedVouchers = computed(() => {
     const start = (currentPage.value - 1) * pageSize.value;
     return vouchers.value.slice(start, start + pageSize.value);
+});
+const voucherStats = computed(() => {
+    const now = new Date();
+    const soon = new Date(now);
+    soon.setDate(soon.getDate() + 14);
+
+    return vouchers.value.reduce(
+        (stats, voucher) => {
+            stats.total += 1;
+            if (voucher.active) stats.active += 1;
+            if (isVoucherUsableStock(voucher, now)) stats.available += 1;
+
+            const endAt = parseDate(voucher.endAt);
+            if (endAt && endAt >= now && endAt <= soon) {
+                stats.expiringSoon += 1;
+            }
+
+            return stats;
+        },
+        { total: 0, active: 0, available: 0, expiringSoon: 0 },
+    );
 });
 
 watch([pageSize, totalPages], () => {
@@ -451,12 +517,116 @@ const formatValue = (voucher) => {
     return formatCurrency(voucher.value || 0);
 };
 
+const formatDate = (value) => {
+    const date = parseDate(value);
+    if (!date) return "";
+    return date.toLocaleDateString("vi-VN", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+    });
+};
+
+const formatDateRange = (voucher) => {
+    const start = formatDate(voucher.startAt);
+    const end = formatDate(voucher.endAt);
+    if (start && end) return `${start} - ${end}`;
+    if (end) return `Đến ${end}`;
+    if (start) return `Từ ${start}`;
+    return "Không giới hạn";
+};
+
 const formatWindowYears = (days) => {
     const years = daysToYears(days);
     const endYear = new Date().getFullYear();
     const startYear = endYear - years + 1;
     if (years === 1) return `năm ${endYear}`;
     return `từ năm ${startYear} đến năm ${endYear}`;
+};
+
+const parseDate = (value) => {
+    if (!value) return null;
+    const date = new Date(value);
+    return Number.isFinite(date.getTime()) ? date : null;
+};
+
+const hasUsageLimit = (voucher) => Number(voucher.usageLimit || 0) > 0;
+
+const formatUsageLimit = (voucher) => {
+    return hasUsageLimit(voucher) ? Number(voucher.usageLimit || 0) : "Không giới hạn";
+};
+
+const getUsagePercent = (voucher) => {
+    if (!hasUsageLimit(voucher)) return 0;
+    const used = Number(voucher.usedCount || 0);
+    const limit = Number(voucher.usageLimit || 0);
+    return Math.min(100, Math.max(0, Math.round((used / limit) * 100)));
+};
+
+const isUsageSoldOut = (voucher) => {
+    return hasUsageLimit(voucher) && Number(voucher.usedCount || 0) >= Number(voucher.usageLimit || 0);
+};
+
+const getExpiryState = (voucher) => {
+    const now = new Date();
+    const start = parseDate(voucher.startAt);
+    const end = parseDate(voucher.endAt);
+    if (end && now > end) return "expired";
+    if (start && now < start) return "upcoming";
+    if (end) {
+        const soon = new Date(now);
+        soon.setDate(soon.getDate() + 14);
+        if (end <= soon) return "ending";
+    }
+    return "active";
+};
+
+const getExpiryText = (voucher) => {
+    const state = getExpiryState(voucher);
+    if (state === "expired") return "Đã hết hạn";
+    if (state === "upcoming") return "Sắp diễn ra";
+    if (state === "ending") return "Sắp hết hạn";
+    return "Đang hiệu lực";
+};
+
+const isVoucherUsableStock = (voucher, now = new Date()) => {
+    if (!voucher.active || isUsageSoldOut(voucher)) return false;
+    const start = parseDate(voucher.startAt);
+    const end = parseDate(voucher.endAt);
+    if (start && now < start) return false;
+    if (end && now > end) return false;
+    return true;
+};
+
+const getVoucherStatusClass = (voucher) => {
+    if (!voucher.active) return "inactive";
+    if (isUsageSoldOut(voucher)) return "sold-out";
+    if (getExpiryState(voucher) === "expired") return "expired";
+    if (getExpiryState(voucher) === "upcoming") return "upcoming";
+    return "active";
+};
+
+const getVoucherStatusText = (voucher) => {
+    const status = getVoucherStatusClass(voucher);
+    if (status === "inactive") return "Đã tắt";
+    if (status === "sold-out") return "Hết lượt";
+    if (status === "expired") return "Hết hạn";
+    if (status === "upcoming") return "Chưa đến hạn";
+    return "Đang bán";
+};
+
+const getConditionLabels = (voucher) => {
+    const conditions = [];
+    if (voucher.minOrder) conditions.push(`Đơn từ ${formatCurrency(voucher.minOrder)}`);
+    if (voucher.maxDiscount && voucher.type === "PERCENT") {
+        conditions.push(`Giảm tối đa ${formatCurrency(voucher.maxDiscount)}`);
+    }
+    if (voucher.requiredTotalSpent) {
+        conditions.push(`Đã tiêu từ ${formatCurrency(voucher.requiredTotalSpent)} trong ${formatWindowYears(voucher.spendingWindowDays)}`);
+    }
+    if (voucher.newMemberOnly) conditions.push("Chỉ khách mới");
+    if (Number(voucher.perUserLimit || 0) > 0) conditions.push(`${voucher.perUserLimit} lượt / tài khoản`);
+    return conditions.length ? conditions : ["Không yêu cầu"];
 };
 
 onMounted(fetchVouchers);
@@ -486,6 +656,10 @@ onMounted(fetchVouchers);
 }
 
 .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
     background: #ff6b35;
     color: #fff;
     border: none;
@@ -493,6 +667,39 @@ onMounted(fetchVouchers);
     border-radius: 8px;
     font-weight: 600;
     cursor: pointer;
+}
+
+.voucher-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.voucher-stat-card {
+    background: #fff;
+    border: 1px solid #f0ddd5;
+    border-radius: 10px;
+    padding: 1rem;
+    box-shadow: 0 8px 20px rgba(255, 107, 53, 0.08);
+}
+
+.voucher-stat-card span {
+    display: block;
+    color: #6f6159;
+    font-size: 0.82rem;
+    font-weight: 700;
+    margin-bottom: 0.35rem;
+}
+
+.voucher-stat-card strong {
+    color: #2f2926;
+    font-size: 1.6rem;
+    line-height: 1;
+}
+
+.voucher-stat-card.warning strong {
+    color: #d97706;
 }
 
 .btn-outline {
@@ -525,7 +732,7 @@ onMounted(fetchVouchers);
 .voucher-table {
     width: 100%;
     border-collapse: collapse;
-    min-width: 900px;
+    min-width: 1120px;
 }
 
 .voucher-table th,
@@ -543,6 +750,128 @@ onMounted(fetchVouchers);
 
 .code {
     font-weight: 700;
+    color: #ff6b35;
+    letter-spacing: 0.04em;
+}
+
+.voucher-identity {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 190px;
+}
+
+.voucher-identity strong {
+    color: #2f2926;
+}
+
+.voucher-identity span,
+.value-cell span,
+.expiry-cell span {
+    color: #7a6b63;
+    font-size: 0.82rem;
+}
+
+.value-cell {
+    min-width: 120px;
+}
+
+.value-cell strong {
+    display: block;
+    color: #2f2926;
+    margin-bottom: 0.2rem;
+}
+
+.condition-stack {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    max-width: 360px;
+}
+
+.condition-pill {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    border: 1px solid #f6d7ca;
+    border-radius: 999px;
+    background: #fff8f4;
+    color: #6b4c3b;
+    padding: 0.22rem 0.55rem;
+    font-size: 0.76rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.condition-pill.danger {
+    background: #fdecec;
+    border-color: #f6bcbc;
+    color: #b42323;
+}
+
+.usage-cell {
+    min-width: 120px;
+}
+
+.usage-text {
+    display: flex;
+    align-items: baseline;
+    gap: 0.25rem;
+    color: #6f6159;
+}
+
+.usage-text strong {
+    color: #2f2926;
+    font-size: 1rem;
+}
+
+.usage-track {
+    height: 6px;
+    margin-top: 0.45rem;
+    border-radius: 999px;
+    overflow: hidden;
+    background: #f2e0d8;
+}
+
+.usage-track > div {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #ff6b35, #ffb18f);
+}
+
+.expiry-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 150px;
+}
+
+.expiry-cell strong {
+    color: #2f2926;
+    font-size: 0.9rem;
+}
+
+.expiry-status {
+    width: fit-content;
+    border-radius: 999px;
+    padding: 0.18rem 0.5rem;
+    font-weight: 700;
+}
+
+.expiry-status.active {
+    background: #e8f7ed;
+    color: #1f8f3b;
+}
+
+.expiry-status.ending,
+.expiry-status.upcoming {
+    background: #fff3cd;
+    color: #8a5a00;
+}
+
+.expiry-status.expired {
+    background: #fdecec;
+    color: #d33939;
 }
 
 .muted {
@@ -601,6 +930,17 @@ onMounted(fetchVouchers);
 .status.inactive {
     background: #fdecec;
     color: #d33939;
+}
+
+.status.sold-out,
+.status.expired {
+    background: #f3f4f6;
+    color: #4b5563;
+}
+
+.status.upcoming {
+    background: #fff3cd;
+    color: #8a5a00;
 }
 
 .actions {
@@ -742,12 +1082,22 @@ onMounted(fetchVouchers);
         align-items: flex-start;
     }
 
+    .voucher-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
     .voucher-table {
-        min-width: 600px;
+        min-width: 980px;
     }
 
     .field-guide ul {
         columns: 1;
+    }
+}
+
+@media (max-width: 520px) {
+    .voucher-stats {
+        grid-template-columns: 1fr;
     }
 }
 </style>

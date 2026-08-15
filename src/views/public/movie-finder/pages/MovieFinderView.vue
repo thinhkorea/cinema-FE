@@ -78,6 +78,13 @@
                                 <span><i class="bi bi-shield-check"></i>{{ formatAgeRating(bestMovie.ageRating) }}</span>
                             </div>
 
+                            <div v-if="bestResultTime" class="result-timing">
+                                <span>
+                                    <i class="bi bi-speedometer2"></i>
+                                    Thời gian: {{ bestResultTime }}
+                                </span>
+                            </div>
+
                             <div v-if="bestMovie.description" class="result-description">
                                 <p
                                     v-for="(paragraph, index) in splitDescription(bestMovie.description)"
@@ -161,6 +168,7 @@ const examples = [
 
 const bestMovie = computed(() => resultMovies.value[0] || null);
 const suggestedMovies = computed(() => resultMovies.value.slice(1, 4));
+const bestResultTime = computed(() => formatElapsedTime(bestMovie.value?.processingTimeMs));
 
 const searchMovie = async () => {
     const query = storyQuery.value.trim();
@@ -228,6 +236,13 @@ const formatAgeRating = (ageRating) => {
         C18: "Cấm dưới 18 tuổi",
     };
     return ratingMap[ageRating] || ageRating || "Phổ thông";
+};
+
+const formatElapsedTime = (milliseconds) => {
+    const value = Number(milliseconds);
+    if (!Number.isFinite(value) || value <= 0) return null;
+    if (value < 1000) return `${Math.round(value)}ms`;
+    return `${(value / 1000).toFixed(value < 10_000 ? 1 : 0)}s`;
 };
 
 const goMovieDetail = (movieId) => {
@@ -533,6 +548,31 @@ onMounted(() => {
 
 .result-meta i {
     color: #ff6b35;
+}
+
+.result-timing {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: -0.35rem 0 1rem;
+}
+
+.result-timing span {
+    align-items: center;
+    background: #f4f7fb;
+    border: 1px solid #dbe5f1;
+    border-radius: 999px;
+    color: #4b5f76;
+    display: inline-flex;
+    font-size: 0.76rem;
+    font-weight: 750;
+    gap: 0.3rem;
+    padding: 0.24rem 0.5rem;
+}
+
+.result-timing i {
+    color: #2563eb;
+    font-size: 0.82rem;
 }
 
 .result-description {

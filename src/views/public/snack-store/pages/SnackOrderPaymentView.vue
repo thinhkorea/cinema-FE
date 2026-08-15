@@ -30,17 +30,18 @@
                             v-model.trim="voucherCode"
                             type="text"
                             placeholder="Nhập mã voucher"
-                            :disabled="voucherApplying || !auth.isAuthenticated"
+                            :disabled="voucherSaving || voucherApplying || !auth.isAuthenticated"
                         />
                         <button
                             type="button"
-                            :disabled="voucherApplying || !auth.isAuthenticated"
-                            @click="applyVoucher()"
+                            :disabled="voucherSaving || voucherApplying || !auth.isAuthenticated"
+                            @click="saveVoucherCode"
                         >
-                            {{ voucherApplying ? "Đang áp dụng..." : "Áp dụng" }}
+                            {{ voucherSaving ? "Đang lưu..." : "Lưu mã" }}
                         </button>
                     </div>
 
+                    <p v-if="availableVouchers.length" class="voucher-list-title">Voucher đã lưu có thể dùng:</p>
                     <div v-if="availableVouchers.length" class="voucher-list">
                         <button
                             v-for="voucher in availableVouchers"
@@ -48,14 +49,14 @@
                             type="button"
                             class="voucher-pill"
                             :class="{ selected: voucherApplied?.code === voucher.code }"
-                            :disabled="voucherApplying || !auth.isAuthenticated"
+                            :disabled="voucherSaving || voucherApplying || !auth.isAuthenticated"
                             @click="applyVoucher(voucher.code)"
                         >
                             <strong>{{ voucher.name || "Voucher phù hợp" }}</strong>
                             <span>Giảm {{ formatCurrency(voucher.discountAmount) }}</span>
                         </button>
                     </div>
-                    <p v-else class="voucher-empty">Không có voucher phù hợp với đơn bắp nước này.</p>
+                    <p v-else class="voucher-empty">Chưa có voucher đã lưu phù hợp với đơn bắp nước này.</p>
                     <p v-if="voucherMessage" class="voucher-message" :class="voucherMessageTone">{{ voucherMessage }}</p>
                 </div>
             </section>
@@ -106,6 +107,7 @@ const router = useRouter();
 const auth = useAuthStore();
 const processing = ref(false);
 const voucherCode = ref("");
+const voucherSaving = ref(false);
 const voucherApplying = ref(false);
 const voucherApplied = ref(null);
 const voucherDiscount = ref(0);
@@ -175,6 +177,35 @@ function goBack() {
     router.push("/snack-store");
 }
 
+async function saveVoucherCode() {
+    if (!auth.isAuthenticated) {
+        voucherMessage.value = "Vui lòng đăng nhập để lưu voucher.";
+        voucherMessageTone.value = "error";
+        return;
+    }
+
+    const code = voucherCode.value.trim();
+    if (!code) {
+        voucherMessage.value = "Vui lòng nhập mã voucher cần lưu.";
+        voucherMessageTone.value = "error";
+        return;
+    }
+
+    try {
+        voucherSaving.value = true;
+        await api.post(`/vouchers/${encodeURIComponent(code)}/claim`);
+        voucherCode.value = "";
+        voucherMessage.value = "Đã lưu voucher vào ví. Chọn voucher bên dưới để áp dụng.";
+        voucherMessageTone.value = "success";
+        await fetchAvailableVouchers();
+    } catch (err) {
+        voucherMessage.value = getApiErrorMessage(err);
+        voucherMessageTone.value = "error";
+    } finally {
+        voucherSaving.value = false;
+    }
+}
+
 async function applyVoucher(code) {
     if (!auth.isAuthenticated) {
         voucherMessage.value = "Vui lòng đăng nhập để áp dụng voucher.";
@@ -187,9 +218,14 @@ async function applyVoucher(code) {
             return;
         }
     }
-    const codeToValidate = code || voucherCode.value;
+    if (!code) {
+        await saveVoucherCode();
+        return;
+    }
+
+    const codeToValidate = code;
     if (!codeToValidate) {
-        voucherMessage.value = "Vui lòng nhập mã voucher.";
+        voucherMessage.value = "Vui lòng lưu mã voucher trước khi áp dụng.";
         voucherMessageTone.value = "error";
         return;
     }
@@ -327,6 +363,7 @@ async function confirmPayment() {
 .voucher-box button { border: none; border-radius: 10px; background: #ff6b35; color: #fff; padding: 0 14px; font-weight: 800; }
 .voucher-box button:disabled { background: #d9d2ce; cursor: not-allowed; }
 .voucher-list { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+.voucher-list-title { margin: 12px 0 0; color: #5b4b43; font-weight: 800; font-size: 0.92rem; }
 .voucher-pill { border: 1px solid #ffd2c4; border-radius: 12px; background: #fff; color: #5b4b43; padding: 10px 12px; text-align: left; }
 .voucher-pill.selected { border-color: #ff6b35; background: #fff0e9; box-shadow: 0 8px 18px rgba(255, 107, 53, 0.12); }
 .voucher-pill strong { display: block; color: #ff6b35; }
@@ -335,6 +372,7 @@ async function confirmPayment() {
 .voucher-message { margin: 10px 0 0; font-weight: 700; }
 .voucher-empty { color: #8b7061; }
 .voucher-message.error { color: #c94c28; }
+.voucher-message.success { color: #198754; }
 .summary-card { padding: 22px; position: sticky; top: 96px; height: fit-content; }
 .summary-card h2 { margin: 0 0 18px; color: #2d2d2d; }
 .summary-row { display: flex; justify-content: space-between; padding: 10px 0; color: #6a5e56; }

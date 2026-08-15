@@ -362,6 +362,7 @@ const formatShortDate = (dateTime) => {
 }
 
 .snack-selection-page {
+    --sticky-header-offset: 104px;
     background: #f5f5f5;
     min-height: 100vh;
     padding-bottom: 2rem;
@@ -581,8 +582,11 @@ const formatShortDate = (dateTime) => {
 /* Right Panel */
 .right-panel {
     position: sticky;
-    top: 2rem;
-    height: fit-content;
+    top: calc(var(--sticky-header-offset) + 1rem);
+    height: calc(100vh - var(--sticky-header-offset) - 2rem);
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 .timer-box {
@@ -591,8 +595,9 @@ const formatShortDate = (dateTime) => {
     border-radius: 8px;
     padding: 1rem;
     text-align: center;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
     font-weight: 500;
+    flex-shrink: 0;
 }
 
 .countdown {
@@ -607,13 +612,16 @@ const formatShortDate = (dateTime) => {
     border-radius: 8px;
     padding: 1.5rem;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
     text-align: center;
+    flex-shrink: 0;
 }
 
 .movie-poster {
     width: 100%;
     max-width: 200px;
+    max-height: 260px;
+    object-fit: cover;
     border-radius: 8px;
     margin-bottom: 1rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
@@ -641,7 +649,10 @@ const formatShortDate = (dateTime) => {
     border-radius: 8px;
     padding: 1.5rem;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
+    min-height: 0;
+    overflow-y: auto;
+    flex: 1 1 auto;
 }
 
 .detail-row {
@@ -679,6 +690,7 @@ const formatShortDate = (dateTime) => {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1rem;
+    flex-shrink: 0;
 }
 
 .btn-back-action,
@@ -720,6 +732,62 @@ const formatShortDate = (dateTime) => {
 
     .right-panel {
         position: static;
+        height: auto;
+        display: block;
+    }
+
+    .booking-details {
+        overflow: visible;
+    }
+
+    .action-buttons {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1040;
+        padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+        background: #fff;
+        box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.12);
+    }
+
+    .snack-selection-page {
+        padding-bottom: 6.5rem;
+    }
+}
+
+@media (min-width: 1025px) and (max-height: 850px) {
+    .timer-box {
+        padding: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .movie-info {
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .movie-poster {
+        width: auto;
+        max-height: 180px;
+    }
+
+    .movie-title {
+        font-size: 1.05rem;
+    }
+
+    .booking-details {
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .detail-row {
+        padding: 0.6rem 0;
+    }
+
+    .btn-back-action,
+    .btn-continue {
+        padding: 0.85rem;
     }
 }
 

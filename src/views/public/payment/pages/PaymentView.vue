@@ -77,26 +77,26 @@
                                 type="text"
                                 placeholder="Nhập mã voucher"
                                 class="voucher-input"
-                                :disabled="voucherApplying || !auth.isAuthenticated"
+                                :disabled="voucherSaving || voucherApplying || !auth.isAuthenticated"
                             />
                             <button
-                                @click="applyVoucher()"
+                                @click="saveVoucherCode"
                                 class="btn-apply"
-                                :disabled="voucherApplying || !auth.isAuthenticated"
-                                :aria-busy="voucherApplying"
+                                :disabled="voucherSaving || voucherApplying || !auth.isAuthenticated"
+                                :aria-busy="voucherSaving"
                             >
-                                Áp dụng
+                                {{ voucherSaving ? "Đang lưu..." : "Lưu mã" }}
                             </button>
                         </div>
                         <div class="voucher-list" v-if="availableVouchers.length">
-                            <p class="voucher-list-title">Ưu đãi phù hợp với bạn:</p>
+                            <p class="voucher-list-title">Voucher đã lưu có thể dùng:</p>
                             <div class="voucher-pill-list">
                                 <button
                                     v-for="voucher in availableVouchers"
                                     :key="voucher.code"
                                     class="voucher-pill"
                                     :class="{ selected: voucherApplied?.code === voucher.code }"
-                                    :disabled="voucherApplying || !auth.isAuthenticated"
+                                    :disabled="voucherSaving || voucherApplying || !auth.isAuthenticated"
                                     @click="applyVoucher(voucher.code)"
                                 >
                                     <div class="voucher-pill-title">{{ voucher.name || "Voucher phù hợp" }}</div>
@@ -111,7 +111,7 @@
                                 </button>
                             </div>
                         </div>
-                        <p v-else class="voucher-empty">Không có voucher phù hợp.</p>
+                        <p v-else class="voucher-empty">Chưa có voucher đã lưu phù hợp. Nhập mã để lưu vào ví trước khi dùng.</p>
                         <p v-if="voucherMessage" class="voucher-message" :class="voucherMessageTone">
                             {{ voucherMessage }}
                         </p>
@@ -232,6 +232,7 @@ const snackTotal = ref(0);
 const loyaltyPoints = ref(0);
 const pointsToUse = ref(0);
 const voucherCode = ref("");
+const voucherSaving = ref(false);
 const voucherApplying = ref(false);
 const voucherApplied = ref(null);
 const voucherDiscount = ref(0);
@@ -389,6 +390,36 @@ const useMaxPoints = () => {
     pointsToUse.value = maxPointsCanUse.value;
 };
 
+const saveVoucherCode = async () => {
+    if (!auth.isAuthenticated) {
+        voucherMessage.value = "Vui lòng đăng nhập để lưu voucher.";
+        voucherMessageTone.value = "error";
+        return;
+    }
+
+    const code = voucherCode.value.trim();
+    if (!code) {
+        voucherMessage.value = "Vui lòng nhập mã voucher cần lưu.";
+        voucherMessageTone.value = "error";
+        return;
+    }
+
+    try {
+        voucherSaving.value = true;
+        await api.post(`/vouchers/${encodeURIComponent(code)}/claim`);
+        voucherCode.value = "";
+        voucherMessage.value = "Đã lưu voucher vào ví. Chọn voucher bên dưới để áp dụng.";
+        voucherMessageTone.value = "success";
+        await fetchAvailableVouchers();
+    } catch (err) {
+        console.error("Voucher save failed:", err);
+        voucherMessage.value = getApiErrorMessage(err);
+        voucherMessageTone.value = "error";
+    } finally {
+        voucherSaving.value = false;
+    }
+};
+
 const applyVoucher = async (code) => {
     if (!auth.isAuthenticated) {
         voucherMessage.value = "Vui lòng đăng nhập để áp dụng voucher.";
@@ -403,9 +434,14 @@ const applyVoucher = async (code) => {
         }
     }
 
-    const codeToValidate = code || voucherCode.value;
+    if (!code) {
+        await saveVoucherCode();
+        return;
+    }
+
+    const codeToValidate = code;
     if (!codeToValidate) {
-        voucherMessage.value = "Vui lòng nhập mã voucher.";
+        voucherMessage.value = "Vui lòng lưu mã voucher trước khi áp dụng.";
         voucherMessageTone.value = "error";
         return;
     }
@@ -965,6 +1001,10 @@ const formatShortDate = (dateTime) => {
 
 .voucher-message.error {
     color: #dc3545;
+}
+
+.voucher-message.success {
+    color: #198754;
 }
 
 .payment-method-box {
