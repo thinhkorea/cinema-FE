@@ -95,7 +95,6 @@ const routes = [
             { path: "users", component: () => import("@/views/Admin/users/pages/UsersView.vue") },
             { path: "vouchers", component: () => import("@/views/Admin/vouchers/pages/VouchersView.vue") },
             { path: "review-moderation", component: () => import("@/views/Admin/review-moderation/pages/ReviewModerationView.vue") },
-            { path: "movie-discovery", component: () => import("@/views/Admin/chatbot/pages/MovieDiscoveryAdminView.vue") },
         ],
     },
 

@@ -13,7 +13,7 @@
             </button>
         </div>
 
-        <section class="moderation-test-panel">
+        <section v-if="showModerationTestPanel" class="moderation-test-panel">
             <div class="test-input-block">
                 <div class="panel-title-inline">
                     <div>
@@ -63,7 +63,7 @@
                             <small>{{ formatDate(log.checkedAt) }}</small>
                         </div>
                         <p class="test-log-comment">{{ displayText(log.comment) || "(Không có nội dung)" }}</p>
-                        <small class="test-log-reason">{{ displayText(log.reason) }}</small>
+                        <small class="test-log-reason">{{ displayModerationReason(log.reason) }}</small>
                     </article>
                 </div>
             </div>
@@ -82,6 +82,10 @@
                 <span>Mức nghiêm trọng</span>
                 <strong>{{ highSeverityCount }}</strong>
             </div>
+            <div class="summary-item">
+                <span>Tài khoản nghi spam</span>
+                <strong>{{ suspiciousUsers.length }}</strong>
+            </div>
         </div>
 
         <div class="moderation-tabs" role="tablist" aria-label="Bộ lọc kiểm duyệt">
@@ -90,6 +94,9 @@
             </button>
             <button :class="{ active: activeTab === 'logs' }" type="button" @click="activeTab = 'logs'">
                 Lịch sử vi phạm
+            </button>
+            <button :class="{ active: activeTab === 'users' }" type="button" @click="activeTab = 'users'">
+                Tài khoản nghi spam
             </button>
         </div>
 
@@ -180,7 +187,7 @@
             </div>
         </section>
 
-        <section v-else class="moderation-panel">
+        <section v-else-if="activeTab === 'logs'" class="moderation-panel">
             <div class="panel-title">
                 <h3>Lịch sử vi phạm</h3>
                 <span>Lưu lại hành vi bị gắn cờ để admin theo dõi tài khoản có dấu hiệu spam hoặc tục tĩu.</span>
@@ -230,6 +237,94 @@
                     :total-items="violationLogs.length"
                     item-label="log"
                     aria-label="Phân trang log vi phạm"
+                />
+            </div>
+        </section>
+
+        <section v-else class="moderation-panel">
+            <div class="panel-title">
+                <h3>Tài khoản nghi spam</h3>
+                <span>Danh sách khách hàng đã đạt ngưỡng chặn bình luận để admin kiểm tra và xử lý tài khoản.</span>
+            </div>
+
+            <div v-if="loading" class="empty-state">Đang tải dữ liệu...</div>
+            <div v-else-if="suspiciousUsers.length === 0" class="empty-state">
+                Chưa có tài khoản nào vượt ngưỡng spam hoặc vi phạm.
+            </div>
+            <div v-else>
+                <div class="table-responsive">
+                    <table class="table moderation-table users-table align-middle">
+                        <thead>
+                            <tr>
+                                <th>Khách hàng</th>
+                                <th>Vi phạm gần đây</th>
+                                <th>Lần cuối</th>
+                                <th>Trạng thái</th>
+                                <th class="text-end">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="user in paginatedSuspiciousUsers" :key="user.userId">
+                                <td>
+                                    <strong>{{ user.fullName || "Khách hàng" }}</strong>
+                                    <small>{{ user.email || "Không có email" }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge-soft" :class="violationClass(user.riskLevel)">
+                                        {{ userRiskLabel(user) }}
+                                    </span>
+                                    <small>
+                                        Spam 24h: {{ user.spamViolations24h || 0 }} /
+                                        Vi phạm 7 ngày: {{ user.reviewViolations7d || 0 }}
+                                    </small>
+                                    <small class="violation-reason-preview">{{ displayModerationReason(user.lastReason) }}</small>
+                                </td>
+                                <td>
+                                    {{ formatDate(user.lastViolationAt) }}
+                                    <small>{{ violationTitle({ violationType: user.lastViolationType }) }}</small>
+                                </td>
+                                <td>
+                                    <span class="account-state" :class="user.isActive ? 'active' : 'locked'">
+                                        {{ user.isActive ? "Đang hoạt động" : "Đã khóa" }}
+                                    </span>
+                                    <small class="user-risk-note">{{ user.recommendedAction }}</small>
+                                </td>
+                                <td class="action-cell">
+                                    <div class="action-buttons">
+                                        <button
+                                            v-if="user.isActive"
+                                            class="action-icon-btn reject"
+                                            type="button"
+                                            title="Khóa tài khoản"
+                                            aria-label="Khóa tài khoản"
+                                            :disabled="busyUserId === user.userId"
+                                            @click="lockSuspiciousUser(user)"
+                                        >
+                                            <i class="bi bi-lock"></i>
+                                        </button>
+                                        <button
+                                            v-else
+                                            class="action-icon-btn approve"
+                                            type="button"
+                                            title="Mở khóa tài khoản"
+                                            aria-label="Mở khóa tài khoản"
+                                            :disabled="busyUserId === user.userId"
+                                            @click="unlockSuspiciousUser(user)"
+                                        >
+                                            <i class="bi bi-unlock"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <AdminPagination
+                    v-model="usersCurrentPage"
+                    v-model:page-size="usersPageSize"
+                    :total-items="suspiciousUsers.length"
+                    item-label="tài khoản"
+                    aria-label="Phân trang tài khoản nghi spam"
                 />
             </div>
         </section>
@@ -287,15 +382,20 @@ import api from "@/api";
 import AdminPagination from "@/views/Admin/components/AdminPagination.vue";
 import { getApiErrorMessage, showCinemaConfirm, showCinemaToast } from "@/utils/cinemaAlert";
 
+const showModerationTestPanel = false;
 const activeTab = ref("flagged");
 const loading = ref(false);
 const busyReviewId = ref(null);
+const busyUserId = ref(null);
 const flaggedReviews = ref([]);
 const violationLogs = ref([]);
+const suspiciousUsers = ref([]);
 const flaggedCurrentPage = ref(1);
 const flaggedPageSize = ref(10);
 const logsCurrentPage = ref(1);
 const logsPageSize = ref(10);
+const usersCurrentPage = ref(1);
+const usersPageSize = ref(10);
 const selectedReviewDetail = ref(null);
 const testComment = ref("");
 const testingModeration = ref(false);
@@ -307,6 +407,7 @@ const highSeverityCount = computed(() => {
 
 const flaggedTotalPages = computed(() => Math.max(1, Math.ceil(flaggedReviews.value.length / flaggedPageSize.value)));
 const logsTotalPages = computed(() => Math.max(1, Math.ceil(violationLogs.value.length / logsPageSize.value)));
+const usersTotalPages = computed(() => Math.max(1, Math.ceil(suspiciousUsers.value.length / usersPageSize.value)));
 
 const paginatedFlaggedReviews = computed(() => {
     const start = (flaggedCurrentPage.value - 1) * flaggedPageSize.value;
@@ -316,6 +417,11 @@ const paginatedFlaggedReviews = computed(() => {
 const paginatedViolationLogs = computed(() => {
     const start = (logsCurrentPage.value - 1) * logsPageSize.value;
     return violationLogs.value.slice(start, start + logsPageSize.value);
+});
+
+const paginatedSuspiciousUsers = computed(() => {
+    const start = (usersCurrentPage.value - 1) * usersPageSize.value;
+    return suspiciousUsers.value.slice(start, start + usersPageSize.value);
 });
 
 watch([flaggedPageSize, flaggedTotalPages], () => {
@@ -330,15 +436,23 @@ watch([logsPageSize, logsTotalPages], () => {
     }
 });
 
+watch([usersPageSize, usersTotalPages], () => {
+    if (usersCurrentPage.value > usersTotalPages.value) {
+        usersCurrentPage.value = usersTotalPages.value;
+    }
+});
+
 const loadModerationData = async () => {
     loading.value = true;
     try {
-        const [reviewsResponse, logsResponse] = await Promise.all([
+        const [reviewsResponse, logsResponse, usersResponse] = await Promise.all([
             api.get("/admin/review-moderation/flagged-reviews"),
             api.get("/admin/review-moderation/violations"),
+            api.get("/admin/review-moderation/suspicious-users"),
         ]);
         flaggedReviews.value = Array.isArray(reviewsResponse.data) ? reviewsResponse.data : [];
         violationLogs.value = Array.isArray(logsResponse.data) ? logsResponse.data : [];
+        suspiciousUsers.value = Array.isArray(usersResponse.data) ? usersResponse.data : [];
     } catch (error) {
         showCinemaToast({
             icon: "error",
@@ -347,6 +461,47 @@ const loadModerationData = async () => {
         });
     } finally {
         loading.value = false;
+    }
+};
+
+const lockSuspiciousUser = async (user) => {
+    const confirmed = await showCinemaConfirm({
+        icon: "warning",
+        title: "Khóa tài khoản?",
+        text: `Tài khoản "${user.email || user.fullName || "khách hàng"}" sẽ không thể đăng nhập sau khi bị khóa.`,
+        confirmButtonText: "Khóa tài khoản",
+    });
+    if (!confirmed) return;
+
+    await updateSuspiciousUserStatus(user, "lock", "Đã khóa tài khoản");
+};
+
+const unlockSuspiciousUser = async (user) => {
+    const confirmed = await showCinemaConfirm({
+        icon: "question",
+        title: "Mở khóa tài khoản?",
+        text: `Tài khoản "${user.email || user.fullName || "khách hàng"}" sẽ được đăng nhập trở lại.`,
+        confirmButtonText: "Mở khóa",
+    });
+    if (!confirmed) return;
+
+    await updateSuspiciousUserStatus(user, "unlock", "Đã mở khóa tài khoản");
+};
+
+const updateSuspiciousUserStatus = async (user, action, successTitle) => {
+    busyUserId.value = user.userId;
+    try {
+        await api.put(`/admin/users/${user.userId}/${action}`);
+        showCinemaToast({ icon: "success", title: successTitle });
+        await loadModerationData();
+    } catch (error) {
+        showCinemaToast({
+            icon: "error",
+            title: "Không thể cập nhật tài khoản",
+            text: getApiErrorMessage(error),
+        });
+    } finally {
+        busyUserId.value = null;
     }
 };
 
@@ -548,10 +703,13 @@ const violationTypeLabels = {
     USER_REPORT: "Khách hàng báo cáo",
     PROFANITY: "Ngôn từ không phù hợp",
     HARASSMENT: "Quấy rối",
+    HATE: "Ngôn từ thù ghét",
     HATE_SPEECH: "Ngôn từ thù ghét",
+    THREAT: "Đe dọa",
+    SCAM: "Lừa đảo",
     SEXUAL: "Nội dung nhạy cảm",
     VIOLENCE: "Bạo lực",
-    SPAM: "Spam",
+    SPAM: "Spam/quảng cáo",
     OTHER: "Khác",
 };
 
@@ -566,6 +724,13 @@ const severityLabel = (severity) => {
     return severityLabels[normalized] || normalized;
 };
 
+const userRiskLabel = (user) => {
+    if ((Number(user?.spamViolations24h) || 0) >= 3) {
+        return "Spam quá ngưỡng";
+    }
+    return "Nhiều vi phạm";
+};
+
 const formatKeywordLabel = (value) => {
     return String(value || "OTHER")
         .split("_")
@@ -577,6 +742,29 @@ const formatKeywordLabel = (value) => {
 const violationTitle = (item) => {
     const type = String(item?.violationType || "").toUpperCase();
     return violationTypeLabels[type] || formatKeywordLabel(type);
+};
+
+const knownReasonTranslations = {
+    "visobert-hsd detected hate, severe attack, or threat signals.":
+        "Phát hiện bình luận có dấu hiệu thù ghét, công kích nghiêm trọng hoặc đe dọa.",
+    "visobert-hsd detected offensive or inappropriate language signals.":
+        "Phát hiện bình luận có dấu hiệu xúc phạm hoặc dùng ngôn từ không phù hợp.",
+    "visobert-hsd did not detect clear violation signals.":
+        "Không phát hiện dấu hiệu vi phạm rõ ràng.",
+    "review contains link, domain, or phone number signals.":
+        "Bình luận có dấu hiệu chứa liên kết, tên miền hoặc số điện thoại.",
+    "empty review or no content to moderate.":
+        "Bình luận rỗng hoặc không có nội dung cần kiểm duyệt.",
+};
+
+const hideModerationProviderName = (value) => {
+    return value.replace(/^ViSoBERT-HSD\s+/i, "");
+};
+
+const displayModerationReason = (value) => {
+    const text = cleanBrokenVietnamese(displayText(value).trim());
+    if (!text) return "";
+    return hideModerationProviderName(knownReasonTranslations[text.toLowerCase()] || text);
 };
 
 const isUserReport = (item) => {
@@ -595,7 +783,7 @@ const shortenText = (value, maxLength = 120) => {
 
 const violationDetailReason = (item) => {
     const rawReason = item?.violationReason || item?.reason;
-    const reason = isUserReport(item) ? extractUserReportReason(rawReason) : cleanBrokenVietnamese(displayText(rawReason).trim());
+    const reason = isUserReport(item) ? extractUserReportReason(rawReason) : displayModerationReason(rawReason);
     return reason || "Không có lý do chi tiết.";
 };
 
@@ -767,7 +955,7 @@ onMounted(loadModerationData);
 .moderation-summary {
     display: grid;
     gap: 12px;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .summary-item {
@@ -918,6 +1106,31 @@ onMounted(loadModerationData);
     width: 11%;
 }
 
+.users-table th:nth-child(1),
+.users-table td:nth-child(1) {
+    width: 22%;
+}
+
+.users-table th:nth-child(2),
+.users-table td:nth-child(2) {
+    width: 30%;
+}
+
+.users-table th:nth-child(3),
+.users-table td:nth-child(3) {
+    width: 16%;
+}
+
+.users-table th:nth-child(4),
+.users-table td:nth-child(4) {
+    width: 20%;
+}
+
+.users-table th:nth-child(5),
+.users-table td:nth-child(5) {
+    width: 12%;
+}
+
 .moderation-table td {
     border-color: #f0e6e0;
     max-width: none;
@@ -994,6 +1207,28 @@ onMounted(loadModerationData);
 .badge-soft.muted {
     background: #efefef;
     color: #555;
+}
+
+.account-state {
+    border-radius: 999px;
+    display: inline-flex;
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 5px 9px;
+}
+
+.account-state.active {
+    background: #e6f6ec;
+    color: #176f3a;
+}
+
+.account-state.locked {
+    background: #ffe7e3;
+    color: #b42c16;
+}
+
+.user-risk-note {
+    line-height: 1.35;
 }
 
 .action-cell {

@@ -125,43 +125,60 @@
                     <div class="reward-progress-head">
                         <div>
                             <span class="tier-label">Các cấp ưu đãi</span>
-                            <strong>Mốc chi tiêu được tính tự động theo từng voucher</strong>
+                            <strong>
+                                {{
+                                    hasRewardProfile
+                                        ? `Bạn đã thanh toán ${formatCurrency(accountTotalSpent)} trong ${formatWindowYears(accountSpendingWindowDays, accountSpendingYear)}`
+                                        : "Mốc chi tiêu được tính tự động theo từng voucher"
+                                }}
+                            </strong>
                         </div>
-                        <span class="reward-progress-badge">Tự mở khóa khi đủ mốc</span>
+                        <span class="reward-progress-badge">
+                            {{ hasRewardProfile ? rewardProgressLabel : "Tự mở khóa khi đủ mốc" }}
+                        </span>
                     </div>
 
-                    <div class="reward-progress-track" aria-label="Các mốc ưu đãi theo chi tiêu">
+                    <div
+                        class="reward-progress-track"
+                        :style="{ gridTemplateColumns: `repeat(${rewardMilestones.length}, minmax(0, 1fr))` }"
+                        aria-label="Các mốc ưu đãi theo chi tiêu"
+                    >
                         <div class="reward-progress-line">
-                            <div class="reward-progress-fill"></div>
+                            <div
+                                v-if="hasRewardProfile"
+                                class="reward-progress-fill"
+                                :style="{ width: `${accountRewardProgress}%` }"
+                            ></div>
                         </div>
 
-                        <div class="reward-milestone starter">
-                            <span class="reward-tier-badge starter">
-                                <em>Starter</em>
+                        <div
+                            v-for="(milestone, index) in rewardMilestones"
+                            :key="milestone.amount"
+                            class="reward-milestone"
+                            :class="[milestone.tone, getMilestoneState(milestone)]"
+                        >
+                            <span class="reward-tier-badge" :class="milestone.tone">
+                                <em>{{ milestone.label }}</em>
                             </span>
-                            <span class="reward-milestone-dot">1</span>
-                            <strong>500K</strong>
-                        </div>
-                        <div class="reward-milestone member">
-                            <span class="reward-tier-badge member">
-                                <em>Member Plus</em>
-                            </span>
-                            <span class="reward-milestone-dot">2</span>
-                            <strong>1TR</strong>
-                        </div>
-                        <div class="reward-milestone vip">
-                            <span class="reward-tier-badge vip">
-                                <em>VIP</em>
-                            </span>
-                            <span class="reward-milestone-dot">3</span>
-                            <strong>2TR</strong>
+                            <span class="reward-milestone-dot">{{ index + 1 }}</span>
+                            <strong>{{ formatCompactCurrency(milestone.amount) }}</strong>
+                            <small v-if="hasRewardProfile">
+                                {{ accountTotalSpent >= milestone.amount ? "Đã đạt" : `Còn ${formatCurrency(milestone.amount - accountTotalSpent)}` }}
+                            </small>
                         </div>
                     </div>
 
                     <div class="reward-progress-caption">
-                        <span>Khách mua vé hoặc combo bằng tài khoản đã đăng nhập.</span>
-                        <span>Hệ thống cộng các đơn đã thanh toán trong khoảng thời gian của voucher.</span>
-                        <span>Khi đạt mốc, voucher phù hợp tự xuất hiện ở trang thanh toán.</span>
+                        <template v-if="hasRewardProfile">
+                            <span>Tiến độ này lấy từ các thanh toán đã hoàn tất của tài khoản đang đăng nhập.</span>
+                            <span>{{ nextRewardMilestone ? `Mốc tiếp theo: ${formatCurrency(nextRewardMilestone.amount)}` : "Bạn đã đạt mốc cao nhất đang áp dụng." }}</span>
+                            <span>Voucher đủ điều kiện sẽ tự xuất hiện ở trang thanh toán hoặc trong ví voucher.</span>
+                        </template>
+                        <template v-else>
+                            <span>Khách mua vé hoặc combo bằng tài khoản đã đăng nhập.</span>
+                            <span>Hệ thống cộng các đơn đã thanh toán trong khoảng thời gian của voucher.</span>
+                            <span>Khi đạt mốc, voucher phù hợp tự xuất hiện ở trang thanh toán.</span>
+                        </template>
                     </div>
                 </div>
 
@@ -281,9 +298,23 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { computed, onMounted, ref } from "vue";
+import api from "@/api";
 import AppHeader from "@/components/AppHeader.vue";
+import { useAuthStore } from "@/stores/auth.store";
 import { showCinemaAlert } from "@/utils/cinemaAlert";
+
+const auth = useAuthStore();
+const fallbackRewardMilestones = [
+    { amount: 500000, label: "Starter", tone: "starter" },
+    { amount: 1000000, label: "Member Plus", tone: "member" },
+    { amount: 2000000, label: "VIP", tone: "vip" },
+];
+const milestoneTones = ["starter", "member", "vip"];
+const REWARD_LINE_SIDE_OFFSET_PERCENT = 12;
+const publicVouchers = ref([]);
+const rewardProfile = ref(null);
+const rewardProfileLoading = ref(false);
 
 // Contact form
 const contactForm = ref({
@@ -294,6 +325,137 @@ const contactForm = ref({
 });
 
 const sending = ref(false);
+const rewardMilestones = computed(() => {
+    const rows = publicVouchers.value
+        .map((voucher) => ({
+            amount: Number(voucher.requiredTotalSpent || 0),
+            label: voucher.name || voucher.code || "",
+        }))
+        .filter((milestone) => milestone.amount > 0)
+        .sort((left, right) => left.amount - right.amount);
+
+    const unique = [];
+    const seen = new Set();
+    for (const row of rows) {
+        if (seen.has(row.amount)) continue;
+        seen.add(row.amount);
+        unique.push({
+            amount: row.amount,
+            label: row.label || fallbackRewardMilestones[unique.length]?.label || `Mốc ${unique.length + 1}`,
+            tone: milestoneTones[unique.length % milestoneTones.length],
+        });
+    }
+
+    return unique.length ? unique : fallbackRewardMilestones;
+});
+const currentUserId = computed(() => auth.userId || localStorage.getItem("userId"));
+const hasRewardProfile = computed(() => Boolean(rewardProfile.value));
+const accountTotalSpent = computed(() => Number(rewardProfile.value?.totalSpent || 0));
+const accountSpendingWindowDays = computed(() => Number(rewardProfile.value?.spendingWindowDays || 365));
+const accountSpendingYear = computed(() => Number(rewardProfile.value?.spendingYear || new Date().getFullYear()));
+const nextRewardMilestone = computed(() =>
+    rewardMilestones.value.find((milestone) => accountTotalSpent.value < milestone.amount) || null,
+);
+const accountRewardProgress = computed(() => {
+    const milestones = rewardMilestones.value;
+    const spent = accountTotalSpent.value;
+    if (!milestones.length || spent <= 0) return 0;
+
+    const lineWidth = 100 - REWARD_LINE_SIDE_OFFSET_PERCENT * 2;
+    const markerPosition = (index) => {
+        const markerCenter = ((index + 0.5) / milestones.length) * 100;
+        return Math.min(100, Math.max(0, ((markerCenter - REWARD_LINE_SIDE_OFFSET_PERCENT) / lineWidth) * 100));
+    };
+
+    const firstAmount = milestones[0].amount;
+    if (spent < firstAmount) {
+        return markerPosition(0) * (spent / firstAmount);
+    }
+
+    for (let index = 0; index < milestones.length - 1; index++) {
+        const current = milestones[index];
+        const next = milestones[index + 1];
+        if (spent < next.amount) {
+            const currentPosition = markerPosition(index);
+            const nextPosition = markerPosition(index + 1);
+            const segmentProgress = (spent - current.amount) / (next.amount - current.amount);
+            return currentPosition + (nextPosition - currentPosition) * segmentProgress;
+        }
+    }
+
+    return markerPosition(milestones.length - 1);
+});
+const rewardProgressLabel = computed(() => {
+    if (rewardProfileLoading.value) return "Đang tải tiến độ";
+    if (!nextRewardMilestone.value) return "Đã đạt mốc cao nhất";
+    return `Còn ${formatCurrency(nextRewardMilestone.value.amount - accountTotalSpent.value)}`;
+});
+
+const loadRewardMilestones = async () => {
+    try {
+        const { data } = await api.get("/public/vouchers/active");
+        publicVouchers.value = Array.isArray(data) ? data : [];
+    } catch (error) {
+        console.error("Reward milestones load failed:", error);
+        publicVouchers.value = [];
+    }
+};
+
+const loadRewardProfile = async () => {
+    if (!auth.isAuthenticated || !auth.isCustomer || !currentUserId.value) {
+        rewardProfile.value = null;
+        return;
+    }
+
+    try {
+        rewardProfileLoading.value = true;
+        const { data } = await api.get(`/auth/profile/${currentUserId.value}`);
+        rewardProfile.value = data || null;
+    } catch (error) {
+        console.error("Reward profile load failed:", error);
+        rewardProfile.value = null;
+    } finally {
+        rewardProfileLoading.value = false;
+    }
+};
+
+const getMilestoneState = (milestone) => {
+    if (!hasRewardProfile.value) return "reference";
+    if (accountTotalSpent.value >= milestone.amount) return "achieved";
+    if (nextRewardMilestone.value?.amount === milestone.amount) return "current";
+    return "locked";
+};
+
+const formatCurrency = (amount) => {
+    return new Intl.NumberFormat("vi-VN", {
+        style: "currency",
+        currency: "VND",
+        maximumFractionDigits: 0,
+    }).format(Math.max(0, Number(amount || 0)));
+};
+
+const formatCompactCurrency = (amount) => {
+    const value = Number(amount || 0);
+    if (value >= 1000000) {
+        const millions = value / 1000000;
+        return `${Number.isInteger(millions) ? millions : millions.toFixed(1)}TR`;
+    }
+    if (value >= 1000) return `${Math.round(value / 1000)}K`;
+    return formatCurrency(value);
+};
+
+const formatWindowYears = (days, year = new Date().getFullYear()) => {
+    const endYear = Number(year || new Date().getFullYear());
+    const years = Math.max(1, Math.round(Number(days || 365) / 365));
+    const startYear = endYear - years + 1;
+    if (years === 1) return `năm ${endYear}`;
+    return `từ năm ${startYear} đến năm ${endYear}`;
+};
+
+onMounted(() => {
+    loadRewardMilestones();
+    loadRewardProfile();
+});
 
 const sendMessage = async () => {
     sending.value = true;
@@ -661,17 +823,17 @@ const sendMessage = async () => {
     left: 12%;
     right: 12%;
     top: 92px;
-    height: 6px;
+    height: 2px;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.14);
     overflow: hidden;
 }
 
 .reward-progress-fill {
-    width: 100%;
     height: 100%;
     border-radius: inherit;
     background: linear-gradient(90deg, #ff6b35, #ffd700);
+    transition: width 0.3s ease;
 }
 
 .reward-milestone {
@@ -750,18 +912,6 @@ const sendMessage = async () => {
     font-size: 0.9rem;
     font-weight: 900;
     box-shadow: 0 0 0 8px rgba(0, 0, 0, 0.28);
-}
-
-.reward-milestone .reward-milestone-dot {
-    background: #ff6b35;
-    border-color: #ffd700;
-    color: #fff;
-}
-
-.reward-milestone.vip .reward-milestone-dot {
-    box-shadow:
-        0 0 0 8px rgba(255, 215, 0, 0.12),
-        0 12px 28px rgba(255, 107, 53, 0.22);
 }
 
 .reward-milestone strong {
@@ -1110,9 +1260,33 @@ const sendMessage = async () => {
 }
 
 .reward-milestone .reward-milestone-dot {
+    background: #fff;
+    border-color: #ff8a5f;
+    color: #ff6b35;
+}
+
+.reward-milestone.achieved .reward-milestone-dot {
     background: #ff6b35;
     border-color: #ff8a5f;
     color: #fff;
+}
+
+.reward-milestone.current .reward-milestone-dot {
+    background: #fff;
+    border-color: #ff6b35;
+    color: #ff6b35;
+    box-shadow:
+        0 0 0 8px #fff,
+        0 8px 20px rgba(255, 107, 53, 0.18);
+}
+
+.reward-milestone.locked {
+    opacity: 0.72;
+}
+
+.reward-milestone.achieved .reward-tier-badge {
+    border-color: #ffb59a;
+    background: #fff4ee;
 }
 
 .reward-milestone small {

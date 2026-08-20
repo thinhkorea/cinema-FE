@@ -42,8 +42,8 @@
                             <th>Điều kiện</th>
                             <th>Lượt dùng</th>
                             <th>HSD</th>
-                            <th>Trạng thái</th>
-                            <th></th>
+                            <th class="status-heading">Trạng thái</th>
+                            <th class="actions-heading">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -95,17 +95,48 @@
                                     </span>
                                 </div>
                             </td>
-                            <td>
+                            <td class="status-cell">
                                 <span :class="['status', getVoucherStatusClass(voucher)]">
                                     {{ getVoucherStatusText(voucher) }}
                                 </span>
                             </td>
                             <td class="actions">
-                                <button class="btn-text" @click="openEdit(voucher)">Sửa</button>
-                                <button class="btn-text" @click="toggleActive(voucher)">
-                                    {{ voucher.active ? "Tắt" : "Bật" }}
-                                </button>
-                                <button class="btn-text danger" @click="removeVoucher(voucher)">Xóa</button>
+                                <div class="action-buttons">
+                                    <button
+                                        class="btn-icon-action gift"
+                                        :disabled="!canAssignVoucher(voucher)"
+                                        :title="canAssignVoucher(voucher) ? 'Tặng voucher' : 'Voucher chưa thể tặng'"
+                                        :aria-label="canAssignVoucher(voucher) ? 'Tặng voucher' : 'Voucher chưa thể tặng'"
+                                        @click="openAssign(voucher)"
+                                    >
+                                        <i class="bi bi-gift-fill"></i>
+                                    </button>
+                                    <button
+                                        class="btn-icon-action edit"
+                                        title="Sửa voucher"
+                                        aria-label="Sửa voucher"
+                                        @click="openEdit(voucher)"
+                                    >
+                                        <i class="bi bi-pencil-square"></i>
+                                    </button>
+                                    <button
+                                        class="btn-icon-action toggle"
+                                        :class="{ inactive: !voucher.active }"
+                                        :title="voucher.active ? 'Tắt voucher' : 'Bật voucher'"
+                                        :aria-label="voucher.active ? 'Tắt voucher' : 'Bật voucher'"
+                                        @click="toggleActive(voucher)"
+                                    >
+                                        <i :class="voucher.active ? 'bi bi-toggle-on' : 'bi bi-toggle-off'"></i>
+                                    </button>
+                                    <button
+                                        class="btn-icon-action danger"
+                                        title="Xóa voucher"
+                                        aria-label="Xóa voucher"
+                                        @click="removeVoucher(voucher)"
+                                    >
+                                        <i class="bi bi-trash3-fill"></i>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     </tbody>
@@ -129,23 +160,6 @@
                 </div>
                 <div class="voucher-modal-body">
                     <div class="form-grid">
-                        <div class="field-guide full">
-                            <div class="field-guide-title">Giải thích các trường</div>
-                            <ul>
-                                <li><strong>Mã voucher:</strong> mã khách nhập hoặc hệ thống hiển thị khi thanh toán.</li>
-                                <li><strong>Tên, mô tả:</strong> nội dung khách nhìn thấy trong hồ sơ và danh sách ưu đãi.</li>
-                                <li><strong>Loại, giá trị:</strong> chọn giảm theo phần trăm hoặc số tiền cố định.</li>
-                                <li><strong>Giảm tối đa:</strong> giới hạn số tiền giảm khi loại là phần trăm; để trống nếu không giới hạn.</li>
-                                <li><strong>Đơn tối thiểu:</strong> đơn hàng phải đạt số tiền này mới áp dụng được voucher.</li>
-                                <li><strong>Mốc chi tiêu để khách nhận:</strong> tổng tiền khách đã thanh toán đủ mốc này thì voucher tự hiện ở trang thanh toán.</li>
-                                <li><strong>Thời gian tính chi tiêu:</strong> tính theo năm dương lịch; 1 năm là năm hiện tại, 2 năm là năm hiện tại và năm trước.</li>
-                                <li><strong>Giới hạn lượt dùng:</strong> tổng số lần voucher được dùng trên toàn hệ thống.</li>
-                                <li><strong>Giới hạn mỗi user:</strong> số lần một tài khoản được dùng voucher này.</li>
-                                <li><strong>Bắt đầu, kết thúc:</strong> khoảng thời gian voucher có hiệu lực.</li>
-                                <li><strong>Kích hoạt:</strong> tắt/bật voucher mà không cần xóa.</li>
-                                <li><strong>Chỉ khách mới:</strong> chỉ áp dụng cho tài khoản chưa từng có giao dịch thanh toán.</li>
-                            </ul>
-                        </div>
                         <label>
                             Mã voucher
                             <input v-model.trim="form.code" type="text" placeholder="VD: SALE10" />
@@ -196,9 +210,6 @@
                                 :disabled="!form.requiredTotalSpent"
                             />
                         </label>
-                        <p class="condition-help full">
-                            Nhập mốc chi tiêu nếu muốn khách đạt mốc thì tự mở voucher ở trang thanh toán.
-                        </p>
                         <label>
                             Giới hạn lượt dùng
                             <input v-model.number="form.usageLimit" type="number" min="0" />
@@ -221,10 +232,7 @@
                         </label>
                         <label class="inline">
                             <input v-model="form.newMemberOnly" type="checkbox" />
-                            <span>
-                                Chỉ khách mới
-                                <small>Khách chưa từng thanh toán vé.</small>
-                            </span>
+                            Chỉ khách mới
                         </label>
                     </div>
                 </div>
@@ -232,6 +240,115 @@
                     <button class="btn-outline" @click="closeModal">Hủy</button>
                     <button class="btn-primary" @click="saveVoucher">
                         {{ isEditing ? "Lưu" : "Tạo" }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="assignModalOpen" class="voucher-modal-backdrop" @click="closeAssignModal">
+            <div class="voucher-modal assign-modal" @click.stop>
+                <div class="voucher-modal-header">
+                    <h4>Tặng voucher cho khách hàng</h4>
+                    <button class="btn-close" @click="closeAssignModal">×</button>
+                </div>
+                <div class="voucher-modal-body">
+                    <div v-if="assignVoucherTarget" class="assign-voucher-summary">
+                        <div>
+                            <div class="code">{{ assignVoucherTarget.code }}</div>
+                            <strong>{{ assignVoucherTarget.name }}</strong>
+                            <span>{{ formatValue(assignVoucherTarget) }} · {{ formatDateRange(assignVoucherTarget) }}</span>
+                        </div>
+                        <span :class="['status', getVoucherStatusClass(assignVoucherTarget)]">
+                            {{ getVoucherStatusText(assignVoucherTarget) }}
+                        </span>
+                    </div>
+
+                    <div class="assign-section">
+                        <div class="assign-section-head">
+                            <strong>Khách mua nhiều trong tháng này</strong>
+                            <small v-if="topCustomersLoading">Đang tải...</small>
+                        </div>
+                        <div v-if="topMonthlyCustomers.length" class="top-customer-list">
+                            <button
+                                v-for="customer in topMonthlyCustomers"
+                                :key="customer.userId || customer.customerId || customer.rank"
+                                type="button"
+                                class="top-customer-item"
+                                :class="{ selected: isSelectedCustomer(customer) }"
+                                @click="selectAssignCustomer(customer)"
+                            >
+                                <span class="rank-label" :class="getAssignRankClass(customer.rank)">
+                                    {{ getAssignRankLabel(customer.rank) }}
+                                </span>
+                                <span class="customer-info">
+                                    <strong>{{ getCustomerName(customer) }}</strong>
+                                    <small>
+                                        {{ formatCustomerContact(customer) }} · {{ formatCurrency(customer.totalSpent) }}
+                                    </small>
+                                </span>
+                            </button>
+                        </div>
+                        <div v-else-if="!topCustomersLoading" class="assign-empty">
+                            Chưa có khách hàng mua vé trong tháng này.
+                        </div>
+                    </div>
+
+                    <div class="assign-section">
+                        <label class="assign-search">
+                            Tìm khách hàng
+                            <input
+                                v-model.trim="assignCustomerKeyword"
+                                type="search"
+                                placeholder="Tên, email hoặc số điện thoại"
+                            />
+                        </label>
+
+                        <div v-if="customersLoading" class="assign-loading">Đang tải danh sách khách hàng...</div>
+                        <div v-else-if="filteredAssignCustomers.length" class="assign-customer-list">
+                            <label
+                                v-for="customer in filteredAssignCustomers"
+                                :key="customer.userId"
+                                class="assign-customer-option"
+                                :class="{
+                                    selected: isSelectedCustomer(customer),
+                                    locked: customer.isActive === false,
+                                }"
+                            >
+                                <input
+                                    v-model.number="selectedCustomerId"
+                                    type="radio"
+                                    :value="customer.userId"
+                                    :disabled="customer.isActive === false"
+                                />
+                                <span class="customer-info">
+                                    <strong>{{ getCustomerName(customer) }}</strong>
+                                    <small>
+                                        {{ formatCustomerContact(customer) }}
+                                        <template v-if="customer.isActive === false"> · Tài khoản bị khóa</template>
+                                    </small>
+                                </span>
+                            </label>
+                        </div>
+                        <div v-else class="assign-empty">
+                            Không tìm thấy khách hàng phù hợp.
+                        </div>
+                    </div>
+
+                    <div v-if="selectedAssignCustomer" class="assign-selected">
+                        <span>Người nhận</span>
+                        <strong>{{ getCustomerName(selectedAssignCustomer) }}</strong>
+                        <small>{{ formatCustomerContact(selectedAssignCustomer) }}</small>
+                    </div>
+                </div>
+                <div class="voucher-modal-footer">
+                    <button class="btn-outline" :disabled="assigningVoucher" @click="closeAssignModal">Hủy</button>
+                    <button
+                        class="btn-primary"
+                        :disabled="assigningVoucher || !selectedCustomerId"
+                        @click="assignVoucherToCustomer"
+                    >
+                        <i class="bi bi-gift"></i>
+                        <span>{{ assigningVoucher ? "Đang tặng..." : "Tặng voucher" }}</span>
                     </button>
                 </div>
             </div>
@@ -252,6 +369,15 @@ const pageSize = ref(10);
 const modalOpen = ref(false);
 const isEditing = ref(false);
 const editingId = ref(null);
+const assignModalOpen = ref(false);
+const assignVoucherTarget = ref(null);
+const customers = ref([]);
+const topMonthlyCustomers = ref([]);
+const customersLoading = ref(false);
+const topCustomersLoading = ref(false);
+const assignCustomerKeyword = ref("");
+const selectedCustomerId = ref("");
+const assigningVoucher = ref(false);
 const DAYS_PER_YEAR = 365;
 
 const emptyForm = () => ({
@@ -297,6 +423,34 @@ const voucherStats = computed(() => {
             return stats;
         },
         { total: 0, active: 0, available: 0, expiringSoon: 0 },
+    );
+});
+const topMonthlyCustomerIds = computed(() => {
+    return new Set(topMonthlyCustomers.value.map((customer) => Number(customer.userId || 0)).filter(Boolean));
+});
+const filteredAssignCustomers = computed(() => {
+    const keyword = normalizeText(assignCustomerKeyword.value);
+    const topIds = topMonthlyCustomerIds.value;
+
+    return customers.value
+        .filter((customer) => {
+            if (topIds.has(Number(customer.userId || 0))) return false;
+            if (!keyword) return true;
+            return normalizeText(
+                `${customer.fullName || ""} ${customer.email || ""} ${customer.phone || ""}`,
+            ).includes(keyword);
+        })
+        .sort((left, right) => Number(right.isActive === true) - Number(left.isActive === true))
+        .slice(0, 12);
+});
+const selectedAssignCustomer = computed(() => {
+    const selectedId = Number(selectedCustomerId.value || 0);
+    if (!selectedId) return null;
+
+    return (
+        customers.value.find((customer) => Number(customer.userId) === selectedId) ||
+        topMonthlyCustomers.value.find((customer) => Number(customer.userId) === selectedId) ||
+        null
     );
 });
 
@@ -354,6 +508,31 @@ const openEdit = (voucher) => {
 
 const closeModal = () => {
     modalOpen.value = false;
+};
+
+const openAssign = async (voucher) => {
+    if (!canAssignVoucher(voucher)) {
+        await showCinemaAlert({
+            icon: "warning",
+            title: "Voucher chưa thể tặng",
+            text: "Chỉ có thể tặng voucher đang bật, chưa hết hạn và còn lượt dùng.",
+        });
+        return;
+    }
+
+    assignVoucherTarget.value = voucher;
+    assignCustomerKeyword.value = "";
+    selectedCustomerId.value = "";
+    assignModalOpen.value = true;
+    await Promise.allSettled([fetchAssignCustomers(), fetchTopMonthlyCustomers()]);
+};
+
+const closeAssignModal = (force = false) => {
+    if (assigningVoucher.value && !force) return;
+    assignModalOpen.value = false;
+    assignVoucherTarget.value = null;
+    assignCustomerKeyword.value = "";
+    selectedCustomerId.value = "";
 };
 
 const normalizeDateTime = (value) => {
@@ -505,6 +684,106 @@ const removeVoucher = async (voucher) => {
     }
 };
 
+const fetchAssignCustomers = async () => {
+    if (customers.value.length) return;
+
+    try {
+        customersLoading.value = true;
+        const { data } = await api.get("/admin/users");
+        customers.value = Array.isArray(data) ? data : [];
+    } catch (err) {
+        await showCinemaAlert({
+            icon: "error",
+            title: "Không thể tải khách hàng",
+            text: getApiErrorMessage(err),
+        });
+    } finally {
+        customersLoading.value = false;
+    }
+};
+
+const fetchTopMonthlyCustomers = async () => {
+    const now = new Date();
+
+    try {
+        topCustomersLoading.value = true;
+        const { data } = await api.get("/admin/revenue/customers/monthly", {
+            params: {
+                year: now.getFullYear(),
+                month: now.getMonth() + 1,
+                page: 1,
+                pageSize: 5,
+            },
+        });
+
+        topMonthlyCustomers.value = (data?.items || [])
+            .filter((customer) => customer.userId)
+            .map((customer, index) => ({
+                ...customer,
+                rank: Number(customer.rank || index + 1),
+                userId: Number(customer.userId),
+                totalSpent: Number(customer.totalSpent || 0),
+            }));
+    } catch (err) {
+        console.error("Top monthly customers load failed:", err);
+        topMonthlyCustomers.value = [];
+    } finally {
+        topCustomersLoading.value = false;
+    }
+};
+
+const assignVoucherToCustomer = async () => {
+    if (!assignVoucherTarget.value || !selectedCustomerId.value) {
+        await showCinemaAlert({
+            icon: "warning",
+            title: "Chọn khách hàng",
+            text: "Vui lòng chọn khách hàng cần tặng voucher.",
+        });
+        return;
+    }
+
+    const customer = selectedAssignCustomer.value;
+    const confirmed = await showCinemaAlert({
+        icon: "question",
+        title: "Tặng voucher?",
+        text: `Tặng voucher ${assignVoucherTarget.value.code} cho ${getCustomerName(customer)}?`,
+        showCancelButton: true,
+        confirmButtonText: "Tặng",
+        cancelButtonText: "Hủy",
+    });
+
+    if (!confirmed.isConfirmed) return;
+
+    try {
+        assigningVoucher.value = true;
+        const { data } = await api.post(`/admin/vouchers/${assignVoucherTarget.value.voucherId}/assign`, {
+            userId: Number(selectedCustomerId.value),
+        });
+
+        await showCinemaAlert({
+            icon: data?.alreadyAssigned ? "info" : "success",
+            title: data?.alreadyAssigned ? "Khách đã có voucher này" : "Đã tặng voucher",
+            text: `${data?.voucherCode || assignVoucherTarget.value.code} · ${data?.customerName || getCustomerName(customer)}`,
+            timer: 1500,
+        });
+
+        closeAssignModal(true);
+    } catch (err) {
+        await showCinemaAlert({
+            icon: "error",
+            title: "Không thể tặng voucher",
+            text: getApiErrorMessage(err),
+        });
+    } finally {
+        assigningVoucher.value = false;
+    }
+};
+
+const selectAssignCustomer = (customer) => {
+    if (!customer?.userId) return;
+    selectedCustomerId.value = Number(customer.userId);
+};
+
 const formatCurrency = (amount) => {
     return new Intl.NumberFormat("vi-VN", {
         style: "currency",
@@ -598,6 +877,11 @@ const isVoucherUsableStock = (voucher, now = new Date()) => {
     return true;
 };
 
+const canAssignVoucher = (voucher) => {
+    if (!voucher?.active || isUsageSoldOut(voucher)) return false;
+    return getExpiryState(voucher) !== "expired";
+};
+
 const getVoucherStatusClass = (voucher) => {
     if (!voucher.active) return "inactive";
     if (isUsageSoldOut(voucher)) return "sold-out";
@@ -627,6 +911,28 @@ const getConditionLabels = (voucher) => {
     if (voucher.newMemberOnly) conditions.push("Chỉ khách mới");
     if (Number(voucher.perUserLimit || 0) > 0) conditions.push(`${voucher.perUserLimit} lượt / tài khoản`);
     return conditions.length ? conditions : ["Không yêu cầu"];
+};
+
+const getCustomerName = (customer) => {
+    return customer?.fullName || customer?.customerName || customer?.email || customer?.phone || "Khách hàng";
+};
+
+const formatCustomerContact = (customer) => {
+    return customer?.email || customer?.phone || "Chưa có liên hệ";
+};
+
+const isSelectedCustomer = (customer) => {
+    return Number(customer?.userId || 0) === Number(selectedCustomerId.value || 0);
+};
+
+const getAssignRankClass = (rank) => {
+    const rankNumber = Number(rank || 0);
+    return rankNumber >= 1 && rankNumber <= 3 ? `rank-${rankNumber}` : "rank-default";
+};
+
+const getAssignRankLabel = (rank) => {
+    const rankNumber = Number(rank || 0);
+    return rankNumber >= 1 && rankNumber <= 3 ? `TOP ${rankNumber}` : `#${rankNumber}`;
 };
 
 onMounted(fetchVouchers);
@@ -667,6 +973,12 @@ onMounted(fetchVouchers);
     border-radius: 8px;
     font-weight: 600;
     cursor: pointer;
+}
+
+.btn-primary:disabled,
+.btn-outline:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
 }
 
 .voucher-stats {
@@ -710,16 +1022,86 @@ onMounted(fetchVouchers);
     cursor: pointer;
 }
 
-.btn-text {
-    background: transparent;
-    border: none;
+.btn-icon-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border: 1px solid #f0ddd5;
+    border-radius: 8px;
+    background: #fffdfb;
     color: #ff6b35;
     cursor: pointer;
-    margin-right: 0.5rem;
+    vertical-align: middle;
+    transition:
+        background 0.18s ease,
+        border-color 0.18s ease,
+        box-shadow 0.18s ease,
+        color 0.18s ease,
+        transform 0.18s ease;
 }
 
-.btn-text.danger {
+.btn-icon-action i {
+    font-size: 1.25rem;
+    line-height: 1;
+}
+
+.btn-icon-action:hover:not(:disabled) {
+    background: #fff1e8;
+    border-color: #ffd4c2;
+    box-shadow: 0 8px 18px rgba(255, 107, 53, 0.12);
+    transform: translateY(-1px);
+}
+
+.btn-icon-action.gift {
+    color: #1f8f3b;
+    background: #f4fbf6;
+    border-color: #d8f0df;
+}
+
+.btn-icon-action.gift:hover:not(:disabled) {
+    background: #eefaf1;
+    border-color: #c8edd3;
+    box-shadow: 0 8px 18px rgba(31, 143, 59, 0.12);
+}
+
+.btn-icon-action.edit {
+    color: #ff6b35;
+}
+
+.btn-icon-action.toggle {
+    color: #1f8f3b;
+    background: #f4fbf6;
+    border-color: #d8f0df;
+}
+
+.btn-icon-action.toggle i {
+    font-size: 1.55rem;
+}
+
+.btn-icon-action.toggle.inactive {
+    color: #8a5a00;
+    background: #fff9e8;
+    border-color: #f4df9b;
+}
+
+.btn-icon-action.danger {
     color: #dc3545;
+    background: #fffafa;
+    border-color: #f6d4d4;
+}
+
+.btn-icon-action.danger:hover:not(:disabled) {
+    background: #fdecec;
+    border-color: #f6bcbc;
+    box-shadow: 0 8px 18px rgba(220, 53, 69, 0.12);
+}
+
+.btn-icon-action:disabled {
+    color: #aaa;
+    cursor: not-allowed;
+    opacity: 0.65;
 }
 
 .table-wrap {
@@ -916,10 +1298,22 @@ onMounted(fetchVouchers);
 }
 
 .status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 82px;
     padding: 0.25rem 0.6rem;
     border-radius: 999px;
     font-size: 0.8rem;
     font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.status-cell,
+.status-heading {
+    min-width: 112px;
+    white-space: nowrap;
 }
 
 .status.active {
@@ -944,7 +1338,20 @@ onMounted(fetchVouchers);
 }
 
 .actions {
+    min-width: 210px;
+    text-align: right;
     white-space: nowrap;
+}
+
+.actions-heading {
+    text-align: right;
+}
+
+.action-buttons {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.45rem;
 }
 
 .loading {
@@ -963,17 +1370,26 @@ onMounted(fetchVouchers);
 }
 
 .voucher-modal {
+    display: flex;
+    flex-direction: column;
     background: #fff;
     border-radius: 16px;
     max-width: 760px;
+    max-height: calc(100vh - 2rem);
     width: 100%;
+    overflow: hidden;
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+}
+
+.voucher-modal.assign-modal {
+    max-width: 820px;
 }
 
 .voucher-modal-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-shrink: 0;
     padding: 1rem 1.5rem;
     border-bottom: 1px solid #f0f0f0;
 }
@@ -986,14 +1402,210 @@ onMounted(fetchVouchers);
 }
 
 .voucher-modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
     padding: 1rem 1.5rem 0.5rem;
 }
 
 .voucher-modal-footer {
+    flex-shrink: 0;
     padding: 1rem 1.5rem 1.5rem;
     display: flex;
     justify-content: flex-end;
     gap: 0.75rem;
+    border-top: 1px solid #f0f0f0;
+    background: #fff;
+}
+
+.assign-voucher-summary {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    border: 1px solid #f0ddd5;
+    border-radius: 10px;
+    background: #fffaf7;
+    padding: 0.9rem 1rem;
+    margin-bottom: 1rem;
+}
+
+.assign-voucher-summary > div {
+    display: grid;
+    gap: 0.2rem;
+}
+
+.assign-voucher-summary strong {
+    color: #2f2926;
+}
+
+.assign-voucher-summary span:not(.status) {
+    color: #6f6159;
+    font-size: 0.85rem;
+}
+
+.assign-section {
+    border: 1px solid #eee2dc;
+    border-radius: 10px;
+    padding: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+.assign-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.assign-section-head strong {
+    color: #2f2926;
+}
+
+.assign-section-head small {
+    color: #7a6b63;
+}
+
+.top-customer-list,
+.assign-customer-list {
+    display: grid;
+    gap: 0.55rem;
+}
+
+.top-customer-item,
+.assign-customer-option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    border: 1px solid #eee2dc;
+    border-radius: 8px;
+    background: #fff;
+    color: #2f2926;
+    padding: 0.7rem 0.8rem;
+    text-align: left;
+}
+
+.top-customer-item {
+    cursor: pointer;
+}
+
+.top-customer-item:hover,
+.assign-customer-option:hover {
+    border-color: #ffc7ad;
+    background: #fff8f4;
+}
+
+.top-customer-item.selected,
+.assign-customer-option.selected {
+    border-color: #ff6b35;
+    background: #fff1e8;
+}
+
+.assign-customer-option.locked {
+    opacity: 0.68;
+}
+
+.assign-customer-option input {
+    width: 16px;
+    height: 16px;
+    accent-color: #ff6b35;
+}
+
+.customer-info {
+    display: grid;
+    gap: 0.15rem;
+    min-width: 0;
+}
+
+.customer-info strong,
+.customer-info small {
+    overflow-wrap: anywhere;
+}
+
+.customer-info small {
+    color: #7a6b63;
+    font-size: 0.8rem;
+}
+
+.rank-label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 48px;
+    height: 28px;
+    border-radius: 999px;
+    background: #f3f4f6;
+    color: #4b5563;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0;
+    white-space: nowrap;
+}
+
+.rank-label.rank-1 {
+    background: #fff7d6;
+    color: #8a5a00;
+}
+
+.rank-label.rank-2 {
+    background: #eef4ff;
+    color: #24579d;
+}
+
+.rank-label.rank-3 {
+    background: #fff0e3;
+    color: #9d420d;
+}
+
+.assign-search {
+    display: grid;
+    gap: 0.4rem;
+    color: #333;
+    font-size: 0.9rem;
+    margin-bottom: 0.75rem;
+}
+
+.assign-search input {
+    border: 1px solid #d9d9d9;
+    border-radius: 8px;
+    padding: 0.55rem 0.65rem;
+    font-size: 0.95rem;
+}
+
+.assign-loading,
+.assign-empty {
+    border: 1px dashed #d8cbc4;
+    border-radius: 8px;
+    background: #fffdfb;
+    color: #7a6b63;
+    padding: 1rem;
+    text-align: center;
+}
+
+.assign-selected {
+    display: grid;
+    gap: 0.15rem;
+    border: 1px solid #d8f0df;
+    border-radius: 10px;
+    background: #f0fbf3;
+    padding: 0.85rem 1rem;
+}
+
+.assign-selected span {
+    color: #1f8f3b;
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.assign-selected strong {
+    color: #1f3f2a;
+}
+
+.assign-selected small {
+    color: #4f6f58;
 }
 
 .form-grid {
@@ -1029,53 +1641,6 @@ onMounted(fetchVouchers);
     gap: 0.5rem;
 }
 
-.form-grid label.inline small {
-    display: block;
-    color: #777;
-    font-weight: 400;
-    margin-top: 0.15rem;
-}
-
-.condition-help {
-    grid-column: 1 / -1;
-    margin: 0;
-    color: #8a5a44;
-    font-size: 0.85rem;
-}
-
-.field-guide {
-    grid-column: 1 / -1;
-    border: 1px solid #ffe0d1;
-    border-radius: 10px;
-    background: #fff8f4;
-    padding: 0.9rem 1rem;
-}
-
-.field-guide-title {
-    font-weight: 700;
-    color: #7c2d12;
-    margin-bottom: 0.5rem;
-}
-
-.field-guide ul {
-    margin: 0;
-    padding-left: 1.1rem;
-    columns: 2;
-    column-gap: 1.5rem;
-}
-
-.field-guide li {
-    break-inside: avoid;
-    margin-bottom: 0.35rem;
-    color: #5f5048;
-    font-size: 0.84rem;
-    line-height: 1.4;
-}
-
-.field-guide strong {
-    color: #2f2926;
-}
-
 @media (max-width: 720px) {
     .header {
         flex-direction: column;
@@ -1088,10 +1653,6 @@ onMounted(fetchVouchers);
 
     .voucher-table {
         min-width: 980px;
-    }
-
-    .field-guide ul {
-        columns: 1;
     }
 }
 
